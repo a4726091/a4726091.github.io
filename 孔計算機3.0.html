@@ -272,15 +272,15 @@ document.getElementById("answer").textContent = "";
 		}
     //用來計算孔外側的function
     function CalculationOutside(){
-      document.getElementById("answer").textContent = parseInt(DistanceNumber)-(parseInt(holeANumber)/2) - (parseInt(holeBNumber)/2);
+      document.getElementById("answer").textContent = DistanceNumber-(holeANumber/2 - holeBNumber/2);
     }
    //用來計算孔內側的function
     function CalculationInside(){
-      document.getElementById("answer").textContent = (parseInt(holeANumber)/2) + parseInt(DistanceNumber) + (parseInt(holeBNumber)/2);
+      document.getElementById("answer").textContent = (holeANumber/2) + (DistanceNumber + (holeBNumber/2);
     }
     //用來計算孔內側到孔外側的function
     function CalculationInsideToOutside(){
-      document.getElementById("answer").textContent = parseInt(DistanceNumber) +  (parseInt(holeANumber)/2) - (parseInt(holeBNumber)/2);
+      document.getElementById("answer").textContent = DistanceNumber +  (holeANumber/2) - (holeBNumber/2);
     }
     function judjeAndCalculationCheckbox(){
       checkboxstatus();
