@@ -121,58 +121,26 @@
              background-color: #4CAF50;  
              color: white; 
             }
-
-/* CSS禁止雙擊放大 */
-/* 來源-> https://medium.com/@jacky810124/%E7%A6%81%E6%AD%A2-safari-%E4%B8%AD-double-tap-%E7%9A%84%E7%B8%AE%E5%B0%8F%E5%92%8C%E6%94%BE%E5%A4%A7-661802fa27cb */
-import React from 'react'
-
-import style from './styles.scss'
-
-class NumericKeyboard extends React.Component {
-  constructor (props) {
-    super(props)
-
-    this.state = {
-    }
-
-    this.clickKeyboard = this.clickKeyboard.bind(this)
-  }
-
-  render () {
-    return (
-      <div className={style['numeric-keyboard-component']}>
-        <div className={style['keys']}>
-          <Button
-            className={`${style['submit-key']} ${this.props.disabled ? style['disabled'] : ''}`}
-            onClick={this.clickKeyboard}
-          >
-           送出
-          </Button>
-        </div>
-      </div>
-    )
-  }
-
-  clickKeyboard (event) {
-    if (this.props.disabled) {
-      return
-    }
-
-    this.props.clickHandler(event, key)
-  }
-}
-
-export default NumericKeyboard
-     
-
-
-
-
-
 	</style>
 		
 
 	<script>
+		 // 禁止双击放大
+    var lastTouchEnd = 0;
+    document.documentElement.addEventListener('touchend', function (event) {
+        var now = Date.now();
+        if (now - lastTouchEnd <= 300) {
+            event.preventDefault();
+        }
+        lastTouchEnd = now;
+    }, false);
+    // 禁止双指放大
+    document.documentElement.addEventListener('touchstart', function (event) {
+        if (event.touches.length > 1) {
+            event.preventDefault();
+        }
+    }, false);
+		
       document.getElementById("txtHoleA").textContent = "";
 document.getElementById("txtDistance").textContent = "";
 document.getElementById("txtHoleB").textContent = "";
