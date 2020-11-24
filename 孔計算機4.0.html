@@ -1,0 +1,753 @@
+﻿<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>無標題文件</title>
+</head>
+
+<body>
+	
+<table border = 10 cellpaddin = 0 cellspacing = 1 >
+		<tr>
+			<td><h2 id="mode">模式:?</h2></td>
+			<td>
+		      <p>
+			      <label>
+			        <input type="checkbox" name="CheckboxGroup1_" value="核取方塊" id="CheckboxGroupCheckA">
+			        孔A不變</label>
+			      <br>
+			      <label>
+			        <input type="checkbox" name="CheckboxGroup1_" value="核取方塊" id="CheckboxGroupCheckDistance">
+			        距離不變</label>
+			      <br>
+			      <label>
+			        <input type="checkbox" name="CheckboxGroup1_" value="核取方塊" id="CheckboxGroupCheckB">
+			        孔B不變</label>
+			      <br>
+	        </p>
+			</td>
+      <td>
+		      <p>
+			      <label>
+			        <input type="radio" name="sex" value="孔外側" id="HoleOutside" checked="checked" />
+			        孔外側</label>
+			      <br>
+			      <label>
+			        <input type="radio" name="sex" value="孔內側" id="HoleInside" />
+			        孔內側</label>
+			      <br>
+            <label>
+			        <input type="radio" name="sex" value="孔內側到孔外側" id="HoleOutsideToHoleInside" />
+			        孔內側到孔外側</label>
+	        </p>
+      </td>
+		</tr>
+  
+    <tr>
+      <td align="center"><h2 id="tHoleA">>孔A</h2></td>
+      <td align="center"><h2 id="tDisance">中間距離</h2></td>
+      <td align="center"><h2 id="tHoleB">孔B</h2></td>
+    </tr>
+  
+      <tr style="color:red;">
+      <td align="center"><h1 id="txtHoleA">""</h1></td>
+      <td align="center"><h1 id="txtDistance">""</h1></td>
+      <td align="center"><h1 id="txtHoleB">""</h1></td>
+    </tr>
+  
+    <tr>
+      <td align="center"><h2 id="tHoleAns">結果</h2></td>
+      <td align="center"><h1 id="answer">""</h1></td>
+      <td align="center"><h1>&nbsp;</h1></td>
+    </tr>
+  
+		  <tr>
+		    <td><input class="button button7" id = "btn7" type="button" value="7"/></td>
+        <td><input class="button button8" id = "btn8" type="button" value="8"/></td>
+        <td><input class="button button9" id = "btn9" type="button" value="9"/></td>
+	    </tr>
+      <tr>
+		    <td><input class="button button4" id = "btn4" type="button" value="4"/></td>
+        <td><input class="button button5" id = "btn5" type="button" value="5"/></td>
+        <td><input class="button button6" id = "btn6" type="button" value="6"/></td>
+	    </tr>
+      <tr>
+		    <td><input class="button button1" id = "btn1" type="button" value="1"/></td>
+        <td><input class="button button2" id = "btn2" type="button" value="2"/></td>
+        <td><input class="button button3" id = "btn3" type="button" value="3"/></td>
+	    </tr>
+      <tr>
+		    <td><input class="button button0" id = "btn0" type="button" value="0"/></td>
+        <td><input class="button buttonAir" id = "btnAir" type="button" value=""/></td>
+        <td><input class="button buttonDot" id = "btnDot" type="button" value="."/></td>
+	    </tr>
+  
+      <tr>
+        <td colspan="2"><input class="button buttonCheck" id="btnCheck" type="button" value="下一個"/></td>
+		<td colspan="2"><input class="button buttonBack" id="btnBack" type="button" value="退回"/></td>  
+	  </tr>
+
+	
+	</table>
+	
+	
+        <style>
+
+
+        .button {
+           -webkit-appearance: none;  /* Safari 和 Chrome，常用於iOS下移除內建樣式 */
+           -moz-appearance: none;     /* FireFox */
+            appearance: none;
+            background-color: #4CAF50; /* Green */
+            border: none;
+            color: white;
+            padding: 16px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            -webkit-transition-duration: 0.4s; /* Safari */
+            transition-duration: 0.4s;
+            cursor: pointer;
+            width:170px;
+        }
+        .button{
+            background-color: white; 
+            color: black; 
+            border: 2px solid #4CAF50;
+        }
+        .button:active{
+             background-color: #4CAF50;  
+             color: white; 
+            }
+
+/* CSS禁止雙擊放大 */
+/* 來源-> https://medium.com/@jacky810124/%E7%A6%81%E6%AD%A2-safari-%E4%B8%AD-double-tap-%E7%9A%84%E7%B8%AE%E5%B0%8F%E5%92%8C%E6%94%BE%E5%A4%A7-661802fa27cb */
+import React from 'react'
+
+import style from './styles.scss'
+
+class NumericKeyboard extends React.Component {
+  constructor (props) {
+    super(props)
+
+    this.state = {
+    }
+
+    this.clickKeyboard = this.clickKeyboard.bind(this)
+  }
+
+  render () {
+    return (
+      <div className={style['numeric-keyboard-component']}>
+        <div className={style['keys']}>
+          <Button
+            className={`${style['submit-key']} ${this.props.disabled ? style['disabled'] : ''}`}
+            onClick={this.clickKeyboard}
+          >
+           送出
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  clickKeyboard (event) {
+    if (this.props.disabled) {
+      return
+    }
+
+    this.props.clickHandler(event, key)
+  }
+}
+
+export default NumericKeyboard
+     
+
+
+
+
+
+	</style>
+		
+
+	<script>
+      document.getElementById("txtHoleA").textContent = "";
+document.getElementById("txtDistance").textContent = "";
+document.getElementById("txtHoleB").textContent = "";
+document.getElementById("answer").textContent = "";
+
+      var ChooseMode = "15153";
+      //0為無勾選，1為有勾選
+      var NotChangeModeA = 0;
+      var NotChangeModeDistance = 0;
+      var NotChangeModeB = 0;
+      var inputMode = 1;//1=孔A，2=中間距離，3=孔B，4計算
+      var inputNumber = 0;
+      var holeANumber = 0;//儲存孔A資料
+      var DistanceNumber = 0;//儲存中間距離資料
+      var holeBNumber = 0;//儲存孔B資料
+      var checkboxStatusNumber = "0";//儲存checkbox狀態
+		
+	  var checkboxSelectmode = "000";//負責用來確認核取方塊的模式
+	  //(0,1)(0,1)(0,1)
+
+//除法
+     function accDiv(arg1,arg2){ 
+    var t1=0,t2=0,r1,r2; 
+    try {
+        t1=arg1.toString().split(".")[1].length;
+    } catch(e){} 
+    try {
+        t2=arg2.toString().split(".")[1].length;
+    } catch(e){} 
+    with(Math){ 
+        r1=Number(arg1.toString().replace(".",""));
+        r2=Number(arg2.toString().replace(".",""));
+        return (r1/r2)*pow(10,t2-t1); 
+    } 
+}
+
+//乘法
+     function accMul(arg1,arg2){ 
+    var m=0,s1=arg1.toString(),s2=arg2.toString(); 
+    try {
+        m+=s1.split(".")[1].length;
+    } catch(e){} 
+    try {
+        m+=s2.split(".")[1].length;
+    } catch(e){} 
+    return Number(s1.replace(".",""))*Number(s2.replace(".",""))/Math.pow(10,m);
+}
+
+//加法
+    function accAdd(arg1,arg2){ 
+    var r1,r2,m; 
+    try{r1=arg1.toString().split(".")[1].length}catch(e){r1=0} 
+    try{r2=arg2.toString().split(".")[1].length}catch(e){r2=0} 
+    m=Math.pow(10,Math.max(r1,r2));
+    return (arg1*m+arg2*m)/m;
+} 
+
+//減法
+    function accSubtr(arg1,arg2){
+    var r1,r2,m,n;
+    try {
+        r1=arg1.toString().split(".")[1].length;
+    } catch(e){r1=0}
+    try {
+        r2=arg2.toString().split(".")[1].length;
+    } catch(e){r2=0}
+    m=Math.pow(10,Math.max(r1,r2));
+    n=(r1>=r2)?r1:r2;
+    return ((arg1*m-arg2*m)/m).toFixed(n);
+  }
+
+
+    //用來約束按下數字時會填入哪一格的function
+    function inputModeFunction() {
+          if ( inputMode == 1 ){
+            inputNumber=document.getElementById("txtHoleA").textContent+inputNumber;
+            //inputNumber=txtHoleA.value+inputNumber;
+            document.getElementById("txtHoleA").textContent = inputNumber;
+          }   
+          if ( inputMode == 2 ){
+            inputNumber=document.getElementById("txtDistance").textContent+inputNumber;
+            document.getElementById("txtDistance").textContent = inputNumber;
+          }
+          if ( inputMode == 3 ){
+            inputNumber=document.getElementById("txtHoleB").textContent+inputNumber;
+            document.getElementById("txtHoleB").textContent = inputNumber;
+          }
+        }
+    //退回一格的function
+    function BackOne(){
+      if ( inputMode == 1 ){
+            var TxtA = document.getElementById("txtHoleA").textContent;
+            var TL = 0;
+            TL = TxtA.length - 1;
+            var DinputNumber;
+            DinputNumber = TxtA.substr(0,TL);
+            document.getElementById("txtHoleA").textContent = DinputNumber;
+          }   
+          if ( inputMode == 2 ){
+            var TxtA = document.getElementById("txtDistance").textContent;
+            var TL = 0;
+            TL = TxtA.length - 1;
+            var DinputNumber;
+            DinputNumber = TxtA.substr(0,TL);
+            document.getElementById("txtDistance").textContent = DinputNumber;
+          }
+          if ( inputMode == 3 ){
+            var TxtA = document.getElementById("txtHoleB").textContent;
+            var TL = 0;
+            TL = TxtA.length - 1;
+            var DinputNumber;
+            DinputNumber = TxtA.substr(0,TL);
+            document.getElementById("txtHoleB").textContent = DinputNumber;
+          }
+    }
+    //用來判斷選取方塊的function
+    function checkboxstatus(){
+      var a = document.getElementById("HoleOutside");
+			var b = document.getElementById("HoleInside");
+		  var c = document.getElementById("HoleOutsideToHoleInside");
+            if (a.checked) {
+                checkboxStatusNumber = "1";
+              };
+            if (b.checked) {
+                checkboxStatusNumber = "2";
+              };
+            if (c.checked) {
+                checkboxStatusNumber = "3";
+              };
+    }
+		//用來判斷核取方塊的function
+		function chooseBoxMode() {
+			var a = document.getElementById("CheckboxGroupCheckA");
+			var b = document.getElementById("CheckboxGroupCheckDistance");
+		  var c = document.getElementById("CheckboxGroupCheckB");
+           if (a.checked) {
+              NotChangeModeA = "1";
+            }else{
+			  NotChangeModeA = "0";
+			};
+           if (b.checked) {
+              NotChangeModeDistance = "1";
+            }else{
+              NotChangeModeDistance = "0";
+			}
+            if (c.checked) {
+              NotChangeModeB = "1";
+            }else{
+			  NotChangeModeB = "0";}	
+			checkboxSelectmode = NotChangeModeA + NotChangeModeDistance + NotChangeModeB;
+		 }
+		//用來影藏核取方塊
+    function hidechoosebox(){
+      document.getElementById("CheckboxGroupCheckA").disabled = true;
+      document.getElementById("CheckboxGroupCheckDistance").disabled = true;
+      document.getElementById("CheckboxGroupCheckB").disabled = true;
+    }
+		//用來顯示核取方塊
+    function showchoosebox(){
+      document.getElementById("CheckboxGroupCheckA").disabled = false;
+      document.getElementById("CheckboxGroupCheckDistance").disabled = false;
+      document.getElementById("CheckboxGroupCheckB").disabled = false;
+    }
+		//用來清除所有的function
+		function clearAll() {
+            btnCheck.value = "下一個";
+            document.getElementById("tHoleAns").textContent = "結果";
+            document.getElementById("tHoleA").textContent = ">孔A";
+            if (checkboxSelectmode == "000"){
+               document.getElementById("txtHoleA").textContent = "" ;
+               document.getElementById("txtDistance").textContent = "";
+               document.getElementById("txtHoleB").textContent = "";
+            }
+            if (checkboxSelectmode == "010"){
+               document.getElementById("txtHoleA").textContent = "" ;
+               document.getElementById("txtHoleB").textContent = "";
+            }
+            if (checkboxSelectmode == "011"){
+               document.getElementById("txtHoleA").textContent = "" ;
+            }
+            if (checkboxSelectmode == "001"){
+               document.getElementById("txtHoleA").textContent = "" ;
+               document.getElementById("txtDistance").textContent = "";
+            }
+            if (checkboxSelectmode == "101"){
+               document.getElementById("txtDistance").textContent = "";
+            }
+            if (checkboxSelectmode == "100"){
+               document.getElementById("txtDistance").textContent = "";
+               document.getElementById("txtHoleB").textContent = "";
+            }
+            if (checkboxSelectmode == "110"){
+               document.getElementById("txtHoleB").textContent = "";
+            }
+            document.getElementById("answer").textContent = "";
+      
+		}
+    //用來計算孔外側的function
+    function CalculationOutside(){
+      document.getElementById("answer").textContent = DistanceNumber-(holeANumber)/2 - (holeBNumber/2);
+    }
+   //用來計算孔內側的function
+    function CalculationInside(){
+      document.getElementById("answer").textContent = (holeANumber)/2 + DistanceNumber + (holeBNumber/2);
+    }
+    //用來計算孔內側到孔外側的function
+    function CalculationInsideToOutside(){
+      document.getElementById("answer").textContent = DistanceNumber +  (holeANumber/2) - (holeBNumber/2);
+    }
+    function judjeAndCalculationCheckbox(){
+      checkboxstatus();
+      if (checkboxStatusNumber == "1") {CalculationOutside();};
+      if (checkboxStatusNumber == "2") {CalculationInside();};
+      if (checkboxStatusNumber == "3") {CalculationInsideToOutside();};
+    }
+		//用來處理各種模式的function
+		function CalculationHoleToHole() {
+              judjeAndCalculationCheckbox();
+              btnCheck.value = "點選清除";
+			  document.getElementById("tHoleA").textContent = "孔A";	
+			  document.getElementById("tDisance").textContent = "中間距離";	
+              document.getElementById("tHoleB").textContent = "孔B";		
+              document.getElementById("tHoleAns").textContent = ">結果";
+
+		}
+		function inputHoleA(){
+              document.getElementById("tHoleA").textContent = ">孔A";	
+			  document.getElementById("tDisance").textContent = "中間距離";	
+              document.getElementById("tHoleB").textContent = "孔B";		
+              document.getElementById("tHoleAns").textContent = "結果";
+		}
+    function inputDistance(){
+              document.getElementById("tHoleA").textContent = "孔A";	
+			  document.getElementById("tDisance").textContent = ">中間距離";	
+              document.getElementById("tHoleB").textContent = "孔B";		
+              document.getElementById("tHoleAns").textContent = "結果";	
+		}
+		function inputHoleB(){
+              document.getElementById("tHoleA").textContent = "孔A";	
+			  document.getElementById("tDisance").textContent = "中間距離";	
+              document.getElementById("tHoleB").textContent = ">孔B";		
+              document.getElementById("tHoleAns").textContent = "結果";
+		}
+
+    //用來儲存計算結果的function
+    function storeCalculationResultsTxtHoleA(){
+       holeANumber = parseFloat(document.getElementById("txtHoleA").textContent);//儲存孔A資料
+    }
+    function storeCalculationResultsTxtDistance(){
+       DistanceNumber = parseFloat(document.getElementById("txtDistance").textContent);//儲存中間距離資料
+    }
+    function storeCalculationResultsTxtHoleB(){
+       holeBNumber = parseFloat(document.getElementById("txtHoleB").textContent);//儲存孔B資料
+    }
+
+
+		//用來判斷輸入方式的function
+		function checkInputWay() {
+			chooseBoxMode();
+      //000模式
+			if (checkboxSelectmode == 000){
+                if(inputMode == 4){
+                  inputMode = 0;
+                  clearAll();
+                  hidechoosebox();
+                }
+                if(inputMode == 3){
+                  inputMode = 4;
+                  storeCalculationResultsTxtHoleB();
+                  CalculationHoleToHole();
+                  showchoosebox();
+                }
+                if(inputMode == 2){
+                  inputMode = 3;
+                  inputNumber = "";
+                  btnCheck.value = "確定";
+                  inputHoleB();
+                  storeCalculationResultsTxtDistance();
+                }
+                if(inputMode == 1){
+                  inputMode = 2;
+                  inputNumber = "";
+                  inputDistance();
+                  storeCalculationResultsTxtHoleA();
+                }
+                if(inputMode == 0){
+                  inputMode = 1;
+                }
+			 }
+      //010//NG//改""可以//完成
+      if (checkboxSelectmode == "010"){
+                if(inputMode == 4){
+                  inputMode = 0;
+                  clearAll();
+                  hidechoosebox();
+                }
+                if(inputMode == 3){
+                  inputMode = 4;
+                  storeCalculationResultsTxtHoleB();
+                  CalculationHoleToHole();
+                  showchoosebox();
+                }
+                /*if(inputMode == 2){
+                  inputMode = 3;
+                  inputNumber = "";
+                  btnCheck.value = "確定";
+                  inputHoleB();
+                }*/
+                if(inputMode == 1){
+                  inputMode = 3;
+                  inputNumber = "";
+                  inputHoleB();
+                  storeCalculationResultsTxtHoleA();
+                }
+                if(inputMode == 0){
+                  inputMode = 1;
+                }
+			 }
+      //011//NG//改""可以//完成
+      if (checkboxSelectmode == "011"){
+                if(inputMode == 4){
+                  inputMode = 0;
+                  clearAll();
+                  hidechoosebox();
+                }
+                /*if(inputMode == 3){
+                  inputMode = 4;
+                  CalculationHoleToHole();
+                }*/
+                /*if(inputMode == 2){
+                  inputMode = 3;
+                  inputNumber = "";
+                  btnCheck.value = "確定";
+                  inputHoleB();
+                }*/
+                if(inputMode == 1){
+                  inputMode = 4;
+                  inputNumber = "";
+                  storeCalculationResultsTxtHoleA();
+                  CalculationHoleToHole();
+                  showchoosebox();
+                }
+                if(inputMode == 0){
+                  inputMode = 1;
+                }
+			 }
+      //001//OK//完成
+      if (checkboxSelectmode == 001){
+                if(inputMode == 4){
+                  inputMode = 0;
+                  clearAll();
+                  hidechoosebox();
+                }
+                /*if(inputMode == 3){
+                  inputMode = 4;
+                  CalculationHoleToHole();
+                }*/
+                if(inputMode == 2){
+                  inputMode = 4;
+                  inputNumber = "";
+                  btnCheck.value = "確定";
+                  storeCalculationResultsTxtDistance();
+                  CalculationHoleToHole();
+                  showchoosebox();
+                }
+                if(inputMode == 1){
+                  inputMode = 2;
+                  inputNumber = "";
+                  inputDistance();
+                  storeCalculationResultsTxtHoleA();
+                }
+                if(inputMode == 0){
+                  inputMode = 1;
+                }
+			 }
+      //101 //OK//完成
+      if (checkboxSelectmode == 101){
+                if(inputMode == 4){
+                  inputMode = 0;
+                  clearAll();
+                  hidechoosebox();
+                }
+                /*if(inputMode == 3){
+                  inputMode = 4;
+                  CalculationHoleToHole();
+                }*/
+                if(inputMode == 2){
+                  inputMode = 4;
+                  inputNumber = "";
+                  btnCheck.value = "確定";
+                  storeCalculationResultsTxtDistance();
+                  CalculationHoleToHole();
+                  showchoosebox();
+                }
+                /*if(inputMode == 1){
+                  inputMode = 2;
+                  inputNumber = "";
+                  inputDistance();
+                }*/
+                if(inputMode == 0){
+                  inputMode = 2;
+                  inputDistance();
+                }
+			 }
+      //100//ok//完成
+      if (checkboxSelectmode == 100){
+                if(inputMode == 4){
+                  inputMode = 0;
+                  clearAll();
+                  hidechoosebox();
+                }
+                if(inputMode == 3){
+                  inputMode = 4;
+                  storeCalculationResultsTxtHoleB();
+                  CalculationHoleToHole();
+                  showchoosebox();
+                }
+                if(inputMode == 2){
+                  inputMode = 3;
+                  inputNumber = "";
+                  btnCheck.value = "確定";
+                  inputHoleB();
+                  storeCalculationResultsTxtDistance();
+                }
+                /*if(inputMode == 1){
+                  inputMode = 2;
+                  inputNumber = "";
+                  inputDistance();
+                }*/
+                if(inputMode == 0){
+                  inputMode = 2;
+                  inputDistance();
+                }
+			 }
+      //110//OK//完成
+      if (checkboxSelectmode == 110){
+                if(inputMode == 4){
+                  inputMode = 0;
+                  clearAll();
+                  hidechoosebox();
+                }
+                if(inputMode == 3){
+                  inputMode = 4;
+                  storeCalculationResultsTxtHoleB();
+                  CalculationHoleToHole();
+                  showchoosebox();
+                }
+                /*if(inputMode == 2){
+                  inputMode = 3;
+                  inputNumber = "";
+                  btnCheck.value = "確定";
+                  inputHoleB();
+                }*/
+                /*if(inputMode == 1){
+                  inputMode = 2;
+                  inputNumber = "";
+                  inputDistance();
+                }*/
+                if(inputMode == 0){
+                  inputMode = 3;
+                  inputHoleB();
+                }
+			 }
+      //111//OK
+      if (checkboxSelectmode == 111){
+                document.getElementById("mode").textContent = "請不要全選";
+			 }
+		}
+
+		
+		/*var btnMode12 = document.getElementById("btnMode");
+		btnMode12.οnclick=function(){
+			document.getElementById("mode").textContent = "ChooseMode";
+		}*/
+		
+ hidechoosebox();
+///////////////////////////////////////////////////////////////////////////////
+        //按鈕事件
+        document.addEventListener("DOMContentLoaded", 
+        function(event) { 
+          var btnCheck1 = document.querySelector('#btnCheck');
+          var btnBack = document.querySelector('#btnBack');
+        
+          //btncheck 點選
+          btnCheck1.addEventListener('click', function() {
+              //按下按鈕之執行位置			 
+			       checkInputWay();//跳下一個或計算        
+              document.getElementById("mode").textContent = holeANumber+"."+DistanceNumber+"."+holeBNumber;
+              //更改mode(文字類別)的文字
+          })//btncheck事件結束
+          
+          //btnBack 點選
+          btnBack.addEventListener('click', function() {
+              //按下按鈕之執行位置			 
+            BackOne();
+          })//btnBack事件結束
+          
+
+          //btn0點選
+           btn0.addEventListener('click', function() {
+                //按下按鈕之執行位置
+             inputNumber = btn0.value;
+             inputModeFunction();
+               })
+          //btn1點選
+           btn1.addEventListener('click', function() {
+                //按下按鈕之執行位置
+             inputNumber = btn1.value;
+             inputModeFunction();
+               })
+          //btn2點選
+           btn2.addEventListener('click', function() {
+                //按下按鈕之執行位置
+             inputNumber = btn2.value;
+             inputModeFunction();
+               })
+          //btn3點選
+           btn3.addEventListener('click', function() {
+                //按下按鈕之執行位置
+             inputNumber = btn3.value;
+             inputModeFunction();
+               })
+          //btn4點選
+           btn4.addEventListener('click', function() {
+                //按下按鈕之執行位置
+             inputNumber = btn4.value;
+             inputModeFunction();
+               })
+          //btn5點選
+           btn5.addEventListener('click', function() {
+                //按下按鈕之執行位置
+             inputNumber = btn5.value;
+             inputModeFunction();
+               })
+          //btn6點選
+           btn6.addEventListener('click', function() {
+                //按下按鈕之執行位置
+             inputNumber = btn6.value;
+             inputModeFunction();
+               })
+          //btn7點選
+           btn7.addEventListener('click', function() {
+                //按下按鈕之執行位置
+             inputNumber = btn7.value;
+             inputModeFunction();
+               })
+          //btn8點選
+           btn8.addEventListener('click', function() {
+                //按下按鈕之執行位置
+             inputNumber = btn8.value;
+             inputModeFunction();
+               })
+          //btn9點選
+           btn9.addEventListener('click', function() {
+                //按下按鈕之執行位置
+             inputNumber = btn9.value;
+             inputModeFunction();
+               })
+          //btnDot點選
+           btnDot.addEventListener('click', function() {
+                //按下按鈕之執行位置
+             inputNumber = btnDot.value;
+             inputModeFunction();
+               })
+
+
+
+         });//按鈕事件尾端
+
+		
+		
+		
+
+	</script>
+	
+	
+</body>
+</html>
