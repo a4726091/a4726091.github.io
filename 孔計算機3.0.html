@@ -6,8 +6,8 @@
 </head>
 
 <body>
-	
-<table border = 10 cellpaddin = 0 cellspacing = 1 >
+
+	<table border = 10 cellpaddin = 0 cellspacing = 1 >
 		<tr>
 			<td><h2 id="mode">模式:?</h2></td>
 			<td>
@@ -90,8 +90,8 @@
 	
 	</table>
 	
-	
         <style>
+        
         .button {
            -webkit-appearance: none;  /* Safari 和 Chrome，常用於iOS下移除內建樣式 */
            -moz-appearance: none;     /* FireFox */
@@ -120,11 +120,30 @@
              color: white; 
             }
 
+
 	</style>
 		
 
 	<script>
-      document.getElementById("txtHoleA").textContent = "";
+      	 // 禁止双击放大
+    var lastTouchEnd = 0;
+    document.documentElement.addEventListener('touchend', function (event) {
+        var now = Date.now();
+        if (now - lastTouchEnd <= 300) {
+            event.preventDefault();
+        }
+        lastTouchEnd = now;
+    }, false);
+    // 禁止双指放大
+    document.documentElement.addEventListener('touchstart', function (event) {
+        if (event.touches.length > 1) {
+            event.preventDefault();
+        }
+    }, false);
+//來源-> https://blog.csdn.net/weixin_44673034/article/details/103353130?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromBaidu-2.not_use_machine_learn_pai&depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromBaidu-2.not_use_machine_learn_pai
+
+
+document.getElementById("txtHoleA").textContent = "";
 document.getElementById("txtDistance").textContent = "";
 document.getElementById("txtHoleB").textContent = "";
 document.getElementById("answer").textContent = "";
@@ -143,6 +162,57 @@ document.getElementById("answer").textContent = "";
 		
 	  var checkboxSelectmode = "000";//負責用來確認核取方塊的模式
 	  //(0,1)(0,1)(0,1)
+
+//除法
+     function accDiv(arg1,arg2){ 
+    var t1=0,t2=0,r1,r2; 
+    try {
+        t1=arg1.toString().split(".")[1].length;
+    } catch(e){} 
+    try {
+        t2=arg2.toString().split(".")[1].length;
+    } catch(e){} 
+    with(Math){ 
+        r1=Number(arg1.toString().replace(".",""));
+        r2=Number(arg2.toString().replace(".",""));
+        return (r1/r2)*pow(10,t2-t1); 
+    } 
+}
+
+//乘法
+     function accMul(arg1,arg2){ 
+    var m=0,s1=arg1.toString(),s2=arg2.toString(); 
+    try {
+        m+=s1.split(".")[1].length;
+    } catch(e){} 
+    try {
+        m+=s2.split(".")[1].length;
+    } catch(e){} 
+    return Number(s1.replace(".",""))*Number(s2.replace(".",""))/Math.pow(10,m);
+}
+
+//加法
+    function accAdd(arg1,arg2){ 
+    var r1,r2,m; 
+    try{r1=arg1.toString().split(".")[1].length}catch(e){r1=0} 
+    try{r2=arg2.toString().split(".")[1].length}catch(e){r2=0} 
+    m=Math.pow(10,Math.max(r1,r2));
+    return (arg1*m+arg2*m)/m;
+} 
+
+//減法
+    function accSubtr(arg1,arg2){
+    var r1,r2,m,n;
+    try {
+        r1=arg1.toString().split(".")[1].length;
+    } catch(e){r1=0}
+    try {
+        r2=arg2.toString().split(".")[1].length;
+    } catch(e){r2=0}
+    m=Math.pow(10,Math.max(r1,r2));
+    n=(r1>=r2)?r1:r2;
+    return ((arg1*m-arg2*m)/m).toFixed(n);
+  }
 
 
     //用來約束按下數字時會填入哪一格的function
@@ -272,15 +342,30 @@ document.getElementById("answer").textContent = "";
 		}
     //用來計算孔外側的function
     function CalculationOutside(){
-      document.getElementById("answer").textContent = DistanceNumber-(holeANumber/2 - holeBNumber/2);
+      var a =  accDiv(holeANumber,2);
+      var b =  accDiv(holeBNumber,2);
+      var c =  accSubtr(DistanceNumber,a);
+      var d =  accSubtr(c,b);
+      //DistanceNumber-(holeANumber/2) - (holeBNumber/2)
+      document.getElementById("answer").textContent = d;
     }
    //用來計算孔內側的function
     function CalculationInside(){
-      document.getElementById("answer").textContent = (holeANumber/2) + (DistanceNumber + (holeBNumber/2);
+      //(holeANumber)/2 + DistanceNumber + (holeBNumber/2)
+      var a =  accDiv(holeANumber,2);
+      var b =  accDiv(holeBNumber,2);
+      var c =  accAdd(a,b);
+      var d =  accAdd(DistanceNumber,c);
+      document.getElementById("answer").textContent = d;
     }
     //用來計算孔內側到孔外側的function
     function CalculationInsideToOutside(){
-      document.getElementById("answer").textContent = DistanceNumber +  (holeANumber/2) - (holeBNumber/2);
+      // DistanceNumber +  (holeANumber/2) - (holeBNumber/2)
+      var a =  accDiv(holeANumber,2);
+      var b =  accDiv(holeBNumber,2);
+      var c =  accAdd(DistanceNumber,a);
+      var d =  accSubtr(c,b);
+      document.getElementById("answer").textContent = d;
     }
     function judjeAndCalculationCheckbox(){
       checkboxstatus();
@@ -557,7 +642,7 @@ document.getElementById("answer").textContent = "";
           var btnBack = document.querySelector('#btnBack');
         
           //btncheck 點選
-          btnCheck1.addEventListener('click', function() {
+          btnCheck1.addEventListener('touchstart', function() {
               //按下按鈕之執行位置			 
 			       checkInputWay();//跳下一個或計算        
               document.getElementById("mode").textContent = holeANumber+"."+DistanceNumber+"."+holeBNumber;
@@ -565,74 +650,74 @@ document.getElementById("answer").textContent = "";
           })//btncheck事件結束
           
           //btnBack 點選
-          btnBack.addEventListener('click', function() {
+          btnBack.addEventListener('touchstart', function() {
               //按下按鈕之執行位置			 
             BackOne();
           })//btnBack事件結束
           
 
           //btn0點選
-           btn0.addEventListener('click', function() {
+           btn0.addEventListener('touchstart', function() {
                 //按下按鈕之執行位置
              inputNumber = btn0.value;
              inputModeFunction();
                })
           //btn1點選
-           btn1.addEventListener('click', function() {
+           btn1.addEventListener('touchstart', function() {
                 //按下按鈕之執行位置
              inputNumber = btn1.value;
              inputModeFunction();
                })
           //btn2點選
-           btn2.addEventListener('click', function() {
+           btn2.addEventListener('touchstart', function() {
                 //按下按鈕之執行位置
              inputNumber = btn2.value;
              inputModeFunction();
                })
           //btn3點選
-           btn3.addEventListener('click', function() {
+           btn3.addEventListener('touchstart', function() {
                 //按下按鈕之執行位置
              inputNumber = btn3.value;
              inputModeFunction();
                })
           //btn4點選
-           btn4.addEventListener('click', function() {
+           btn4.addEventListener('touchstart', function() {
                 //按下按鈕之執行位置
              inputNumber = btn4.value;
              inputModeFunction();
                })
           //btn5點選
-           btn5.addEventListener('click', function() {
+           btn5.addEventListener('touchstart', function() {
                 //按下按鈕之執行位置
              inputNumber = btn5.value;
              inputModeFunction();
                })
           //btn6點選
-           btn6.addEventListener('click', function() {
+           btn6.addEventListener('touchstart', function() {
                 //按下按鈕之執行位置
              inputNumber = btn6.value;
              inputModeFunction();
                })
           //btn7點選
-           btn7.addEventListener('click', function() {
+           btn7.addEventListener('touchstart', function() {
                 //按下按鈕之執行位置
              inputNumber = btn7.value;
              inputModeFunction();
                })
           //btn8點選
-           btn8.addEventListener('click', function() {
+           btn8.addEventListener('touchstart', function() {
                 //按下按鈕之執行位置
              inputNumber = btn8.value;
              inputModeFunction();
                })
           //btn9點選
-           btn9.addEventListener('click', function() {
+           btn9.addEventListener('touchstart', function() {
                 //按下按鈕之執行位置
              inputNumber = btn9.value;
              inputModeFunction();
                })
           //btnDot點選
-           btnDot.addEventListener('click', function() {
+           btnDot.addEventListener('touchstart', function() {
                 //按下按鈕之執行位置
              inputNumber = btnDot.value;
              inputModeFunction();
@@ -645,6 +730,7 @@ document.getElementById("answer").textContent = "";
 		
 		
 		
+
 
 	</script>
 	
