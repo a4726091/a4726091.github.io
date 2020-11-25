@@ -140,8 +140,10 @@
             event.preventDefault();
         }
     }, false);
-		
-      document.getElementById("txtHoleA").textContent = "";
+//來源-> https://blog.csdn.net/weixin_44673034/article/details/103353130?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromBaidu-2.not_use_machine_learn_pai&depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromBaidu-2.not_use_machine_learn_pai
+
+
+document.getElementById("txtHoleA").textContent = "";
 document.getElementById("txtDistance").textContent = "";
 document.getElementById("txtHoleB").textContent = "";
 document.getElementById("answer").textContent = "";
@@ -340,15 +342,30 @@ document.getElementById("answer").textContent = "";
 		}
     //用來計算孔外側的function
     function CalculationOutside(){
-      document.getElementById("answer").textContent = DistanceNumber-(holeANumber)/2 - (holeBNumber/2);
+      var a =  accDiv(holeANumber,2);
+      var b =  accDiv(holeBNumber,2);
+      var c =  accSubtr(DistanceNumber,a);
+      var d =  accSubtr(c,b);
+      //DistanceNumber-(holeANumber/2) - (holeBNumber/2)
+      document.getElementById("answer").textContent = d;
     }
    //用來計算孔內側的function
     function CalculationInside(){
-      document.getElementById("answer").textContent = (holeANumber)/2 + DistanceNumber + (holeBNumber/2);
+      //(holeANumber)/2 + DistanceNumber + (holeBNumber/2)
+      var a =  accDiv(holeANumber,2);
+      var b =  accDiv(holeBNumber,2);
+      var c =  accAdd(a,b);
+      var d =  accAdd(DistanceNumber,c);
+      document.getElementById("answer").textContent = d;
     }
     //用來計算孔內側到孔外側的function
     function CalculationInsideToOutside(){
-      document.getElementById("answer").textContent = DistanceNumber +  (holeANumber/2) - (holeBNumber/2);
+      // DistanceNumber +  (holeANumber/2) - (holeBNumber/2)
+      var a =  accDiv(holeANumber,2);
+      var b =  accDiv(holeBNumber,2);
+      var c =  accAdd(DistanceNumber,a);
+      var d =  accSubtr(c,b);
+      document.getElementById("answer").textContent = d;
     }
     function judjeAndCalculationCheckbox(){
       checkboxstatus();
@@ -705,15 +722,7 @@ document.getElementById("answer").textContent = "";
              inputNumber = btnDot.value;
              inputModeFunction();
                })
-
-
-
          });//按鈕事件尾端
-
-		
-		
-		
-
 	</script>
 	
 	
