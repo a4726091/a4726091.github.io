@@ -376,7 +376,9 @@ document.addEventListener("mousewheel", (e) => {
 		passive: false
 });
 // 触摸板禁止手指缩放
-
+document.addEventListener('touchstart', function(event) {
+    event.preventDefault()
+}, { passive: false })
 
 // 阻止子元素相同事件冒泡
 // document.getElementById('app').addEventListener('wheel', function(event) {
