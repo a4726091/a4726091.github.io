@@ -9,6 +9,22 @@ var windowHeight = window.innerHeight - 50 ||
 var canvas2 = document.getElementById("testCanvas");
 canvas2.width = windowWidth;
 canvas2.height = windowHeight;
+/////////////////////////////////////////////////////
+// 禁止双击放大
+    var lastTouchEnd = 0;
+    document.documentElement.addEventListener('touchend', function (event) {
+        var now = Date.now();
+        if (now - lastTouchEnd <= 300) {
+            event.preventDefault();
+        }
+        lastTouchEnd = now;
+    }, false);
+    // 禁止双指放大
+    document.documentElement.addEventListener('touchstart', function (event) {
+        if (event.touches.length > 1) {
+            event.preventDefault();
+        }
+    }, false);
 
 ///////////////////////////////////////////////////
 var world, worldWidth, worldHeight;
@@ -375,15 +391,6 @@ document.addEventListener("mousewheel", (e) => {
 }, {
 		passive: false
 });
-// 触摸板禁止手指缩放
-document.addEventListener('touchstart', function(event) {
-    event.preventDefault()
-}, { passive: false })
-
-// 阻止子元素相同事件冒泡
-// document.getElementById('app').addEventListener('wheel', function(event) {
-//   event.stopPropagation()
-// })
 
 
 /////////////////////////////////////
