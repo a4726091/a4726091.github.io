@@ -1,1 +1,36 @@
-efeefhththzth
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8">
+  <title>CodePen - 泡泡圖5.2</title>
+  <link rel="stylesheet" href="./style.css">
+
+</head>
+<body>
+<!-- partial:index.partial.html -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<body>
+<textarea style="width:80px;height:80px;" id="textbox2"></textarea>
+<canvas id="testCanvas" onmousedown="whichButton(event)" onmouseup = "clickup(event)"></canvas>
+<br>
+<input class="Bubble control" id = "btn" type="button" value="放大">
+<input class="Bubble control" id = "btn2" type="button" value="縮小">
+<input class="Bubble control" id = "btn3" type="button" value="匯出成圖片" onmouseup="outputContainToImage()" >
+<!-- ... https://progressbar.tw/posts/47 傳圖片不難，那上傳同時預覽呢？ ... -->
+<div id = "result"></div>
+    <input id="ppic" type="file" name = 'pic' accept = "image/*" onchange = "selectFile()"/>
+</br>
+<br>
+<textarea id="textbox"></textarea>
+
+</br>
+<br>
+  <!-- 表格增加功能 -->
+  <div id="myDynamicTable"></div>
+</br>
+</body>
+<!-- partial -->
+  <script src='https://code.createjs.com/createjs-2015.11.26.combined.js'></script><script  src="./script.js"></script>
+
+</body>
+</html>
