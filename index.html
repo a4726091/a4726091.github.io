@@ -33,14 +33,6 @@
 <!-- partial -->
   <script src='https://code.createjs.com/createjs-2015.11.26.combined.js'></script>
   <script src='https://hammerjs.github.io/dist/hammer.min.js'></script>
-   <script>
-        window.onload = function () {
-            var hammerMusicBlock = new Hammer(document.getElementById("musicBlock"));
-            hammerMusicBlock.ontransformstart = function (ev) { ev.preventDefault(); }; // double fingers touchstart
-            hammerMusicBlock.ontransform = function (ev) { ev.preventDefault(); }; // double fingers touchmove
-            hammerMusicBlock.ontransformend = function (ev) { ev.preventDefault(); }; // double fingers touchend
-        }
-    </script>
   <script  src="./script.js"></script>
 
 </body>
