@@ -1,11 +1,3 @@
-window.onload = function () {
-            var hammerMusicBlock = new Hammer(document.getElementById("musicBlock"));
-
-            hammerMusicBlock.ontransformstart = function (ev) { ev.preventDefault(); }; // double fingers touchstart
-            hammerMusicBlock.ontransform = function (ev) { ev.preventDefault(); }; // double fingers touchmove
-            hammerMusicBlock.ontransformend = function (ev) { ev.preventDefault(); }; // double fingers touchend
-        }
-
 var windowWidth  = window.innerWidth - 35 ||
 		document.documentElement.clientWidth ||
 		document.body.clientWidth;
