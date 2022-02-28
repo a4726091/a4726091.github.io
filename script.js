@@ -1,14 +1,14 @@
-var windowWidth  = window.innerWidth ||
+var windowWidth = window.innerWidth ||
 		document.documentElement.clientWidth ||
 		document.body.clientWidth;
 
-var windowHeight = window.innerHeight || 
+var windowHeight = window.innerHeight ||
 		document.documentElement.clientHeight ||
 		document.body.clientHeight;
 
 var canvas2 = document.getElementById("testCanvas");
 canvas2.width = windowWidth;
-canvas2.height = windowHeight-100;
+canvas2.height = windowHeight - 100;
 
 ///////////////////////////////////////////////////
 var world, worldWidth, worldHeight;
@@ -18,7 +18,7 @@ var rightClickMenu = new createjs.Container(); //右鍵選單
 // load the source image:
 var image = new Image();
 image.crossOrigin = "Anonymous";
-image.src = "https://i.imgur.com/kKa6xj6.png";
+image.src = "https://i.imgur.com/aS4FwAB.png";
 //https://i.imgur.com/kKa6xj6.png
 var stageWidth = windowWidth;
 var stageHeight = windowHeight;
@@ -32,11 +32,12 @@ stage.enableMouseOver(); //重要開啟stage的MouseOver監聽器
 ///////////////////////////////////////
 bitmap = new createjs.Bitmap(image);
 pic.addChild(bitmap);
-pic.x = 250;
-pic.y = 250;
-pic.regX = 1050; //定義中心位置(X)
-pic.regY = 1080; //定義中心位置(Y)
-pic.scaleX = pic.scaleY = 0.2;
+///////////////////////////////////////
+pic.regX = 278; //定義中心位置(X)
+pic.regY = 277.5; //定義中心位置(Y)
+pic.x = windowWidth/2;
+pic.y = windowHeight/2;
+pic.scaleX = pic.scaleY = 1.2;
 stage.update();
 ///////////////////////////////////////////
 
@@ -105,6 +106,7 @@ rightClickMenu.visible = false;
 stage.update();
 ///////////////////////////////////////////
 var bubblemode = true; //泡泡圖點選模式(默認開啟)
+var bubbleShowMode = true;
 var bubbleX = []; //儲存滑鼠X座標之陣列
 var bubbleY = []; //儲存滑鼠X座標之陣列
 var bubblenumber = []; //儲存泡泡圖數字座標之陣列
@@ -190,17 +192,17 @@ function outputSaveData() {
 		var saveData = "";
 		var textFile = null;
 		for (var j = 1; j < bubblenumber.length; j++) {
-				saveData = saveData 
-          + "#bn" +"#Fnb" + j +"#XFnb"+ bubblenumber[j] + "#Xbn" + "#Bnb" + j + "#XBnb"
-          + "#bx" +"#Fnb" + j +"#XFnb" + bubbleX[j].toFixed(2) + "#XBx" + "#Bnb" + j + "#XBnb"
-          + "#by" +"#Fnb" + j +"#XFnb" + bubbleY[j].toFixed(2) + "#bxy" + "#Bnb" + j + "#XBnb"
-          + "#bst" +"#Fnb" + j +"#XFnb" + bubbleStroke[j] + "#Xbst" + "#Bnb" + j + "#XBnb"
-          + "#bfc" +"#Fnb" + j +"#XFnb" + bubbleFill[j] + "#Xbfc" + "#Bnb" + j + "#XBnb"
-          + "#bz"+"#Fnb" + j +"#XFnb"  + bubblesize[j] + "#Xbz" + "#Bnb" + j + "#XBnb"
-          +"#bt" +"#Fnb" + j +"#XFnb" + bubbleTextData[j] + "#Xbt" + "#Bnb" + j + "#XBnb"
-          + "#btc" +"#Fnb" + j +"#XFnb" + bubbleTextColorData[j] + "#Xbtc" + "#Bnb" + j + "#XBnb";
+				saveData = saveData +
+						"#bn" + "#Fnb" + j + "#XFnb" + bubblenumber[j] + "#Xbn" + "#Bnb" + j + "#XBnb" +
+						"#bx" + "#Fnb" + j + "#XFnb" + bubbleX[j].toFixed(2) + "#XBx" + "#Bnb" + j + "#XBnb" +
+						"#by" + "#Fnb" + j + "#XFnb" + bubbleY[j].toFixed(2) + "#bxy" + "#Bnb" + j + "#XBnb" +
+						"#bst" + "#Fnb" + j + "#XFnb" + bubbleStroke[j] + "#Xbst" + "#Bnb" + j + "#XBnb" +
+						"#bfc" + "#Fnb" + j + "#XFnb" + bubbleFill[j] + "#Xbfc" + "#Bnb" + j + "#XBnb" +
+						"#bz" + "#Fnb" + j + "#XFnb" + bubblesize[j] + "#Xbz" + "#Bnb" + j + "#XBnb" +
+						"#bt" + "#Fnb" + j + "#XFnb" + bubbleTextData[j] + "#Xbt" + "#Bnb" + j + "#XBnb" +
+						"#btc" + "#Fnb" + j + "#XFnb" + bubbleTextColorData[j] + "#Xbtc" + "#Bnb" + j + "#XBnb";
 		}
-    saveData = "#all"+bubblenumber.length.toString() + "#Xall"+ saveData   ;
+		saveData = "#all" + bubblenumber.length.toString() + "#Xall" + saveData;
 		/////////////////////////////////
 		//匯出TXT，參考https://stackoverflow.com/questions/21012580/is-it-possible-to-write-data-to-file-using-only-javascript
 		var link = document.createElement('a');
@@ -237,78 +239,79 @@ function makeTextFile(text) {
 /////////////////////////////
 //匯入savedata
 var inputbubblenumber = [],
-    inputbubbleX = [],
-    inputbubbleY = [],
-    inputbubbleStroke = [],
-    inputbubbleFill = [],
-    inputbubblesize = [],
-    inputbubbleTextdata = [],
-    inputbubbleTextColorData = [];
+		inputbubbleX = [],
+		inputbubbleY = [],
+		inputbubbleStroke = [],
+		inputbubbleFill = [],
+		inputbubblesize = [],
+		inputbubbleTextdata = [],
+		inputbubbleTextColorData = [];
 
 function inputSaveData() {
 		var textbox = document.getElementById('textbox2');
 		var tempData = textbox.value;
-    var a = getSaveDate("#all","#Xall",tempData);
-    //清空陣列(防誤)
-    inputbubblenumber.length = 0;
-    inputbubbleX.length = 0;
-    inputbubbleY.length = 0;
-    inputbubbleStroke.length = 0;
-    inputbubbleFill.length = 0;
-    inputbubblesize.length = 0;
-    inputbubbleTextdata.length = 0;
-    inputbubbleTextColorData.length = 0;
-    //清空畫布上的泡泡圖(防誤)
-     pic.removeAllChildren();
-     pic.addChild(bitmap);
-     pic.addChild(circleAtMouse);
-     pic.addChild(textAtMouse);
-    
-    //跟隨的泡泡球變回1(防誤)
-    coordinateNumber = 1;
-		textAtMouse.text = coordinateNumber;
-    /////////////////////
-   //資料(savedata)解析並繪出泡泡圖
-    for (var j = 1; j < a; j++) {
-				inputbubblenumber[j] = getSaveDate( "#bn" +"#Fnb" + j +"#XFnb","#Xbn" + "#Bnb" + j + "#XBnb",tempData);
-        inputbubbleX[j] = getSaveDate("#bx" +"#Fnb" + j +"#XFnb","#XBx" + "#Bnb" + j + "#XBnb",tempData);
-        inputbubbleY[j] = getSaveDate("#by" +"#Fnb" + j +"#XFnb","#bxy" + "#Bnb" + j + "#XBnb",tempData);
-        inputbubbleStroke[j] = getSaveDate("#bst" +"#Fnb" + j +"#XFnb","#Xbst" + "#Bnb" + j + "#XBnb",tempData);
-        inputbubbleFill[j] = getSaveDate("#bfc" +"#Fnb" + j +"#XFnb","#Xbfc" + "#Bnb" + j + "#XBnb",tempData);
-        inputbubblesize[j] = getSaveDate("#bz"+"#Fnb" + j +"#XFnb","#Xbz" + "#Bnb" + j + "#XBnb",tempData);
-        inputbubbleTextdata[j] = getSaveDate("#bt" +"#Fnb" + j +"#XFnb","#Xbt" + "#Bnb" + j + "#XBnb",tempData);
-        inputbubbleTextColorData[j] = getSaveDate("#btc" +"#Fnb" + j +"#XFnb","#Xbtc" + "#Bnb" + j + "#XBnb",tempData);
-      //////////////////////////////////////////
-      var shape = new createjs.Shape();
-      		shape.graphics.setStrokeStyle(2)
-      				.beginFill(inputbubbleFill[j])
-      				.beginStroke(inputbubbleStroke[j]);
-      		shape.graphics.drawCircle(inputbubbleX[j], inputbubbleY[j], inputbubblesize[j]);
+		var a = getSaveDate("#all", "#Xall", tempData);
+		//清空陣列(防誤)
+		inputbubblenumber.length = 0;
+		inputbubbleX.length = 0;
+		inputbubbleY.length = 0;
+		inputbubbleStroke.length = 0;
+		inputbubbleFill.length = 0;
+		inputbubblesize.length = 0;
+		inputbubbleTextdata.length = 0;
+		inputbubbleTextColorData.length = 0;
+		//清空畫布上的泡泡圖(防誤)
+		pic.removeAllChildren();
+		pic.addChild(bitmap);
+		pic.addChild(circleAtMouse);
+		pic.addChild(textAtMouse);
 
-		//shape.x = shapeX[inpi];
-		//shape.y = shapeY[inpi];
-		////////////////////////////////////////////////////////////
-      		var text = new createjs.Text(inputbubblenumber[j], inputbubbleTextdata[j].toString() + "px Arial", inputbubbleTextColorData[j]);
-      		text.x = inputbubbleX[j];
-      		text.y = inputbubbleY[j];
-      		text.textAlign = 'center';
-      		text.textBaseline = 'middle';
-		/////////////////////////////////////////////////////////
-      		pic.addChild(shape);
-      		pic.addChild(text);
-      ////////////////////////////////////////
-        console.log (inputbubblenumber[j]+","+inputbubbleX[j]+","+inputbubbleY[j]+","+inputbubbleStroke[j]+","+inputbubbleFill[j]+","+inputbubblesize[j]+","+inputbubbleTextdata[j]+","+inputbubbleTextColorData[j]);
-      
-		  }
+		//跟隨的泡泡球變回1(防誤)
+		coordinateNumber = 1;
+		textAtMouse.text = coordinateNumber;
+		/////////////////////
+		//資料(savedata)解析並繪出泡泡圖
+		for (var j = 1; j < a; j++) {
+				inputbubblenumber[j] = getSaveDate("#bn" + "#Fnb" + j + "#XFnb", "#Xbn" + "#Bnb" + j + "#XBnb", tempData);
+				inputbubbleX[j] = getSaveDate("#bx" + "#Fnb" + j + "#XFnb", "#XBx" + "#Bnb" + j + "#XBnb", tempData);
+				inputbubbleY[j] = getSaveDate("#by" + "#Fnb" + j + "#XFnb", "#bxy" + "#Bnb" + j + "#XBnb", tempData);
+				inputbubbleStroke[j] = getSaveDate("#bst" + "#Fnb" + j + "#XFnb", "#Xbst" + "#Bnb" + j + "#XBnb", tempData);
+				inputbubbleFill[j] = getSaveDate("#bfc" + "#Fnb" + j + "#XFnb", "#Xbfc" + "#Bnb" + j + "#XBnb", tempData);
+				inputbubblesize[j] = getSaveDate("#bz" + "#Fnb" + j + "#XFnb", "#Xbz" + "#Bnb" + j + "#XBnb", tempData);
+				inputbubbleTextdata[j] = getSaveDate("#bt" + "#Fnb" + j + "#XFnb", "#Xbt" + "#Bnb" + j + "#XBnb", tempData);
+				inputbubbleTextColorData[j] = getSaveDate("#btc" + "#Fnb" + j + "#XFnb", "#Xbtc" + "#Bnb" + j + "#XBnb", tempData);
+				//////////////////////////////////////////
+				var shape = new createjs.Shape();
+				shape.graphics.setStrokeStyle(2)
+						.beginFill(inputbubbleFill[j])
+						.beginStroke(inputbubbleStroke[j]);
+				shape.graphics.drawCircle(inputbubbleX[j], inputbubbleY[j], inputbubblesize[j]);
+
+				//shape.x = shapeX[inpi];
+				//shape.y = shapeY[inpi];
+				////////////////////////////////////////////////////////////
+				var text = new createjs.Text(inputbubblenumber[j], inputbubbleTextdata[j].toString() + "px Arial", inputbubbleTextColorData[j]);
+				text.x = inputbubbleX[j];
+				text.y = inputbubbleY[j];
+				text.textAlign = 'center';
+				text.textBaseline = 'middle';
+				/////////////////////////////////////////////////////////
+				pic.addChild(shape);
+				pic.addChild(text);
+				////////////////////////////////////////
+				console.log(inputbubblenumber[j] + "," + inputbubbleX[j] + "," + inputbubbleY[j] + "," + inputbubbleStroke[j] + "," + inputbubbleFill[j] + "," + inputbubblesize[j] + "," + inputbubbleTextdata[j] + "," + inputbubbleTextColorData[j]);
+
+		}
 		//console.log(tempData);
 }
-function getSaveDate(front,back,str){
-    var a = str.search(front);
-    var b = str.search(back)+back.length;
-    var c = str.slice(a,b);
-    var d = c.replace(front,"");
-        d = d.replace(back,"");
-    return d
+
+function getSaveDate(front, back, str) {
+		var a = str.search(front);
+		var b = str.search(back) + back.length;
+		var c = str.slice(a, b);
+		var d = c.replace(front, "");
+		d = d.replace(back, "");
+		return d
 }
 //inputSaveData();
 ///////////////////////////////////////////
@@ -430,9 +433,6 @@ function clickup(event) {
 						//AddTable2(coordinateNumber);
 						coordinateNumber = coordinateNumber + 1;
 						textAtMouse.text = coordinateNumber;
-
-				} else {
-
 				}
 		} else if (btnNum == 1) { //1為中鍵
 				console.log("您放開了滑鼠中鍵！");
@@ -452,29 +452,29 @@ function showKey(e) {
 		switch (e.keyCode) {
 				//按下backspace鍵
 				case 8:
-        if(coordinateNumber>1){
-          console.log("backspace");
-						console.log(coordinateNumber);
-						var l = pic.numChildren;
-						bubbleChild = pic.getChildAt(l - 1);
-						bubbleChild2 = pic.getChildAt(l - 2);
-						pic.removeChild(bubbleChild);
-						pic.removeChild(bubbleChild2);
-						//text.removeChild(bubbleChildText);
-						coordinateNumber = coordinateNumber - 1;
-						textAtMouse.text = coordinateNumber;
-						//去除最後一個元素
-						bubblenumber.pop();
-						bubbleX.pop();
-						bubbleY.pop();
-						bubbleStroke.pop();
-						bubbleFill.pop();
-						bubblesize.pop();
-						bubbleTextData.pop();
-						bubbleTextColorData.pop();
+						if (coordinateNumber > 1) {
+								console.log("backspace");
+								console.log(coordinateNumber);
+								var l = pic.numChildren;
+								bubbleChild = pic.getChildAt(l - 1);
+								bubbleChild2 = pic.getChildAt(l - 2);
+								pic.removeChild(bubbleChild);
+								pic.removeChild(bubbleChild2);
+								//text.removeChild(bubbleChildText);
+								coordinateNumber = coordinateNumber - 1;
+								textAtMouse.text = coordinateNumber;
+								//去除最後一個元素
+								bubblenumber.pop();
+								bubbleX.pop();
+								bubbleY.pop();
+								bubbleStroke.pop();
+								bubbleFill.pop();
+								bubblesize.pop();
+								bubbleTextData.pop();
+								bubbleTextColorData.pop();
 
-						stage.update();
-        }
+								stage.update();
+						}
 						break;
 						//按下enter
 				case 13:
@@ -492,46 +492,48 @@ function showKey(e) {
 var longTouchMode = false;
 var touchTime = 0;
 
-if(detectmob() == true){
-    //開啟觸控模式
-    createjs.Touch.enable(stage);
-    document.getElementById("consoleLog").textContent = "開啟觸控模式";
-    //參考https://createjs.com/docs/easeljs/classes/DisplayObject.html
-    stage.on("mousedown", function (evt) {
-      longTouchMode = true;
-      initDrag = false;
-      document.getElementById("consoleLog").textContent = "mousedown";
-    });
-    stage.on("pressmove", function (evt) {
-      initDrag = true;
-      touchTime = 0;
-      //initDrag = false;
-      document.getElementById("consoleLog").textContent = "pressmove";
-    });
-    stage.on("pressup", function (evt) {
-      longTouchMode = false;
-      touchTime = 0;
-      initDrag = false;
-      document.getElementById("consoleLog").textContent = "pressup";
-    });
-    
+if (detectmob() == true) {
+		//開啟觸控模式
+		createjs.Touch.enable(stage);
+		bubbleShowMode = false;
+		document.getElementById("consoleLog").textContent = "開啟觸控模式";
+		//參考https://createjs.com/docs/easeljs/classes/DisplayObject.html
+
+
+		stage.on("mousedown", function(evt) {
+				longTouchMode = true;
+				initDrag = false;
+				document.getElementById("consoleLog").textContent = "mousedown";
+		});
+		stage.on("pressmove", function(evt) {
+				initDrag = true;
+				touchTime = 0;
+				//initDrag = false;
+				document.getElementById("consoleLog").textContent = "pressmove";
+		});
+		stage.on("pressup", function(evt) {
+				longTouchMode = false;
+				touchTime = 0;
+				initDrag = false;
+				document.getElementById("consoleLog").textContent = "pressup";
+		});
+
 }
 //偵測使用者的裝置是否為行動裝置
 //https://tso1158687.github.io/blog/2019/03/10/detect-mobile-device/
-function detectmob() { 
- if( navigator.userAgent.match(/Android/i)
- || navigator.userAgent.match(/webOS/i)
- || navigator.userAgent.match(/iPhone/i)
- || navigator.userAgent.match(/iPad/i)
- || navigator.userAgent.match(/iPod/i)
- || navigator.userAgent.match(/BlackBerry/i)
- || navigator.userAgent.match(/Windows Phone/i)
- ){
-    return true;
-  }
- else {
-    return false;
-  }
+function detectmob() {
+		if (navigator.userAgent.match(/Android/i) ||
+				navigator.userAgent.match(/webOS/i) ||
+				navigator.userAgent.match(/iPhone/i) ||
+				navigator.userAgent.match(/iPad/i) ||
+				navigator.userAgent.match(/iPod/i) ||
+				navigator.userAgent.match(/BlackBerry/i) ||
+				navigator.userAgent.match(/Windows Phone/i)
+		) {
+				return true;
+		} else {
+				return false;
+		}
 }
 
 ////////////////////////////////
@@ -556,11 +558,15 @@ function doNotThing(event) {
 }
 
 function rightClickOk(event) {
-    var paintColor = document.querySelector("#inputColor").value;
-    bubbleTempStroke = paintColor;
+		var paintColor = document.querySelector("#inputColor").value;
+		bubbleTempStroke = paintColor;
 		console.log("click");
 		rightClickMenu.visible = false; //隱藏右鍵選單
 		bubblemode = true; //開啟泡泡圖模式
+		//如果是觸控模式的話，隱藏泡泡圖
+		if (detectmob() == true) {
+				bubbleShowMode = false;
+		}
 }
 
 function bubbleBigger() {
@@ -613,37 +619,30 @@ function tick(event) {
 				console.log("Y:" + pic.y);
 		}
 		///////////////////////////////////////////////////
+		//泡泡球位置對齊滑鼠
+		circleAtMouse.x = childCh.x;
+		circleAtMouse.y = childCh.y;
+		textAtMouse.x = circleAtMouse.x;
+		textAtMouse.y = circleAtMouse.y;
 		//每禎檢查是否為在泡泡圖模式
-		if (bubblemode == true) {
-				//泡泡球位置對其滑鼠
-				circleAtMouse.x = childCh.x;
-				circleAtMouse.y = childCh.y;
-				textAtMouse.x = circleAtMouse.x;
-				textAtMouse.y = circleAtMouse.y;
-				circleAtMouse.visible = true;
-				textAtMouse.visible = true;
-		} else {
-
-				circleAtMouse.x = childCh.x;
-				circleAtMouse.y = childCh.y;
-				textAtMouse.x = circleAtMouse.x;
-				textAtMouse.y = circleAtMouse.y;
-				/*
-		circleAtMouse.visible = false;
-		textAtMouse.visible = false;
-    */
-     ////////////////////////////////////////////////////////
-      if(longTouchMode = true){
-        touchTime = touchTime + 1;
-        document.getElementById("consoleLog").textContent = touchTime;
-        console.log(touchTime);
-      }
-      if(touchTime > 60){
-        
-      }
-      
+		if (bubbleShowMode == false) {
+				circleAtMouse.visible = false;
+				textAtMouse.visible = false;
 		}
-
+		if (longTouchMode == true) {
+				touchTime = touchTime + 1;
+				document.getElementById("consoleLog").textContent = touchTime;
+				console.log(touchTime);
+		}
+		if (touchTime > 18) {
+				console.log("您放開了滑鼠右鍵！");
+				//childCh = pic.globalToLocal(stage.mouseX, stage.mouseY);
+				rightClickMenu.x = 10;
+				rightClickMenu.y = 10;
+				rightClickMenu.visible = true;
+				bubblemode = false;
+				stage.update();
+		}
 		///////////////////////////////////////////////////
 		//舞台更新
 		stage.update(event);
@@ -659,7 +658,7 @@ function tick(event) {
 		//console.log("滑鼠X:"+stage.mouseX);
 		//console.log("滑鼠Y:"+stage.mouseY);
     */
-    //console.log("滑鼠X:"+stage.mouseX);
+		//console.log("滑鼠X:"+stage.mouseX);
 		//console.log("滑鼠Y:"+stage.mouseY);
 }
 
@@ -708,6 +707,9 @@ function selectFile() {
 		///////////////////
 		form.append('file', file);
 		//console.log(form.get('file'));
+		if (detectmob() == true) {
+				bubbleShowMode = false;
+		}
 }
 /////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -757,19 +759,19 @@ function scaleToDim(origDim, scale) {
 
 function changeButtonColorToRed() {
 		bubbleTempStroke = "#ff1571";
-    document.querySelector("#inputColor").value = "#ff1571";
+		document.querySelector("#inputColor").value = "#ff1571";
 		console.log("changeColor");
 }
 
 function changeButtonColorToBlue() {
 		bubbleTempStroke = "#0084dd";
-    document.querySelector("#inputColor").value = "#0084dd";
+		document.querySelector("#inputColor").value = "#0084dd";
 		console.log("changeColor");
 }
 
-function changeButtonColorToGreen() {   
+function changeButtonColorToGreen() {
 		bubbleTempStroke = "#0aa660";
-    document.querySelector("#inputColor").value = "#0aa660"; 
+		document.querySelector("#inputColor").value = "#0aa660";
 		console.log("changeColor");
 }
 /////////////////////////////////////////
@@ -877,32 +879,33 @@ function AddTable2(i) {
 */
 
 //////////////////////////////////////////////
-function findbubble(){
-  //inputbubblenumber[8]
-  var textTemp = document.getElementById ("textbox2");
-  
-  console.log(pic.numChildren);
-  
-  var tt = (pic.numChildren-3)/2;
-  if(textTemp.value <= tt && textTemp.value > 0){
-    var childByPic = pic.getChildAt(countPicChild(textTemp.value));
-    childByPic.alpha = 0.7;
-    childByPic.color = "red";
-    childByPic.font = inputbubbleTextdata[textTemp.value] + "px Impact";
-    var pt = pic.localToGlobal(childByPic.x, childByPic.y);
-    pic.regX = childByPic.x;
-    pic.regY = childByPic.y;
-    pic.x = windowWidth / 2;
-    pic.y = windowHeight / 2;
-  }else{
-    alert("資料輸入有誤");
-  }
-  //console.log("childByPic"+childByPic.x+","+childByPic.y);
-  //console.log("pt"+pt.x+","+pt.y);
+function findbubble() {
+		//inputbubblenumber[8]
+		var textTemp = document.getElementById("textbox2");
+
+		console.log(pic.numChildren);
+
+		var tt = (pic.numChildren - 3) / 2;
+		if (textTemp.value <= tt && textTemp.value > 0) {
+				var childByPic = pic.getChildAt(countPicChild(textTemp.value));
+				childByPic.alpha = 0.7;
+				childByPic.color = "red";
+				childByPic.font = inputbubbleTextdata[textTemp.value] + "px Impact";
+				var pt = pic.localToGlobal(childByPic.x, childByPic.y);
+				pic.regX = childByPic.x;
+				pic.regY = childByPic.y;
+				pic.x = windowWidth / 2;
+				pic.y = windowHeight / 2;
+		} else {
+				alert("資料輸入有誤");
+		}
+		//console.log("childByPic"+childByPic.x+","+childByPic.y);
+		//console.log("pt"+pt.x+","+pt.y);
 }
-function countPicChild(i){
-  var tempI ;
-  //tempI = 3 + ( (i-1) * 2 ) + 1 ;
-  tempI = 3 + ( (i-1) * 2 )+1  ;
-  return tempI
+
+function countPicChild(i) {
+		var tempI;
+		//tempI = 3 + ( (i-1) * 2 ) + 1 ;
+		tempI = 3 + ((i - 1) * 2) + 1;
+		return tempI
 }
