@@ -1,3 +1,12 @@
+/*
+目標1:存檔連同圖面一起匯入匯出->base64
+目標2:TXT檔案的直接匯入
+目標3:觸控模式下，右鍵選單重新設計->只需要圖片和找泡泡求功能
+目標4:手勢操作->放大縮小 ->hammerJS
+目標5:整個程式碼重新整理
+目標6:匯出存檔壓縮 -> http://ms2.ctjh.ntpc.edu.tw/~luti/105data-compress5.htm
+*/
+
 var windowWidth = window.innerWidth ||
 		document.documentElement.clientWidth ||
 		document.body.clientWidth;
@@ -8,7 +17,9 @@ var windowHeight = window.innerHeight ||
 
 var canvas2 = document.getElementById("testCanvas");
 canvas2.width = windowWidth;
-canvas2.height = windowHeight - 100;
+canvas2.height = windowHeight;
+
+
 
 ///////////////////////////////////////////////////
 var world, worldWidth, worldHeight;
@@ -23,6 +34,7 @@ image.src = "https://i.imgur.com/aS4FwAB.png";
 var stageWidth = windowWidth;
 var stageHeight = windowHeight;
 
+var dragType = "mouse";//圖片滑動方式 ->預設為mouse
 /////////////////////////////////////////////
 stage.addChild(pic);
 stage.addChild(rightClickMenu);
@@ -74,10 +86,14 @@ inputColor2.y = 160;
 var uploadImgLable2 = new createjs.DOMElement("uploadImgLable");
 uploadImgLable2.x = 100;
 uploadImgLable2.y = 40;
+var uploadTXTLable2 = new createjs.DOMElement("uploadTXTLable");
+uploadTXTLable2.x = 100;
+uploadTXTLable2.y = 10;
 
 rightClickMenu.addChild(textarea2);
 rightClickMenu.addChild(inputColor2);
 rightClickMenu.addChild(uploadImgLable2);
+rightClickMenu.addChild(uploadTXTLable2);
 
 stage.update();
 
@@ -246,10 +262,12 @@ var inputbubblenumber = [],
 		inputbubblesize = [],
 		inputbubbleTextdata = [],
 		inputbubbleTextColorData = [];
-
-function inputSaveData() {
-		var textbox = document.getElementById('textbox2');
-		var tempData = textbox.value;
+//txt匯入教學
+//https://www.delftstack.com/zh-tw/howto/javascript/read-text-file-in-javascript/ 
+async function inputSaveData(file) {
+		//var textbox = document.getElementById('textbox2');
+    //var tempData = textbox.value;
+    let tempData = await file.text();
 		var a = getSaveDate("#all", "#Xall", tempData);
 		//清空陣列(防誤)
 		inputbubblenumber.length = 0;
@@ -337,10 +355,12 @@ function wheel(event) {
 function handle(delta) {
 
 		if (delta < 0) { //向下滾動
-				scalePicture(-0.05, pic);
+				//scalePicture(-0.05, pic);
+        scalePicture(countPicSacle(pic,"smaller"), pic);
 				//pic.mouseWheel(e => Controls.zoom(controls).worldZoom(e));
 		} else { //向上滾動
-				scalePicture(0.05, pic);
+				//scalePicture(0.05, pic);
+         scalePicture(countPicSacle(pic,"bigger"), pic);
 				//pic.mouseWheel(e => Controls.zoom(controls).worldZoom(e));
 		}
 }
@@ -369,6 +389,65 @@ function scalePicture(scaleNunber, container) {
 				}
 		}
 		stage.update();
+}
+
+//計算圖片放大倍率
+function countPicSacle(container,type){
+  /*
+  container.scaleX
+  container.scaleY
+  canvas2.width 
+  canvas2.height 
+  */
+  //let picwidth = container.scaleX;
+  //let picheight = container.scaleY;
+  let picwidth = container.scaleX * image.width;
+  let picheight = container.scaleY * image.height;
+  
+  let basicPicSize = 0,
+      basicStageSize = 0,
+      SacleSize = 0,
+      basicImageSize = 0;
+  //選定基準數=>以圖片長邊為準
+  //if(picwidth > picheight){}
+  if(image.width > image.height){
+    basicPicSize = picwidth;
+    basicImageSize = image.width;
+    basicStageSize = windowWidth;
+  }else{
+    basicPicSize = picheight;
+    basicImageSize = image.height;
+    basicStageSize = windowHeight;
+  }
+  
+  
+  if(type == "bigger"){
+    SacleSize = (basicImageSize*0.05)/basicImageSize ;
+    //SacleSize = 0.05;
+  }
+  if(type == "smaller"){
+    SacleSize = -((basicImageSize*0.05)/basicImageSize) ;
+    //SacleSize = -0.05;
+  }
+  
+  if (basicPicSize < basicStageSize){
+        container.regX = image.width / 2;
+				container.regY = image.height / 2;
+        container.x = windowWidth / 2;
+				container.y = windowHeight / 2;
+    
+				container.scaleX = basicStageSize / basicImageSize;
+				container.scaleY = basicStageSize / basicImageSize;  
+   }
+  //console.log("picwidth"+picwidth);
+  //console.log("picheight"+picheight);
+  //console.log("basicPicSize"+basicPicSize);
+  //console.log("basicStageSize"+basicStageSize);
+  //console.log("scaleX"+container.scaleY);
+  console.log("image.width : "+image.width);
+  console.log("image.height : "+image.height);
+  console.log("basicImageSize : "+basicImageSize);
+  return SacleSize
 }
 /////////////////////////////////////
 const canvas = document.getElementById('testCanvas');
@@ -491,15 +570,115 @@ function showKey(e) {
 //觸控模式
 var longTouchMode = false;
 var touchTime = 0;
+var touchType = "";
 
 if (detectmob() == true) {
 		//開啟觸控模式
 		createjs.Touch.enable(stage);
 		bubbleShowMode = false;
+    dragType = "touch";
 		document.getElementById("consoleLog").textContent = "開啟觸控模式";
 		//參考https://createjs.com/docs/easeljs/classes/DisplayObject.html
+    var hammer = Hammer(canvas, {prevent_default: true});
+/*
+    hammer.on("touch", startTouches);
+    hammer.on("pinch", processPinch);
+    hammer.on("drag", processDrag);
+    hammer.on("release", clearTouches);
+*/
+let pan = new Hammer.Pan();
+let pinch = new Hammer.Pinch();
 
 
+
+hammer.add([pan, pinch])
+hammer.get('pinch').set({ enable: true })
+hammer.get('pan').set({ enable: true })
+
+hammer.on("tap", (e) => {
+  document.getElementById("consoleLog").textContent = "tap";
+  touchType = "tap";
+})
+
+hammer.on("press", (e) => {
+  document.getElementById("consoleLog").textContent = "press,長按";
+  touchType = "press";
+  rightClickMenu.x = 10;
+				rightClickMenu.y = 10;
+				rightClickMenu.visible = true;
+				bubblemode = false;
+				stage.update();
+  
+})
+
+hammer.on("panstart", (e) => {
+  document.getElementById("consoleLog").textContent = "panstart";
+  //longTouchMode = true;
+  touchType = "panstart";
+	initDrag = false;
+})
+
+  
+hammer.on("panmove", (e) => { 
+  document.getElementById("consoleLog").textContent = "panmove,移動";
+  touchType = "panmove";
+  initDrag = true;
+  console.log("panmove");
+})
+  
+hammer.on("panend", (e) => { 
+  document.getElementById("consoleLog").textContent = "panend,結束";
+  touchType = "panend";
+  initDrag = false;
+  console.log("panmove");
+})
+/*
+pinchstart: 多点触控开始
+pinchmove: 多点触控过程
+pinchend: 多点触控结束
+pinchcancel: 多点触控取消
+pinchin: 多点触控时两手指越来越近
+pinchout: 多点触控时两手指越来越远
+*/
+  
+hammer.on("pinchstart", (e) => {
+  document.getElementById("consoleLog").textContent = "pinchstart";
+  touchType = "pinchstart";
+  //計算中心位置
+  var point = pic.globalToLocal(e.center.x, e.center.y);
+  pic.regX = point.x;
+	pic.regY = point.y;
+  pic.x = e.center.x;
+	pic.y = e.center.y;
+})
+
+hammer.on("pinchin", (e) => { 
+  touchType = "pinchin";
+  document.getElementById("consoleLog").textContent = "pinchin,縮小 : " + e.center.x +","+e.center.y ;
+  //以中心位置縮小
+  scalePicture(countPicSacle(pic,"smaller"), pic);
+  /*
+  //定位圖片中心至縮放中心
+	pic.regX = e.center.x;
+	pic.regY = e.center.y;
+  scalePicture(-0.01, pic);
+  */
+})
+
+hammer.on("pinchout", (e) => { 
+  touchType = "pinchout";
+  document.getElementById("consoleLog").textContent = "pinchout,放大 : " + e.center.x +","+e.center.y ;
+  //以中心位置放大
+  scalePicture(countPicSacle(pic,"bigger"), pic);
+  //scalePicture(0.01, pic);
+  /*
+  //定位圖片中心至縮放中心
+	pic.regX = e.center.x;
+	pic.regY = e.center.y;
+  scalePicture(0.01, pic);
+  */
+})
+    /*
 		stage.on("mousedown", function(evt) {
 				longTouchMode = true;
 				initDrag = false;
@@ -517,7 +696,9 @@ if (detectmob() == true) {
 				initDrag = false;
 				document.getElementById("consoleLog").textContent = "pressup";
 		});
-
+    */
+  
+    
 }
 //偵測使用者的裝置是否為行動裝置
 //https://tso1158687.github.io/blog/2019/03/10/detect-mobile-device/
@@ -600,8 +781,8 @@ function tick(event) {
 		//滑鼠座標轉圖面座標
 		childCh = pic.globalToLocal(stage.mouseX, stage.mouseY);
 		///////////////////////////////////////////////////////////
-		//圖面拖曳效果
-		if (initDrag == false) {
+		//圖面拖曳效果 -> 滑鼠
+		if (initDrag == false && dragType == "mouse") {
 				//此方法對齊圖片中心和滑鼠位置
 
 				//定位圖片中心至滑鼠位置
@@ -611,12 +792,30 @@ function tick(event) {
 				pic.x = stage.mouseX;
 				pic.y = stage.mouseY;
 		}
-		if (initDrag == true) {
+		if (initDrag == true && dragType == "mouse") {
 				pic.x = stage.mouseX;
 				pic.y = stage.mouseY;
 
 				console.log("X:" + pic.x);
 				console.log("Y:" + pic.y);
+		}
+    
+    //圖面拖曳效果 -> 觸控
+    if (initDrag == false && dragType == "touch") {
+      if(touchType == "panstart" || touchType == "panend"){
+        //在滑動開始即結束時對齊圖片中心和滑鼠位置
+				//定位圖片中心至滑鼠位置
+				pic.regX = childCh.x;
+				pic.regY = childCh.y;
+				//圖片位移至滑鼠位置
+				pic.x = stage.mouseX;
+				pic.y = stage.mouseY;
+      }
+				
+		}
+		if (initDrag == true && dragType == "touch") {
+				pic.x = stage.mouseX;
+				pic.y = stage.mouseY;
 		}
 		///////////////////////////////////////////////////
 		//泡泡球位置對齊滑鼠
@@ -629,20 +828,7 @@ function tick(event) {
 				circleAtMouse.visible = false;
 				textAtMouse.visible = false;
 		}
-		if (longTouchMode == true) {
-				touchTime = touchTime + 1;
-				document.getElementById("consoleLog").textContent = touchTime;
-				console.log(touchTime);
-		}
-		if (touchTime > 18) {
-				console.log("您放開了滑鼠右鍵！");
-				//childCh = pic.globalToLocal(stage.mouseX, stage.mouseY);
-				rightClickMenu.x = 10;
-				rightClickMenu.y = 10;
-				rightClickMenu.visible = true;
-				bubblemode = false;
-				stage.update();
-		}
+		
 		///////////////////////////////////////////////////
 		//舞台更新
 		stage.update(event);
