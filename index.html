@@ -2,7 +2,7 @@
 <html lang="en" >
 <head>
   <meta charset="UTF-8">
-  <title>CodePen - 泡泡圖5.2</title>
+  <title>CodePen - 泡泡圖5.4</title>
   <link rel="stylesheet" href="./style.css">
 
 </head>
@@ -10,6 +10,7 @@
 <!-- partial:index.partial.html -->
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
 <script src="https://code.createjs.com/createjs-2015.11.26.combined.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
 
 <body>
 <textarea style="width:80px;height:80px;" id="textbox2"></textarea>
@@ -24,8 +25,14 @@
   <input id="ppic" type="file" name = 'pic' accept = "image/*" onchange = "selectFile()" style="display:none;" />
 <h6>.</h6>
 </label>
+  
+<label id="uploadTXTLable" style="width:80px;height:20px;">
+  <div id = "resultTXT"></div>
+  <input id="ppicTXT" type="file" name = 'pic' accept = ".txt" onchange = "inputSaveData(this.files[0])" style="display:none;" />
+<h6>.</h6>
+</label>  
 <canvas id="testCanvas" onmousedown="whichButton(event)" onmouseup = "clickup(event)"></canvas>
-<h1 id = "consoleLog">123</h1>
+<h1 id = "consoleLog" style="display:none;">123</h1>
 <br>
   <!-- 表格增加功能 -->
   <div id="myDynamicTable"></div>
