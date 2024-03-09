@@ -1,0 +1,70 @@
+body {
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+}
+
+canvas {
+  display: block;
+}
+
+
+.wrap .tableGroup {
+  height: 200px;
+  overflow-y: auto;
+}
+.wrap table tr {
+  color: #ffffff;
+  text-align: center;
+  align-items: center;
+}
+.wrap table th,
+.wrap table td {
+  padding: 10px;
+  width: 70px;
+}
+.wrap table th {
+  background-color: #ffc0cb;
+  color: #bb6573;
+}
+.wrap table td {
+  background-color: #ece1e1;
+  color: #8d6161;
+}
+
+#style-3::-webkit-scrollbar-track {
+  -webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+  background-color: #ffc0cb;
+}
+
+#style-3::-webkit-scrollbar {
+  width: 6px;
+  background-color: black;
+}
+
+#style-3::-webkit-scrollbar-thumb {
+  background-color: #bb6573;
+}
+
+.inputInspectionShadowbox {
+  width: 200px;
+  border: 1px solid #333;
+  box-shadow: 8px 8px 5px #444;
+  padding: 8px 12px;
+  background-image: linear-gradient(180deg, #fff, #ddd 40%, #ccc);
+
+}
+.color-lump{
+  width: 50px;
+  height: 30px;
+  border: 5px solid rgb(17, 216, 90);
+  border-radius: 5px;
+  background: -webkit-gradient(linear,left top,left bottom,from(#ff00ca),to(#cd9400));
+  display: flex; /* ★ */
+  align-items: center; /* ★ */
+}

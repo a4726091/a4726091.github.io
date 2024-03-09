@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8">
+  <title>CodePen - 檢驗紀錄+泡泡圖1.0</title>
+  <link rel="stylesheet" href="./style.css">
+
+</head>
+<body>
+<!-- partial:index.partial.html -->
+<!-- 從CODEPEN引入JS的方式 -->
+<!-- https://blog.csdn.net/dingshi7798/article/details/105818678 -->
+
+
+<script src="../lib/createjs-2015.11.26.combined.js"></script>
+<script src="../lib/hammer.min.js"></script>
+<script src="../lib/jquery.min.js"></script>
+<script src="../lib/xlsx.full.min.js"></script>
+
+
+<body>
+
+	<textarea style="width:80px;height:20px;" id="textbox2"></textarea>
+   <!-- 表格 -->
+	<div class="wrap">
+		<div class="tableGroup" id="style-3">
+			<table id="oTable">
+				<thead>
+					<tr>
+						<th>號碼</th>
+						<th>檢査項目</th>
+						<th>測定具</th>
+						<th>規格</th>
+						<th>公差</th>
+						<th>階級</th>
+						<th>頻度</th>
+						<th>A</th>
+						<th>B</th>
+						<th>C</th>
+
+
+					</tr>
+				</thead>
+				<tbody>
+					
+					
+
+				</tbody>
+			</table>
+		</div>
+	</div>
+  
+  <!-- 右鍵選單 -->
+	<div>
+	<input id="inputColor" type="color" value="#000000" style="width:80px;height:20px;">
+	<label id="uploadImgLable" style="width:80px;height:20px;">
+ <!-- 自訂 Input File 檔案上傳按鈕 -->
+ <!-- https://www.wfublog.com/2017/10/input-type-file-upload-css-skill.html -->
+ <!-- ... https://progressbar.tw/posts/47 傳圖片不難，那上傳同時預覽呢？ ... -->
+  <div id = "result"></div>
+  <input id="ppic" type="file" name = 'pic' accept = "image/*" onchange = "selectFile()" style="display:none;" />
+<h6>.</h6>
+</label>
+	<label id="uploadTXTLable" style="width:80px;height:20px;">
+  <div id = "resultTXT"></div>
+  <input id="ppicTXT" type="file" name = 'pic' accept = ".txt" onchange = "inputSaveData(this.files[0])" style="display:none;" />
+<h6>.</h6>
+</label>
+	<label id="uploadTXTLable2" style="width:80px;height:20px;">
+  <div id = "resultTXT2"></div>
+  <input id="ppicTXT" type="file" name = 'pic' accept = ".txt" onchange = "inputSaveData(this.files[0])" style="display:none;" />
+<h6>.</h6>
+</label>
+    </div>
+  <!-- 輸入規格 -->
+  <div id="inputInspection" class="inputInspectionShadowbox">
+
+	<p>橢圓孔</p>
+    <p><input id="inputNovalHoleid" type="text" value="" style="width:80px;height:40px;"></p>
+	<p>數字</p>
+    <p><input id="inputNumberID" type="text" value="" style="width:80px;height:40px;"></p>
+	<p>非數字</p>
+    <p><input id="inputNotNumber" type="text" value="" style="width:80px;height:40px;"></p>
+	<p><input type="button" id="CantHaveBottonid" value="欠不可(ctr+q)" style="width:100px;height:40px;" onclick="changeNotNumberValve('欠不可')"></p>
+	<p><input type="button" id="WeldingSlagBottonid" value="焊渣不可(ctr+y)" style="width:100px;height:40px;" onclick="changeNotNumberValve('焊渣不可')"></p>
+
+  </div>
+
+    <!-- 輸入公差類型 -->
+	<div id="inputTorTypeDivID" class="inputInspectionShadowbox">
+
+	</div>
+
+	<!-- 輸入公差階級 -->
+	<div id="inputTorLevelDivID" class="inputInspectionShadowbox">
+		
+	</div>
+
+	<!-- 輸入檢查方式 -->
+	<div id="inputInsItemDivID" class="inputInspectionShadowbox">
+	
+	</div>
+    <!-- 輸入檢驗階級 -->
+	<div id="inputInsLevelDivID" class="inputInspectionShadowbox">
+	
+	</div>
+	<!-- 輸入拔取(抽樣)方式 -->
+	<div id="SamplingMethodDivID" class="inputInspectionShadowbox">
+	
+	</div>
+	<!-- 輸入測定距 -->
+	<div id="CheckToolDivID" class="inputInspectionShadowbox">
+	
+	</div>
+
+    <!-- 輸入checkButton -->
+	<div id="checkButtonDivID" class="checkButtonDivStyle">
+		<p><input type="button" value="Click Me" style="width:80px;height:40px;"></p>
+	</div>
+
+
+	<!-- 匯入儲存資料 -->
+	<input id="ppicTXT3" type="file" name = 'pic' accept = ".txt" onchange = "inputSaveData(this.files[0])" style="width:80px;height:40px;" />
+
+	<!-- 下一個數字輸入 -->
+	<div id="nextNumberID" class="nextNumber">
+		<p><textarea id="nextNumberTextID" rows="5" cols="20" value = "1" style="width:80px;height:40px;text-align: center;font-size:26px;color:blue;" >1</textarea></p>
+	</div>
+
+	<!-- 控制輸入表單位置 -->
+    <div id="controlFormLocationDiv" class="color-lump"></div>
+
+	<!-- 切換為數字輸入 -->
+    <div id="changeToinputInspectionDivID" class="color-lump">數字</div>
+
+	<!-- 切換為公差輸入 -->
+    <div id="changeToinputTorDivID" class="color-lump">公差</div>
+
+	<!-- 切換為其他項輸入 -->
+    <div id="changeToinputInsDivID" class="color-lump">其他</div>
+
+
+  <!-- 測試 -->
+  <div id="inputDimAndTor" class="inputInspectionShadowbox" hidden="hidden">
+    <p>Name:</p>
+    <p><input type="text" name="name" value="你的名字"></p>
+
+    <p>Email:</p>
+    <p><input name="species" type="text"></p>
+
+    <p>Comments: </p>
+    <p><textarea name="comments" rows="5" cols="20">你的留言</textarea></p>
+
+    <p>請問你最有興趣學習的技術:</p>
+	<p><input type="checkbox" name="ttt" value="yyy">yyyy</p>
+    <p><input type="radio" name="interest" value="html"> HTML</p>
+    <p><input type="radio" name="interest" value="css"> CSS</p>
+    <p><input type="radio" name="interest" value="js"> JavaScript</p>
+
+    <p><input type="submit" value="送出資料"></p>
+
+	<p><textarea rows="5" cols="20">±3</textarea></p>
+	<p><input type="button" value="Click Me" style="width:80px;height:40px;"></p>
+
+  </div>
+   <!-- Canvas -->
+	<canvas id="testCanvas" onmousedown="whichButton(event)" onmouseup="clickup(event)"></canvas>
+
+</body>
+<!-- partial -->
+  <script  src="../function/inputDimTolHtml.js"></script>
+  <script  src="../function/VariableDeclaration.JS"></script>
+  <script  src="../function/controlFun.js"></script>
+  <script  src="../function/allFun.js"></script>
+  <script  src="../function/tick.js"></script>
+  <script  src="./script.js"></script>
+  <script  src="../function/rightClickButton.js"></script>
+  <script  src="../function/InputDimensionalTolerance.js"></script>
+  
+  
+
+</body>
+</html>
