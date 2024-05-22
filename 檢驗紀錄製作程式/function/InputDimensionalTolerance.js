@@ -27,6 +27,7 @@ CommonlyUsedInspectionInformation.x = 300;
 CommonlyUsedInspectionInformation.y = 0;
 InputDimTor.addChild(CommonlyUsedInspectionInformation);
 
+
 //匯入其他類型
 var inputInsItem = new createjs.DOMElement("inputInsItemDivID");
 inputInsItem.x = 30000;
