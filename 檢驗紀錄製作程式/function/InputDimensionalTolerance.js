@@ -230,7 +230,15 @@ changeToinputTor.htmlElement.onclick = function() {
 
 //按下其他項輸入按鈕
 changeToinputIns.htmlElement.onclick = function() {
-    InputDimTorMode = "other";
+	if(InputDimTorMode!="other"){
+
+		if(InputDimTorMode=="CommonlyUsedInspectionInformationMode"){
+			InputDimTorMode = "CommonlyUsedInspectionInformationMode";
+		}else{
+			InputDimTorMode = "other";
+		}
+		
+	}
 	//調整其他項輸入位置
 	if(InputDimTorMode=="CommonlyUsedInspectionInformationMode"){
 		InputDimTorMode=="other"
