@@ -267,6 +267,58 @@ changeToinputIns.htmlElement.onclick = function() {
 	nextNumber.x = 500;
 	inputSaveDATA.x = 500;
 
+	//當再次按下其他健時，改為常用檢查資料
+	if(InputDimTorMode=="other"){
+		InputDimTorMode=="CommonlyUsedInspectionInformationMode"
+		console.log("常用檢查資料輸入");
+	///////////////////////////////////
+	InputDimTor.regX = 500;
+	InputDimTor.regY = 0;
+
+	//////////////////////////////////////
+	CommonlyUsedInspectionInformation.x = 0;
+    CommonlyUsedInspectionInformation.y = 0;
+
+	/////////////////////////////////
+	inputInspection.x = 30000;
+	inputInspection.y = 0;
+	/////////////////////////
+	inputTorType.x = 30000;
+	inputTorType.y = 0;
+
+	inputTorLevel.x = 30000;
+	inputTorLevel.y = 150;
+	/////////////////////////
+	inputInsItem.x = 30000;
+	inputInsItem.y = 0;
+
+	inputInsLevel.x = 30000;
+	inputInsLevel.y = 0;
+
+	SamplingMethod.x = 30000;
+	SamplingMethod.y = 80;
+
+	CheckTool.x = 30000;
+	CheckTool.y = 300;
+
+	////////////////////////////////////
+	//移動按鈕
+	checkButtonItem.x = 500;
+	controlFormLocation.regX = 0;
+	controlFormLocation.regY = 0;
+	controlFormLocation.x = InputDimTor.x;
+
+	changeToinputInspection.x = 500;
+	changeToinputTor.x = 500;
+	changeToinputIns.x = 500;
+	nextNumber.x = 500;
+	inputSaveDATA.x = 500;
+
+
+
+	}
+	
+
 }
 
 //按下確認按鈕
@@ -513,6 +565,7 @@ function inputDATAonCheck(){
 	//其他項輸入
 	if (InputDimTorMode == "other") {
 
+
 			document.getElementById('oTable').rows[inputInspectNownumber].cells[1].innerText = getRadioVavle("inputInsItemlName").value;
 			document.getElementById('oTable').rows[inputInspectNownumber].cells[2].innerText = getRadioVavle("CheckToolName").value;
 			document.getElementById('oTable').rows[inputInspectNownumber].cells[5].innerText = getRadioVavle("inputInsLevelName").value;
@@ -524,10 +577,6 @@ function inputDATAonCheck(){
 			if(getRadioVavle("inputInsItemlName").id == "inputInsItemPartNO"){
 				document.getElementById('oTable').rows[inputInspectNownumber].cells[1].innerText =document.getElementById('inputInsItemPartNOTXT').value;
 			}
-
-
-
-
 
 
 			//var data123 = document.querySelector('#inputInsItemHtmlItem2').dataset;
