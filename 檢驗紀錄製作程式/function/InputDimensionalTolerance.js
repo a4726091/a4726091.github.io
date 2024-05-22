@@ -248,7 +248,7 @@ changeToinputIns.htmlElement.onclick = function() {
 	InputDimTor.regY = 0;
 
 	//////////////////////////////////////
-	CommonlyUsedInspectionInformation.x = 0;
+	CommonlyUsedInspectionInformation.x = 230;
     CommonlyUsedInspectionInformation.y = 0;
 
 	/////////////////////////////////
