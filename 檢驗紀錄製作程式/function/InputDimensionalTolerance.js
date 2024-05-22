@@ -21,6 +21,12 @@ inputTorLevel.Visible = true;
 
 InputDimTor.addChild(inputTorLevel);
 
+//匯入常用資料
+var CommonlyUsedInspectionInformation = new createjs.DOMElement("CommonlyUsedInspectionInformationDivID");
+CommonlyUsedInspectionInformation.x = 300;
+CommonlyUsedInspectionInformation.y = 0;
+InputDimTor.addChild(CommonlyUsedInspectionInformation);
+
 //匯入其他類型
 var inputInsItem = new createjs.DOMElement("inputInsItemDivID");
 inputInsItem.x = 30000;
