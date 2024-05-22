@@ -230,58 +230,9 @@ changeToinputTor.htmlElement.onclick = function() {
 
 //按下其他項輸入按鈕
 changeToinputIns.htmlElement.onclick = function() {
-
+    InputDimTorMode = "other";
 	//調整其他項輸入位置
 	if(InputDimTorMode=="CommonlyUsedInspectionInformationMode"){
-		InputDimTorMode = "other";
-		console.log("其他項輸入");
-		///////////////////////////////////
-		InputDimTor.regX = 500;
-		InputDimTor.regY = 0;
-	
-	    //////////////////////////////////////
-	    CommonlyUsedInspectionInformation.x = 30000;
-        CommonlyUsedInspectionInformation.y = 0;
-	
-		/////////////////////////////////
-		inputInspection.x = 30000;
-		inputInspection.y = 0;
-		/////////////////////////
-		inputTorType.x = 30000;
-		inputTorType.y = 0;
-	
-		inputTorLevel.x = 30000;
-		inputTorLevel.y = 150;
-		/////////////////////////
-		inputInsItem.x = 0;
-		inputInsItem.y = 0;
-	
-		inputInsLevel.x = 250;
-		inputInsLevel.y = 0;
-	
-		SamplingMethod.x = 250;
-		SamplingMethod.y = 80;
-	
-		CheckTool.x = 250;
-		CheckTool.y = 300;
-	
-		////////////////////////////////////
-		//移動按鈕
-		checkButtonItem.x = 500;
-		controlFormLocation.regX = 0;
-		controlFormLocation.regY = 0;
-		controlFormLocation.x = InputDimTor.x;
-	
-		changeToinputInspection.x = 500;
-		changeToinputTor.x = 500;
-		changeToinputIns.x = 500;
-		nextNumber.x = 500;
-		inputSaveDATA.x = 500;
-	}
-	
-
-	//當再次按下其他健時，改為常用檢查資料
-	if(InputDimTorMode=="other"){
 		InputDimTorMode=="CommonlyUsedInspectionInformationMode"
 		console.log("常用檢查資料輸入");
 	///////////////////////////////////
@@ -327,6 +278,55 @@ changeToinputIns.htmlElement.onclick = function() {
 	nextNumber.x = 500;
 	inputSaveDATA.x = 500;
 
+	}
+	
+
+	//當再次按下其他健時，改為常用檢查資料
+	if(InputDimTorMode=="other"){
+		InputDimTorMode = "other";
+		console.log("其他項輸入");
+		///////////////////////////////////
+		InputDimTor.regX = 500;
+		InputDimTor.regY = 0;
+	
+	    //////////////////////////////////////
+	    CommonlyUsedInspectionInformation.x = 30000;
+        CommonlyUsedInspectionInformation.y = 0;
+	
+		/////////////////////////////////
+		inputInspection.x = 30000;
+		inputInspection.y = 0;
+		/////////////////////////
+		inputTorType.x = 30000;
+		inputTorType.y = 0;
+	
+		inputTorLevel.x = 30000;
+		inputTorLevel.y = 150;
+		/////////////////////////
+		inputInsItem.x = 0;
+		inputInsItem.y = 0;
+	
+		inputInsLevel.x = 250;
+		inputInsLevel.y = 0;
+	
+		SamplingMethod.x = 250;
+		SamplingMethod.y = 80;
+	
+		CheckTool.x = 250;
+		CheckTool.y = 300;
+	
+		////////////////////////////////////
+		//移動按鈕
+		checkButtonItem.x = 500;
+		controlFormLocation.regX = 0;
+		controlFormLocation.regY = 0;
+		controlFormLocation.x = InputDimTor.x;
+	
+		changeToinputInspection.x = 500;
+		changeToinputTor.x = 500;
+		changeToinputIns.x = 500;
+		nextNumber.x = 500;
+		inputSaveDATA.x = 500;
 
 
 	}
