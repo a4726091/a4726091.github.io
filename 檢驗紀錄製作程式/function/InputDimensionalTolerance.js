@@ -241,7 +241,7 @@ changeToinputIns.htmlElement.onclick = function() {
 	}
 	//調整其他項輸入位置
 	if(InputDimTorMode=="CommonlyUsedInspectionInformationMode"){
-		InputDimTorMode=="other"
+		InputDimTorMode="other"
 		console.log("常用檢查資料輸入");
 	///////////////////////////////////
 	InputDimTor.regX = 500;
