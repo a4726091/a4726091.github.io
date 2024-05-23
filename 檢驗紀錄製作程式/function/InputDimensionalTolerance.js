@@ -675,6 +675,25 @@ function CommonlyUsedInspectionSingleCheck(){
 
 	// 外觀
 	var Exterior = document.getElementById("ExteriorID");
+	Exterior.checked = false;
+
+	// 材質
+	var Material = document.getElementById("MaterialID");
+	Material.checked = false;
+
+	// 板厚
+	var PlateThickness = document.getElementById("PlateThicknessID");
+	PlateThickness.checked = false;
+
+	// 誤欠品
+	var DefectiveGoods = document.getElementById("DefectiveGoodsID");
+	DefectiveGoods.checked = false;
+
+
+	////////////////////////////////////////////////
+
+	// 外觀
+	var Exterior = document.getElementById("ExteriorID");
 	Exterior.checked = true;
 
 	// 材質
@@ -690,6 +709,25 @@ function CommonlyUsedInspectionSingleCheck(){
 
 //按下ASSY按鈕時單品相關按鈕打勾
 function CommonlyUsedInspectionAssYCheck(){
+
+	// 外觀
+	var Exterior = document.getElementById("ExteriorID");
+	Exterior.checked = false;
+
+	// 材質
+	var Material = document.getElementById("MaterialID");
+	Material.checked = false;
+
+	// 板厚
+	var PlateThickness = document.getElementById("PlateThicknessID");
+	PlateThickness.checked = false;
+
+	// 誤欠品
+	var DefectiveGoods = document.getElementById("DefectiveGoodsID");
+	DefectiveGoods.checked = false;
+
+
+	////////////////////////////////////////////////
 
 	// 外觀
 	var Exterior = document.getElementById("ExteriorID");
