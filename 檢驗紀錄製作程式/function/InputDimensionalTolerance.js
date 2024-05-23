@@ -626,6 +626,45 @@ function inputDATAonCheck(){
 			document.getElementById('inputInsItemPartNOTXT').value ="";
 
 	}
+    //常用檢查輸入
+	if(InputDimTorMode == "CommonlyUsedInspectionInformationMode"){
+
+		//是否有塗裝
+		if(document.getElementById("IsItPaintedID").checked == true){
+			console.log("是否有塗裝");
+
+		}
+		//塗裝規範
+		if(document.getElementById("PaintingSpecificationsID").checked == true){
+			console.log("塗裝規範");
+
+		}
+		//外觀
+		if(document.getElementById("ExteriorID").checked == true){
+			console.log("外觀");
+
+		}
+		//誤欠品
+		if(document.getElementById("DefectiveGoodsID").checked == true){
+			console.log("誤欠品");
+
+		}
+		//材質
+		if(document.getElementById("MaterialID").checked == true){
+			console.log("材質");
+
+		}
+		//板厚
+		if(document.getElementById("PlateThicknessID").checked == true){
+			console.log("板厚");
+
+		}
+		//重量
+		if(document.getElementById("weightID").checked == true){
+			console.log("重量");
+
+		}
+	}
 
 
     
