@@ -230,14 +230,13 @@ changeToinputTor.htmlElement.onclick = function() {
 
 //按下其他項輸入按鈕
 changeToinputIns.htmlElement.onclick = function() {
-	if(InputDimTorMode!="other"){
+	//交換
+	if(InputDimTorMode=="CommonlyUsedInspectionInformationMode"){
 
-		if(InputDimTorMode=="CommonlyUsedInspectionInformationMode"){
-			InputDimTorMode = "CommonlyUsedInspectionInformationMode";
-		}else{
-			InputDimTorMode = "other";
-		}
-		
+		InputDimTorMode = "other";
+	}else{
+
+		InputDimTorMode = "CommonlyUsedInspectionInformationMode";
 	}
 	//調整其他項輸入位置
 	if(InputDimTorMode=="CommonlyUsedInspectionInformationMode"){
@@ -339,14 +338,7 @@ changeToinputIns.htmlElement.onclick = function() {
 
 	}
 
-	//交換
-	if(InputDimTorMode=="CommonlyUsedInspectionInformationMode"){
-
-		InputDimTorMode = "other";
-	}else{
-
-		InputDimTorMode = "CommonlyUsedInspectionInformationMode";
-	}
+	
 	
 
 }
