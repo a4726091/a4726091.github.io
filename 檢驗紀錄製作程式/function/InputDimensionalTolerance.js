@@ -634,6 +634,8 @@ function inputDATAonCheck(){
 			document.getElementById('oTable').rows[inputInspectNownumber].cells[8].innerText = "1";
 			document.getElementById('oTable').rows[inputInspectNownumber].cells[9].innerText = "2";
 
+			inputInspectNownumber = inputInspectNownumber+1;
+
 		}
 		//塗裝規範
 		if(document.getElementById("PaintingSpecificationsID").checked == true){
@@ -647,6 +649,9 @@ function inputDATAonCheck(){
 			document.getElementById('oTable').rows[inputInspectNownumber].cells[7].innerText = "1";
 			document.getElementById('oTable').rows[inputInspectNownumber].cells[8].innerText = "1";
 			document.getElementById('oTable').rows[inputInspectNownumber].cells[9].innerText = "2";
+
+			inputInspectNownumber = inputInspectNownumber+1;
+
 
 		}
 		//外觀
@@ -662,6 +667,9 @@ function inputDATAonCheck(){
 			document.getElementById('oTable').rows[inputInspectNownumber].cells[8].innerText = "1";
 			document.getElementById('oTable').rows[inputInspectNownumber].cells[9].innerText = "2";
 
+			inputInspectNownumber = inputInspectNownumber+1;
+
+
 		}
 		//誤欠品
 		if(document.getElementById("DefectiveGoodsID").checked == true){
@@ -676,6 +684,9 @@ function inputDATAonCheck(){
 			document.getElementById('oTable').rows[inputInspectNownumber].cells[8].innerText = "1";
 			document.getElementById('oTable').rows[inputInspectNownumber].cells[9].innerText = "2";
 
+			inputInspectNownumber = inputInspectNownumber+1;
+
+
 		}
 		//材質
 		if(document.getElementById("MaterialID").checked == true){
@@ -689,6 +700,9 @@ function inputDATAonCheck(){
 			document.getElementById('oTable').rows[inputInspectNownumber].cells[7].innerText = "1";
 			document.getElementById('oTable').rows[inputInspectNownumber].cells[8].innerText = "1";
 			document.getElementById('oTable').rows[inputInspectNownumber].cells[9].innerText = "3";
+
+			inputInspectNownumber = inputInspectNownumber+1;
+
 
 
 		}
@@ -705,10 +719,16 @@ function inputDATAonCheck(){
 			document.getElementById('oTable').rows[inputInspectNownumber].cells[8].innerText = "1";
 			document.getElementById('oTable').rows[inputInspectNownumber].cells[9].innerText = "3";
 
+			inputInspectNownumber = inputInspectNownumber+1;
+
+
 		}
 		//重量
 		if(document.getElementById("weightID").checked == true){
 			console.log("重量");
+
+			inputInspectNownumber = inputInspectNownumber+1;
+
 
 		}
 	}
