@@ -624,6 +624,15 @@ function inputDATAonCheck(){
 		//是否有塗裝
 		if(document.getElementById("IsItPaintedID").checked == true){
 			console.log("是否有塗裝");
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[1].innerText = "塗裝";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[2].innerText = "目視";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[3].innerText = "黑色";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[4].innerText = "";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[5].innerText = "A";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[6].innerText = "全檢";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[7].innerText = "1";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[8].innerText = "1";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[9].innerText = "2";
 
 		}
 		//塗裝規範
