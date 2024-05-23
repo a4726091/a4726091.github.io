@@ -638,26 +638,72 @@ function inputDATAonCheck(){
 		//塗裝規範
 		if(document.getElementById("PaintingSpecificationsID").checked == true){
 			console.log("塗裝規範");
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[1].innerText = "塗裝規範";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[2].innerText = "塗裝報告";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[3].innerText = document.getElementById('PaintingSpecificationsInputID').value;
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[4].innerText = "";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[5].innerText = "B";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[6].innerText = "全檢";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[7].innerText = "1";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[8].innerText = "1";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[9].innerText = "2";
 
 		}
 		//外觀
 		if(document.getElementById("ExteriorID").checked == true){
 			console.log("外觀");
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[1].innerText = "外觀";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[2].innerText = "目視";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[3].innerText = "破裂變形等異常不可";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[4].innerText = "";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[5].innerText = "B";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[6].innerText = "全檢";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[7].innerText = "1";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[8].innerText = "1";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[9].innerText = "2";
 
 		}
 		//誤欠品
 		if(document.getElementById("DefectiveGoodsID").checked == true){
 			console.log("誤欠品");
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[1].innerText = "誤欠品";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[2].innerText = "目視";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[3].innerText = "依圖面欠不可";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[4].innerText = "";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[5].innerText = "B";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[6].innerText = "全檢";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[7].innerText = "1";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[8].innerText = "1";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[9].innerText = "2";
 
 		}
 		//材質
 		if(document.getElementById("MaterialID").checked == true){
 			console.log("材質");
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[1].innerText = "材質";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[2].innerText = "材證";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[3].innerText = document.getElementById('MaterialInputID').value;
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[4].innerText = "";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[5].innerText = "B";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[6].innerText = "1回/12個月";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[7].innerText = "1";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[8].innerText = "1";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[9].innerText = "3";
+
 
 		}
 		//板厚
 		if(document.getElementById("PlateThicknessID").checked == true){
 			console.log("板厚");
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[1].innerText = "板厚";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[2].innerText = "分釐卡";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[3].innerText = document.getElementById('PlateThicknessInputID').value;
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[4].innerText = "";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[5].innerText = "B";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[6].innerText = "全檢";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[7].innerText = "1";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[8].innerText = "1";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[9].innerText = "3";
 
 		}
 		//重量
