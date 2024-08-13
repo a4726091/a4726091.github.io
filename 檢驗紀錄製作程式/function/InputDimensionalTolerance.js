@@ -642,7 +642,7 @@ function inputDATAonCheck(){
 			console.log("是否有塗裝");
 			document.getElementById('oTable').rows[inputInspectNownumber].cells[1].innerText = "塗裝";
 			document.getElementById('oTable').rows[inputInspectNownumber].cells[2].innerText = "目視";
-			document.getElementById('oTable').rows[inputInspectNownumber].cells[3].innerText = "欠不可";
+			document.getElementById('oTable').rows[inputInspectNownumber].cells[3].innerText = "不可有";
 			document.getElementById('oTable').rows[inputInspectNownumber].cells[4].innerText = "";
 			document.getElementById('oTable').rows[inputInspectNownumber].cells[5].innerText = "A";
 			document.getElementById('oTable').rows[inputInspectNownumber].cells[6].innerText = "全檢";
