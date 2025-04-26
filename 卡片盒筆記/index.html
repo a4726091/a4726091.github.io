@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>卡片盒筆記管理</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    .note-form, .editor, .tag-filter { margin-bottom: 20px; }
+    label { display: block; margin-bottom: 5px; }
+    textarea, select, input[type="text"], input[type="file"] { width: 100%; padding: 5px; margin-top: 5px; }
+    button { padding: 5px; margin-top: 10px; margin-right: 5px; }
+    .tag-list { margin-top: 10px; color: green; }
+    .tag-buttons button { margin-left: 5px; }
+    .toolbar { margin-bottom: 10px; padding: 10px; border: 1px solid #ccc; background-color: #f9f9f9; }
+    .toolbar button, .toolbar select, .toolbar input { margin-right: 5px; }
+    .editor-area { border: 1px solid #ccc; padding: 10px; min-height: 100px; outline: none; white-space: pre-wrap; }
+    .editor-area img { max-width: 200px; margin: 5px; cursor: pointer; position: relative; display: inline-block; }
+    .editor-area img.resizable { resize: both; overflow: auto; border: 2px solid #007bff; min-width: 50px; min-height: 50px; }
+  </style>
+</head>
+<body>
+  <h1>卡片盒筆記管理</h1>
+
+  <div class="note-form">
+    <label for="title">筆記標題：</label>
+    <input type="text" id="title" />
+
+    <label for="content">筆記內容：</label>
+    <div class="toolbar">
+      <select id="fontSizeContent" onchange="changeFontSize('content')">
+        <option value="16">16px</option>
+        <option value="20">20px</option>
+        <option value="24">24px</option>
+        <option value="32">32px</option>
+      </select>
+      <button onclick="formatText('bold', 'content')">粗體</button>
+      <button onclick="formatText('italic', 'content')">斜體</button>
+      <button onclick="formatText('underline', 'content')">底線</button>
+      <select id="fontFamilyContent" onchange="changeFontFamily('content')">
+        <option value="Arial">Arial</option>
+        <option value="Times New Roman">Times New Roman</option>
+        <option value="Courier New">Courier New</option>
+      </select>
+      <input type="file" id="imageUploadContent" accept="image/*" onchange="insertImage('content')" style="display: inline;">
+    </div>
+    <div id="content" class="editor-area" contenteditable="true">在這裡輸入和編輯文字...</div>
+
+    <label for="tag">新增標籤：</label>
+    <input type="text" id="tag" />
+    <button id="add-tag">新增標籤至筆記</button>
+
+    <label for="tag-history">從歷史標籤中選擇：</label>
+    <select id="tag-history"><option value="">請選擇</option></select>
+
+    <div id="current-tags" class="tag-list"></div>
+
+    <button id="add-note">新增筆記</button>
+    <button id="save-notes">保存所有筆記</button>
+    <label for="import-notes">導入所有筆記：</label>
+    <input type="file" id="import-notes" accept=".json" onchange="importNotes()" />
+  </div>
+
+  <div class="tag-filter">
+    <label for="tag-select">選擇標籤：</label>
+    <select id="tag-select"><option value="">請選擇</option></select>
+
+    <label for="tag-note-select">標籤相關筆記標題：</label>
+    <select id="tag-note-select"><option value="">請選擇</option></select>
+  </div>
+
+  <div class="editor">
+    <label for="note-select">選擇筆記標題：</label>
+    <select id="note-select">
+      <option value="">請選擇</option>
+    </select>
+
+    <label for="note-title-display">筆記標題：</label>
+    <input type="text" id="note-title-display" readonly />
+
+    <label for="note-edit">筆記內容編輯：</label>
+    <div class="toolbar">
+      <select id="fontSizeEdit" onchange="changeFontSize('note-edit')">
+        <option value="16">16px</option>
+        <option value="20">20px</option>
+        <option value="24">24px</option>
+        <option value="32">32px</option>
+      </select>
+      <button onclick="formatText('bold', 'note-edit')">粗體</button>
+      <button onclick="formatText('italic', 'note-edit')">斜體</button>
+      <button onclick="formatText('underline', 'note-edit')">底線</button>
+      <select id="fontFamilyEdit" onchange="changeFontFamily('note-edit')">
+        <option value="Arial">Arial</option>
+        <option value="Times New Roman">Times New Roman</option>
+        <option value="Courier New">Courier New</option>
+      </select>
+      <input type="file" id="imageUploadEdit" accept="image/*" onchange="insertImage('note-edit')" style="display: inline;">
+    </div>
+    <div id="note-edit" class="editor-area" contenteditable="true"></div>
+
+    <div>
+      <label>此筆記標籤：</label>
+      <div id="editor-tags" class="tag-list"></div>
+      <input type="text" id="editor-tag-input" />
+      <button id="editor-add-tag">新增</button>
+    </div>
+
+    <button id="update-note">更新筆記</button>
+    <button id="delete-note">刪除筆記</button>
+  </div>
+
+  <script>
+    let notes = [];
+    let currentTags = [];
+
+    const titleEl = document.getElementById('title');
+    const contentEl = document.getElementById('content');
+    const tagEl = document.getElementById('tag');
+    const addTagBtn = document.getElementById('add-tag');
+    const addBtn = document.getElementById('add-note');
+    const saveBtn = document.getElementById('save-notes');
+    const noteSelect = document.getElementById('note-select');
+    const noteEdit = document.getElementById('note-edit');
+    const noteTitleDisplay = document.getElementById('note-title-display');
+    const updateBtn = document.getElementById('update-note');
+    const deleteBtn = document.getElementById('delete-note');
+    const tagSelect = document.getElementById('tag-select');
+    const tagNoteSelect = document.getElementById('tag-note-select');
+    const currentTagsEl = document.getElementById('current-tags');
+    const tagHistory = document.getElementById('tag-history');
+    const editorTags = document.getElementById('editor-tags');
+    const editorTagInput = document.getElementById('editor-tag-input');
+    const editorAddTagBtn = document.getElementById('editor-add-tag');
+
+    function genNewId() {
+      const roots = notes.map(n => n.id).filter(id => /^[0-9]+$/.test(id)).map(Number);
+      const next = roots.length ? Math.max(...roots) + 1 : 1;
+      return String(next);
+    }
+
+    function renderNotes() {
+      noteSelect.innerHTML = '<option value="">請選擇</option>';
+      notes.forEach(note => {
+        const opt = document.createElement('option');
+        opt.value = note.id;
+        opt.textContent = note.title;
+        noteSelect.appendChild(opt);
+      });
+    }
+
+    function renderTags() {
+      const tags = [...new Set(notes.flatMap(n => n.tags || []))];
+      tagSelect.innerHTML = '<option value="">請選擇</option>';
+      tagHistory.innerHTML = '<option value="">請選擇</option>';
+      tags.forEach(tag => {
+        const opt1 = document.createElement('option');
+        opt1.value = tag;
+        opt1.textContent = tag;
+        tagSelect.appendChild(opt1);
+
+        const opt2 = document.createElement('option');
+        opt2.value = tag;
+        opt2.textContent = tag;
+        tagHistory.appendChild(opt2);
+      });
+    }
+
+    function renderTagNotes(tag) {
+      const filtered = notes.filter(n => (n.tags || []).includes(tag));
+      tagNoteSelect.innerHTML = '<option value="">請選擇</option>';
+      filtered.forEach(note => {
+        const opt = document.createElement('option');
+        opt.value = note.id;
+        opt.textContent = note.title;
+        tagNoteSelect.appendChild(opt);
+      });
+    }
+
+    function updateTagDisplay() {
+      currentTagsEl.textContent = '已加入標籤：' + currentTags.join(', ');
+    }
+
+    function updateEditorTags(note) {
+      editorTags.innerHTML = '';
+      (note.tags || []).forEach(tag => {
+        const span = document.createElement('span');
+        span.textContent = tag;
+        const delBtn = document.createElement('button');
+        delBtn.textContent = '刪除';
+        delBtn.onclick = () => {
+          note.tags = note.tags.filter(t => t !== tag);
+          updateEditorTags(note);
+          renderTags();
+        };
+        const wrapper = document.createElement('div');
+        wrapper.appendChild(span);
+        wrapper.appendChild(delBtn);
+        editorTags.appendChild(wrapper);
+      });
+    }
+
+    function formatText(command, editorId) {
+      const editor = document.getElementById(editorId);
+      editor.focus();
+      document.execCommand(command, false, null);
+    }
+
+    function changeFontSize(editorId) {
+      const editor = document.getElementById(editorId);
+      const fontSize = document.getElementById(`fontSize${editorId === 'content' ? 'Content' : 'Edit'}`).value + 'px';
+      editor.focus();
+      document.execCommand('fontSize', false, '7');
+      const fontElements = editor.getElementsByTagName('font');
+      for (let i = 0; i < fontElements.length; i++) {
+        if (fontElements[i].size === '7') {
+          fontElements[i].removeAttribute('size');
+          fontElements[i].style.fontSize = fontSize;
+        }
+      }
+    }
+
+    function changeFontFamily(editorId) {
+      const editor = document.getElementById(editorId);
+      const fontFamily = document.getElementById(`fontFamily${editorId === 'content' ? 'Content' : 'Edit'}`).value;
+      editor.focus();
+      document.execCommand('fontName', false, fontFamily);
+    }
+
+    function insertImage(editorId) {
+      const fileInput = document.getElementById(`imageUpload${editorId === 'content' ? 'Content' : 'Edit'}`);
+      const file = fileInput.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const img = document.createElement('img');
+          img.src = e.target.result;
+          img.classList.add('resizable');
+          img.style.width = '200px';
+          img.style.height = 'auto';
+          const editor = document.getElementById(editorId);
+          editor.focus();
+          const range = window.getSelection().getRangeAt(0);
+          range.insertNode(img);
+          range.collapse(false);
+          fileInput.value = '';
+          makeImageResizable(img);
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function makeImageResizable(img) {
+      img.addEventListener('click', function() {
+        const allImages = document.querySelectorAll('.editor-area img');
+        allImages.forEach(image => image.classList.remove('resizable'));
+        img.classList.add('resizable');
+      });
+
+      img.addEventListener('resize', function() {
+        img.style.height = 'auto';
+      });
+
+      document.addEventListener('click', function(e) {
+        if (!e.target.closest('.editor-area img')) {
+          const allImages = document.querySelectorAll('.editor-area img');
+          allImages.forEach(image => image.classList.remove('resizable'));
+        }
+      });
+    }
+
+    function saveNotes() {
+      if (notes.length === 0) {
+        alert('目前沒有筆記可保存');
+        return;
+      }
+      const dataStr = JSON.stringify(notes, null, 2);
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'all_notes.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function importNotes() {
+      const fileInput = document.getElementById('import-notes');
+      const file = fileInput.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          try {
+            const importedNotes = JSON.parse(e.target.result);
+            if (!Array.isArray(importedNotes)) {
+              alert('無效的筆記檔案格式');
+              return;
+            }
+            // 檢查並重新分配 ID 以避免衝突
+            const existingIds = new Set(notes.map(n => n.id));
+            importedNotes.forEach(note => {
+              if (!note.id || existingIds.has(note.id)) {
+                note.id = genNewId();
+              }
+              existingIds.add(note.id);
+              // 確保筆記有標籤陣列
+              if (!Array.isArray(note.tags)) {
+                note.tags = [];
+              }
+            });
+            // 合併筆記
+            notes = [...notes, ...importedNotes];
+            renderNotes();
+            renderTags();
+            alert('所有筆記導入成功');
+          } catch (err) {
+            alert('導入筆記失敗：無效的 JSON 格式');
+          }
+          fileInput.value = '';
+        };
+        reader.readAsText(file);
+      }
+    }
+
+    addTagBtn.addEventListener('click', () => {
+      const tag = tagEl.value.trim();
+      if (tag && !currentTags.includes(tag)) {
+        currentTags.push(tag);
+        tagEl.value = '';
+        updateTagDisplay();
+      }
+    });
+
+    tagHistory.addEventListener('change', () => {
+      const tag = tagHistory.value;
+      if (tag && !currentTags.includes(tag)) {
+        currentTags.push(tag);
+        updateTagDisplay();
+      }
+    });
+
+    addBtn.addEventListener('click', () => {
+      const title = titleEl.value.trim();
+      const content = contentEl.innerHTML.trim();
+      if (!title || !content) {
+        alert('請輸入筆記標題與內容');
+        return;
+      }
+      const newId = genNewId();
+      notes.push({ id: newId, title, content, tags: [...currentTags] });
+      titleEl.value = '';
+      contentEl.innerHTML = '在這裡輸入和編輯文字...';
+      currentTags = [];
+      updateTagDisplay();
+      renderNotes();
+      renderTags();
+    });
+
+    saveBtn.addEventListener('click', saveNotes);
+
+    noteSelect.addEventListener('change', () => {
+      const id = noteSelect.value;
+      const note = notes.find(n => n.id === id);
+      if (note) {
+        noteEdit.innerHTML = note.content;
+        noteTitleDisplay.value = note.title;
+        updateEditorTags(note);
+        const images = noteEdit.querySelectorAll('img');
+        images.forEach(img => makeImageResizable(img));
+      } else {
+        noteEdit.innerHTML = '';
+        noteTitleDisplay.value = '';
+        editorTags.innerHTML = '';
+      }
+    });
+
+    tagNoteSelect.addEventListener('change', () => {
+      const id = tagNoteSelect.value;
+      const note = notes.find(n => n.id === id);
+      if (note) {
+        noteEdit.innerHTML = note.content;
+        noteTitleDisplay.value = note.title;
+        noteSelect.value = note.id;
+        updateEditorTags(note);
+        const images = noteEdit.querySelectorAll('img');
+        images.forEach(img => makeImageResizable(img));
+      }
+    });
+
+    editorAddTagBtn.addEventListener('click', () => {
+      const id = noteSelect.value;
+      const tag = editorTagInput.value.trim();
+      if (!tag) return;
+      const note = notes.find(n => n.id === id);
+      if (note && !note.tags.includes(tag)) {
+        note.tags.push(tag);
+        updateEditorTags(note);
+        renderTags();
+        editorTagInput.value = '';
+      }
+    });
+
+    updateBtn.addEventListener('click', () => {
+      const id = noteSelect.value;
+      const note = notes.find(n => n.id === id);
+      if (note) {
+        note.content = noteEdit.innerHTML.trim();
+        renderNotes();
+        alert('筆記已更新');
+      }
+    });
+
+    deleteBtn.addEventListener('click', () => {
+      const id = noteSelect.value;
+      if (!id) {
+        alert('請選擇要刪除的筆記');
+        return;
+      }
+      if (!confirm('確定要刪除這筆筆記嗎？')) return;
+      notes = notes.filter(n => n.id !== id);
+      noteEdit.innerHTML = '';
+      noteTitleDisplay.value = '';
+      editorTags.innerHTML = '';
+      noteSelect.value = '';
+      renderNotes();
+      renderTags();
+      tagNoteSelect.innerHTML = '<option value="">請選擇</option>';
+    });
+
+    tagSelect.addEventListener('change', () => {
+      renderTagNotes(tagSelect.value);
+    });
+
+    renderNotes();
+    renderTags();
+  </script>
+</body>
+</html>
