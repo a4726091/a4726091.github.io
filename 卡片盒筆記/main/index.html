@@ -10,13 +10,14 @@
     label { display: block; margin-bottom: 5px; }
     textarea, select, input[type="text"], input[type="file"] { width: 100%; padding: 5px; margin-top: 5px; }
     button { padding: 5px; margin-top: 10px; margin-right: 5px; }
-    .tag-list { margin-top: 10px; color: green; }
-    .tag-buttons button { margin-left: 5px; }
+    .tag-list, .linked-notes-list { margin-top: 10px; color: green; }
+    .tag-buttons button, .linked-notes-buttons button { margin-left: 5px; }
     .toolbar { margin-bottom: 10px; padding: 10px; border: 1px solid #ccc; background-color: #f9f9f9; }
     .toolbar button, .toolbar select, .toolbar input { margin-right: 5px; }
     .editor-area { border: 1px solid #ccc; padding: 10px; min-height: 100px; outline: none; white-space: pre-wrap; }
     .editor-area img { max-width: 200px; margin: 5px; cursor: pointer; position: relative; display: inline-block; }
     .editor-area img.resizable { resize: both; overflow: auto; border: 2px solid #007bff; min-width: 50px; min-height: 50px; }
+    .linked-notes-list a { color: blue; text-decoration: underline; cursor: pointer; margin-right: 10px; }
   </style>
 </head>
 <body>
@@ -54,6 +55,12 @@
     <select id="tag-history"><option value="">請選擇</option></select>
 
     <div id="current-tags" class="tag-list"></div>
+
+    <label for="link-note">連結其他筆記：</label>
+    <select id="link-note" onchange="addLinkedNote()">
+      <option value="">請選擇</option>
+    </select>
+    <div id="current-linked-notes" class="linked-notes-list"></div>
 
     <button id="add-note">新增筆記</button>
     <button id="save-notes">保存所有筆記</button>
@@ -105,6 +112,11 @@
       <button id="editor-add-tag">新增</button>
     </div>
 
+    <div>
+      <label>連結的筆記：</label>
+      <div id="editor-linked-notes" class="linked-notes-list"></div>
+    </div>
+
     <button id="update-note">更新筆記</button>
     <button id="delete-note">刪除筆記</button>
   </div>
@@ -112,6 +124,7 @@
   <script>
     let notes = [];
     let currentTags = [];
+    let currentLinkedNotes = [];
 
     const titleEl = document.getElementById('title');
     const contentEl = document.getElementById('content');
@@ -131,6 +144,9 @@
     const editorTags = document.getElementById('editor-tags');
     const editorTagInput = document.getElementById('editor-tag-input');
     const editorAddTagBtn = document.getElementById('editor-add-tag');
+    const linkNoteSelect = document.getElementById('link-note');
+    const currentLinkedNotesEl = document.getElementById('current-linked-notes');
+    const editorLinkedNotesEl = document.getElementById('editor-linked-notes');
 
     function genNewId() {
       const roots = notes.map(n => n.id).filter(id => /^[0-9]+$/.test(id)).map(Number);
@@ -140,11 +156,17 @@
 
     function renderNotes() {
       noteSelect.innerHTML = '<option value="">請選擇</option>';
+      linkNoteSelect.innerHTML = '<option value="">請選擇</option>';
       notes.forEach(note => {
-        const opt = document.createElement('option');
-        opt.value = note.id;
-        opt.textContent = note.title;
-        noteSelect.appendChild(opt);
+        const opt1 = document.createElement('option');
+        opt1.value = note.id;
+        opt1.textContent = note.title;
+        noteSelect.appendChild(opt1);
+
+        const opt2 = document.createElement('option');
+        opt2.value = note.id;
+        opt2.textContent = note.title;
+        linkNoteSelect.appendChild(opt2);
       });
     }
 
@@ -177,7 +199,20 @@
     }
 
     function updateTagDisplay() {
-      currentTagsEl.textContent = '已加入標籤：' + currentTags.join(', ');
+      currentTagsEl.textContent = '已連結標籤：' + currentTags.join(', ');
+    }
+
+    function updateLinkedNotesDisplay() {
+      currentLinkedNotesEl.innerHTML = '已連結筆記：';
+      currentLinkedNotes.forEach(noteId => {
+        const note = notes.find(n => n.id === noteId);
+        if (note) {
+          const span = document.createElement('span');
+          span.textContent = note.title;
+          span.style.marginRight = '10px';
+          currentLinkedNotesEl.appendChild(span);
+        }
+      });
     }
 
     function updateEditorTags(note) {
@@ -196,6 +231,38 @@
         wrapper.appendChild(span);
         wrapper.appendChild(delBtn);
         editorTags.appendChild(wrapper);
+      });
+    }
+
+    function updateEditorLinkedNotes(note) {
+      editorLinkedNotesEl.innerHTML = '';
+      (note.linkedNotes || []).forEach(noteId => {
+        const linkedNote = notes.find(n => n.id === noteId);
+        if (linkedNote) {
+          const wrapper = document.createElement('div');
+          const link = document.createElement('a');
+          link.textContent = linkedNote.title;
+          link.onclick = () => {
+            noteSelect.value = noteId;
+            noteEdit.innerHTML = linkedNote.content;
+            noteTitleDisplay.value = linkedNote.title;
+            updateEditorTags(linkedNote);
+            updateEditorLinkedNotes(linkedNote);
+          };
+          const delBtn = document.createElement('button');
+          delBtn.textContent = '刪除';
+          delBtn.onclick = () => {
+            note.linkedNotes = note.linkedNotes.filter(id => id !== noteId);
+            const linkedNote = notes.find(n => n.id === noteId);
+            if (linkedNote) {
+              linkedNote.linkedNotes = linkedNote.linkedNotes.filter(id => id !== note.id);
+            }
+            updateEditorLinkedNotes(note);
+          };
+          wrapper.appendChild(link);
+          wrapper.appendChild(delBtn);
+          editorLinkedNotesEl.appendChild(wrapper);
+        }
       });
     }
 
@@ -223,7 +290,7 @@
       const editor = document.getElementById(editorId);
       const fontFamily = document.getElementById(`fontFamily${editorId === 'content' ? 'Content' : 'Edit'}`).value;
       editor.focus();
-      document.execCommand('fontName', false, fontFamily);
+      document.execCommand('fontName', false, null);
     }
 
     function insertImage(editorId) {
@@ -268,6 +335,15 @@
       });
     }
 
+    function addLinkedNote() {
+      const noteId = linkNoteSelect.value;
+      if (noteId && !currentLinkedNotes.includes(noteId)) {
+        currentLinkedNotes.push(noteId);
+        updateLinkedNotesDisplay();
+      }
+      linkNoteSelect.value = '';
+    }
+
     function saveNotes() {
       if (notes.length === 0) {
         alert('目前沒有筆記可保存');
@@ -304,10 +380,22 @@
                 note.id = genNewId();
               }
               existingIds.add(note.id);
-              // 確保筆記有標籤陣列
+              // 確保筆記有標籤和連結筆記陣列
               if (!Array.isArray(note.tags)) {
                 note.tags = [];
               }
+              if (!Array.isArray(note.linkedNotes)) {
+                note.linkedNotes = [];
+              }
+            });
+            // 檢查並維護雙向連結
+            importedNotes.forEach(note => {
+              (note.linkedNotes || []).forEach(linkedId => {
+                const linkedNote = importedNotes.find(n => n.id === linkedId);
+                if (linkedNote && !linkedNote.linkedNotes.includes(note.id)) {
+                  linkedNote.linkedNotes.push(note.id);
+                }
+              });
             });
             // 合併筆記
             notes = [...notes, ...importedNotes];
@@ -348,11 +436,21 @@
         return;
       }
       const newId = genNewId();
-      notes.push({ id: newId, title, content, tags: [...currentTags] });
+      const newNote = { id: newId, title, content, tags: [...currentTags], linkedNotes: [...currentLinkedNotes] };
+      notes.push(newNote);
+      // 添加雙向連結
+      currentLinkedNotes.forEach(linkedId => {
+        const linkedNote = notes.find(n => n.id === linkedId);
+        if (linkedNote && !linkedNote.linkedNotes.includes(newId)) {
+          linkedNote.linkedNotes.push(newId);
+        }
+      });
       titleEl.value = '';
       contentEl.innerHTML = '在這裡輸入和編輯文字...';
       currentTags = [];
+      currentLinkedNotes = [];
       updateTagDisplay();
+      updateLinkedNotesDisplay();
       renderNotes();
       renderTags();
     });
@@ -366,12 +464,14 @@
         noteEdit.innerHTML = note.content;
         noteTitleDisplay.value = note.title;
         updateEditorTags(note);
+        updateEditorLinkedNotes(note);
         const images = noteEdit.querySelectorAll('img');
         images.forEach(img => makeImageResizable(img));
       } else {
         noteEdit.innerHTML = '';
         noteTitleDisplay.value = '';
         editorTags.innerHTML = '';
+        editorLinkedNotesEl.innerHTML = '';
       }
     });
 
@@ -383,6 +483,7 @@
         noteTitleDisplay.value = note.title;
         noteSelect.value = note.id;
         updateEditorTags(note);
+        updateEditorLinkedNotes(note);
         const images = noteEdit.querySelectorAll('img');
         images.forEach(img => makeImageResizable(img));
       }
@@ -418,10 +519,16 @@
         return;
       }
       if (!confirm('確定要刪除這筆筆記嗎？')) return;
+      const note = notes.find(n => n.id === id);
+      // 移除其他筆記對此筆記的連結
+      notes.forEach(n => {
+        n.linkedNotes = n.linkedNotes.filter(linkedId => linkedId !== id);
+      });
       notes = notes.filter(n => n.id !== id);
       noteEdit.innerHTML = '';
       noteTitleDisplay.value = '';
       editorTags.innerHTML = '';
+      editorLinkedNotesEl.innerHTML = '';
       noteSelect.value = '';
       renderNotes();
       renderTags();
