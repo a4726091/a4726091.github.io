@@ -37,6 +37,7 @@
           boxShadow: {
             'neon': '0 0 5px theme("colors.tech.accent"), 0 0 10px theme("colors.tech.accent")',
             'neon-red': '0 0 5px theme("colors.tech.danger"), 0 0 10px theme("colors.tech.danger")',
+            'neon-green': '0 0 5px theme("colors.tech.success"), 0 0 10px theme("colors.tech.success")',
           }
         }
       }
@@ -95,17 +96,40 @@
       -webkit-backdrop-filter: blur(10px);
       border: 1px solid rgba(255, 255, 255, 0.1);
     }
+
+    /* Transition utilities for collapsing panels */
+    .panel-transition {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow: hidden;
+    }
+    
+    .panel-closed-width {
+      width: 0 !important;
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+      border-right: none !important;
+      border-left: none !important;
+      opacity: 0;
+    }
+
+    .panel-closed-height {
+      height: 0 !important;
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+      border-bottom: none !important;
+      opacity: 0;
+    }
   </style>
 </head>
 <body class="bg-tech-bg text-slate-200 font-sans h-screen overflow-hidden flex flex-col md:flex-row">
 
   <!-- Notification Toast Area -->
-  <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2"></div>
+  <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
   <!-- SIDEBAR (Navigation & List) -->
-  <aside class="w-full md:w-80 flex flex-col border-r border-tech-border bg-tech-panel h-[35vh] md:h-full shrink-0">
+  <aside id="sidebar-left" class="panel-transition w-full md:w-80 flex flex-col border-r border-tech-border bg-tech-panel h-[35vh] md:h-full shrink-0">
     <!-- App Header -->
-    <div class="p-4 border-b border-tech-border flex items-center justify-between">
+    <div class="p-4 border-b border-tech-border flex items-center justify-between shrink-0">
       <div class="flex items-center gap-2 text-tech-accent animate-pulse">
         <i class="fa-solid fa-microchip text-xl"></i>
         <h1 class="font-mono text-lg font-bold tracking-wider">ZETTEL_CORE</h1>
@@ -122,7 +146,7 @@
     </div>
 
     <!-- Search & Filter -->
-    <div class="p-3 border-b border-tech-border bg-slate-800/50">
+    <div class="p-3 border-b border-tech-border bg-slate-800/50 shrink-0">
       <div class="relative mb-2">
         <i class="fa-solid fa-search absolute left-3 top-3 text-slate-500 text-xs"></i>
         <input type="text" id="search-input" placeholder="搜尋標題或內容..." 
@@ -139,7 +163,7 @@
     </div>
 
     <!-- Add New Button (Mobile/Desktop) -->
-    <div class="p-4 border-t border-tech-border">
+    <div class="p-4 border-t border-tech-border shrink-0">
       <button onclick="createNewNote()" class="w-full bg-tech-accent/10 border border-tech-accent text-tech-accent hover:bg-tech-accent hover:text-slate-900 font-mono py-2 rounded transition-all duration-300 shadow-neon flex items-center justify-center gap-2 group">
         <i class="fa-solid fa-plus transition-transform group-hover:rotate-90"></i>
         <span>建立新資料卡</span>
@@ -151,22 +175,33 @@
   <main class="flex-1 flex flex-col h-[65vh] md:h-full relative bg-tech-bg bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiLz48L3N2Zz4=')]">
     
     <!-- Editor Header / Toolbar -->
-    <header class="h-16 border-b border-tech-border glass-panel flex items-center justify-between px-6 shrink-0 z-10">
+    <header class="h-16 border-b border-tech-border glass-panel flex items-center justify-between px-4 md:px-6 shrink-0 z-10">
       <div class="flex items-center gap-4 w-full">
+        <!-- Toggle Left Sidebar Button -->
+        <button onclick="togglePanel('left')" class="text-slate-400 hover:text-white transition p-2 rounded hover:bg-slate-700/50" title="切換導航欄">
+            <i class="fa-solid fa-bars"></i>
+        </button>
+
         <input type="text" id="note-title" placeholder="輸入資料卡標題..." 
-               class="bg-transparent border-none text-xl md:text-2xl font-bold text-white placeholder-slate-600 focus:outline-none w-full font-mono tracking-wide" />
+               class="bg-transparent border-none text-lg md:text-2xl font-bold text-white placeholder-slate-600 focus:outline-none w-full font-mono tracking-wide" />
       </div>
       
       <div class="flex items-center gap-2 shrink-0">
-        <span id="save-status" class="text-xs text-slate-500 font-mono hidden md:block">已同步</span>
+        <span id="save-status" class="text-xs text-slate-500 font-mono hidden lg:block">已同步</span>
         <button onclick="deleteCurrentNote()" id="btn-delete" class="hidden text-red-500 hover:bg-red-500/10 p-2 rounded transition border border-transparent hover:border-red-500/50" title="刪除此卡片">
           <i class="fa-solid fa-trash-can"></i>
+        </button>
+        
+        <!-- Toggle Right Sidebar Button -->
+        <div class="h-6 w-px bg-slate-700 mx-2 hidden md:block"></div>
+        <button onclick="togglePanel('right')" class="text-slate-400 hover:text-tech-secondary transition p-2 rounded hover:bg-slate-700/50 hidden md:block" title="切換資訊欄">
+            <i class="fa-solid fa-columns"></i>
         </button>
       </div>
     </header>
 
     <!-- Toolbar -->
-    <div class="px-6 py-2 border-b border-tech-border bg-slate-800/30 flex flex-wrap items-center gap-2 overflow-x-auto">
+    <div class="px-6 py-2 border-b border-tech-border bg-slate-800/30 flex flex-wrap items-center gap-2 overflow-x-auto shrink-0">
       <div class="flex bg-slate-900 rounded border border-slate-700 p-0.5">
         <button onclick="formatText('bold')" class="p-1.5 px-3 hover:bg-slate-700 rounded text-slate-300 transition" title="粗體"><i class="fa-solid fa-bold"></i></button>
         <button onclick="formatText('italic')" class="p-1.5 px-3 hover:bg-slate-700 rounded text-slate-300 transition" title="斜體"><i class="fa-solid fa-italic"></i></button>
@@ -190,7 +225,7 @@
     </div>
 
     <!-- Content Area -->
-    <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
+    <div class="flex-1 flex flex-col md:flex-row overflow-hidden relative">
       
       <!-- Editor Body -->
       <div class="flex-1 overflow-y-auto p-6 relative">
@@ -199,7 +234,7 @@
       </div>
 
       <!-- Right Panel: Metadata (Tags & Links) -->
-      <aside class="w-full md:w-72 border-t md:border-t-0 md:border-l border-tech-border bg-slate-900/50 p-4 overflow-y-auto shrink-0">
+      <aside id="sidebar-right" class="panel-transition w-full md:w-72 border-t md:border-t-0 md:border-l border-tech-border bg-slate-900/50 p-4 overflow-y-auto shrink-0">
         
         <!-- Tags Section -->
         <div class="mb-6">
@@ -268,7 +303,9 @@
       btnDelete: document.getElementById('btn-delete'),
       btnSaveUpdate: document.getElementById('btn-save-update'),
       status: document.getElementById('save-status'),
-      toastContainer: document.getElementById('toast-container')
+      toastContainer: document.getElementById('toast-container'),
+      sidebarLeft: document.getElementById('sidebar-left'),
+      sidebarRight: document.getElementById('sidebar-right')
     };
 
     // --- Initialization ---
@@ -282,7 +319,7 @@
         notes = [{
           id: '1',
           title: '歡迎使用 ZETTEL_CORE',
-          content: '<b>開始你的數位大腦旅程。</b><br><br>這是一個結合科技風格與卡片盒筆記法的系統。<br>左側選單管理筆記，右側進行編輯。',
+          content: '<b>開始你的數位大腦旅程。</b><br><br>這是一個結合科技風格與卡片盒筆記法的系統。<br>左側選單管理筆記，右側進行編輯。<br><br>點擊上方工具列的按鈕可以開合左右面板，讓寫作更專注。',
           tags: ['System', 'Help'],
           linkedNotes: []
         }];
@@ -414,6 +451,30 @@
 
     function saveToStorage() {
       localStorage.setItem('zettelkasten_notes', JSON.stringify(notes));
+    }
+
+    // --- UI Layout Management ---
+
+    function togglePanel(side) {
+        const isMobile = window.innerWidth < 768;
+        
+        if (side === 'left') {
+            if (isMobile) {
+                // Mobile: Toggle height or display
+                els.sidebarLeft.classList.toggle('panel-closed-height');
+            } else {
+                // Desktop: Toggle width
+                els.sidebarLeft.classList.toggle('panel-closed-width');
+            }
+        } else if (side === 'right') {
+            // Right panel is usually inside flex-col on mobile, but at bottom
+            // logic is same: hide width on desktop, hide height on mobile
+             if (isMobile) {
+                els.sidebarRight.classList.toggle('panel-closed-height');
+            } else {
+                els.sidebarRight.classList.toggle('panel-closed-width');
+            }
+        }
     }
 
     // --- UI Rendering ---
