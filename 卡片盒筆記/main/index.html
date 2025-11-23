@@ -3,544 +3,723 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>卡片盒筆記管理</title>
-  <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    .note-form, .editor, .tag-filter { margin-bottom: 20px; }
-    label { display: block; margin-bottom: 5px; }
-    textarea, select, input[type="text"], input[type="file"] { width: 100%; padding: 5px; margin-top: 5px; }
-    button { padding: 5px; margin-top: 10px; margin-right: 5px; }
-    .tag-list, .linked-notes-list { margin-top: 10px; color: green; }
-    .tag-buttons button, .linked-notes-buttons button { margin-left: 5px; }
-    .toolbar { margin-bottom: 10px; padding: 10px; border: 1px solid #ccc; background-color: #f9f9f9; }
-    .toolbar button, .toolbar select, .toolbar input { margin-right: 5px; }
-    .editor-area { border: 1px solid #ccc; padding: 10px; min-height: 100px; outline: none; white-space: pre-wrap; }
-    .editor-area img { max-width: 200px; margin: 5px; cursor: pointer; position: relative; display: inline-block; }
-    .editor-area img.resizable { resize: both; overflow: auto; border: 2px solid #007bff; min-width: 50px; min-height: 50px; }
-    .linked-notes-list a { color: blue; text-decoration: underline; cursor: pointer; margin-right: 10px; }
-  </style>
-</head>
-<body>
-  <h1>卡片盒筆記管理</h1>
-
-  <div class="note-form">
-    <label for="title">筆記標題：</label>
-    <input type="text" id="title" />
-
-    <label for="content">筆記內容：</label>
-    <div class="toolbar">
-      <select id="fontSizeContent" onchange="changeFontSize('content')">
-        <option value="16">16px</option>
-        <option value="20">20px</option>
-        <option value="24">24px</option>
-        <option value="32">32px</option>
-      </select>
-      <button onclick="formatText('bold', 'content')">粗體</button>
-      <button onclick="formatText('italic', 'content')">斜體</button>
-      <button onclick="formatText('underline', 'content')">底線</button>
-      <select id="fontFamilyContent" onchange="changeFontFamily('content')">
-        <option value="Arial">Arial</option>
-        <option value="Times New Roman">Times New Roman</option>
-        <option value="Courier New">Courier New</option>
-      </select>
-      <input type="file" id="imageUploadContent" accept="image/*" onchange="insertImage('content')" style="display: inline;">
-    </div>
-    <div id="content" class="editor-area" contenteditable="true">在這裡輸入和編輯文字...</div>
-
-    <label for="tag">新增標籤：</label>
-    <input type="text" id="tag" />
-    <button id="add-tag">新增標籤至筆記</button>
-
-    <label for="tag-history">從歷史標籤中選擇：</label>
-    <select id="tag-history"><option value="">請選擇</option></select>
-
-    <div id="current-tags" class="tag-list"></div>
-
-    <label for="link-note">連結其他筆記：</label>
-    <select id="link-note" onchange="addLinkedNote()">
-      <option value="">請選擇</option>
-    </select>
-    <div id="current-linked-notes" class="linked-notes-list"></div>
-
-    <button id="add-note">新增筆記</button>
-    <button id="save-notes">保存所有筆記</button>
-    <label for="import-notes">導入所有筆記：</label>
-    <input type="file" id="import-notes" accept=".json" onchange="importNotes()" />
-  </div>
-
-  <div class="tag-filter">
-    <label for="tag-select">選擇標籤：</label>
-    <select id="tag-select"><option value="">請選擇</option></select>
-
-    <label for="tag-note-select">標籤相關筆記標題：</label>
-    <select id="tag-note-select"><option value="">請選擇</option></select>
-  </div>
-
-  <div class="editor">
-    <label for="note-select">選擇筆記標題：</label>
-    <select id="note-select">
-      <option value="">請選擇</option>
-    </select>
-
-    <label for="note-title-display">筆記標題：</label>
-    <input type="text" id="note-title-display" readonly />
-
-    <label for="note-edit">筆記內容編輯：</label>
-    <div class="toolbar">
-      <select id="fontSizeEdit" onchange="changeFontSize('note-edit')">
-        <option value="16">16px</option>
-        <option value="20">20px</option>
-        <option value="24">24px</option>
-        <option value="32">32px</option>
-      </select>
-      <button onclick="formatText('bold', 'note-edit')">粗體</button>
-      <button onclick="formatText('italic', 'note-edit')">斜體</button>
-      <button onclick="formatText('underline', 'note-edit')">底線</button>
-      <select id="fontFamilyEdit" onchange="changeFontFamily('note-edit')">
-        <option value="Arial">Arial</option>
-        <option value="Times New Roman">Times New Roman</option>
-        <option value="Courier New">Courier New</option>
-      </select>
-      <input type="file" id="imageUploadEdit" accept="image/*" onchange="insertImage('note-edit')" style="display: inline;">
-    </div>
-    <div id="note-edit" class="editor-area" contenteditable="true"></div>
-
-    <div>
-      <label>此筆記標籤：</label>
-      <div id="editor-tags" class="tag-list"></div>
-      <input type="text" id="editor-tag-input" />
-      <button id="editor-add-tag">新增</button>
-    </div>
-
-    <div>
-      <label>連結的筆記：</label>
-      <div id="editor-linked-notes" class="linked-notes-list"></div>
-    </div>
-
-    <button id="update-note">更新筆記</button>
-    <button id="delete-note">刪除筆記</button>
-  </div>
+  <title>ZETTL // 卡片盒核心系統</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts: JetBrains Mono (Code/Tech feel) & Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome for Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <script>
-    let notes = [];
-    let currentTags = [];
-    let currentLinkedNotes = [];
-
-    const titleEl = document.getElementById('title');
-    const contentEl = document.getElementById('content');
-    const tagEl = document.getElementById('tag');
-    const addTagBtn = document.getElementById('add-tag');
-    const addBtn = document.getElementById('add-note');
-    const saveBtn = document.getElementById('save-notes');
-    const noteSelect = document.getElementById('note-select');
-    const noteEdit = document.getElementById('note-edit');
-    const noteTitleDisplay = document.getElementById('note-title-display');
-    const updateBtn = document.getElementById('update-note');
-    const deleteBtn = document.getElementById('delete-note');
-    const tagSelect = document.getElementById('tag-select');
-    const tagNoteSelect = document.getElementById('tag-note-select');
-    const currentTagsEl = document.getElementById('current-tags');
-    const tagHistory = document.getElementById('tag-history');
-    const editorTags = document.getElementById('editor-tags');
-    const editorTagInput = document.getElementById('editor-tag-input');
-    const editorAddTagBtn = document.getElementById('editor-add-tag');
-    const linkNoteSelect = document.getElementById('link-note');
-    const currentLinkedNotesEl = document.getElementById('current-linked-notes');
-    const editorLinkedNotesEl = document.getElementById('editor-linked-notes');
-
-    function genNewId() {
-      const roots = notes.map(n => n.id).filter(id => /^[0-9]+$/.test(id)).map(Number);
-      const next = roots.length ? Math.max(...roots) + 1 : 1;
-      return String(next);
-    }
-
-    function renderNotes() {
-      noteSelect.innerHTML = '<option value="">請選擇</option>';
-      linkNoteSelect.innerHTML = '<option value="">請選擇</option>';
-      notes.forEach(note => {
-        const opt1 = document.createElement('option');
-        opt1.value = note.id;
-        opt1.textContent = note.title;
-        noteSelect.appendChild(opt1);
-
-        const opt2 = document.createElement('option');
-        opt2.value = note.id;
-        opt2.textContent = note.title;
-        linkNoteSelect.appendChild(opt2);
-      });
-    }
-
-    function renderTags() {
-      const tags = [...new Set(notes.flatMap(n => n.tags || []))];
-      tagSelect.innerHTML = '<option value="">請選擇</option>';
-      tagHistory.innerHTML = '<option value="">請選擇</option>';
-      tags.forEach(tag => {
-        const opt1 = document.createElement('option');
-        opt1.value = tag;
-        opt1.textContent = tag;
-        tagSelect.appendChild(opt1);
-
-        const opt2 = document.createElement('option');
-        opt2.value = tag;
-        opt2.textContent = tag;
-        tagHistory.appendChild(opt2);
-      });
-    }
-
-    function renderTagNotes(tag) {
-      const filtered = notes.filter(n => (n.tags || []).includes(tag));
-      tagNoteSelect.innerHTML = '<option value="">請選擇</option>';
-      filtered.forEach(note => {
-        const opt = document.createElement('option');
-        opt.value = note.id;
-        opt.textContent = note.title;
-        tagNoteSelect.appendChild(opt);
-      });
-    }
-
-    function updateTagDisplay() {
-      currentTagsEl.textContent = '已連結標籤：' + currentTags.join(', ');
-    }
-
-    function updateLinkedNotesDisplay() {
-      currentLinkedNotesEl.innerHTML = '已連結筆記：';
-      currentLinkedNotes.forEach(noteId => {
-        const note = notes.find(n => n.id === noteId);
-        if (note) {
-          const span = document.createElement('span');
-          span.textContent = note.title;
-          span.style.marginRight = '10px';
-          currentLinkedNotesEl.appendChild(span);
-        }
-      });
-    }
-
-    function updateEditorTags(note) {
-      editorTags.innerHTML = '';
-      (note.tags || []).forEach(tag => {
-        const span = document.createElement('span');
-        span.textContent = tag;
-        const delBtn = document.createElement('button');
-        delBtn.textContent = '刪除';
-        delBtn.onclick = () => {
-          note.tags = note.tags.filter(t => t !== tag);
-          updateEditorTags(note);
-          renderTags();
-        };
-        const wrapper = document.createElement('div');
-        wrapper.appendChild(span);
-        wrapper.appendChild(delBtn);
-        editorTags.appendChild(wrapper);
-      });
-    }
-
-    function updateEditorLinkedNotes(note) {
-      editorLinkedNotesEl.innerHTML = '';
-      (note.linkedNotes || []).forEach(noteId => {
-        const linkedNote = notes.find(n => n.id === noteId);
-        if (linkedNote) {
-          const wrapper = document.createElement('div');
-          const link = document.createElement('a');
-          link.textContent = linkedNote.title;
-          link.onclick = () => {
-            noteSelect.value = noteId;
-            noteEdit.innerHTML = linkedNote.content;
-            noteTitleDisplay.value = linkedNote.title;
-            updateEditorTags(linkedNote);
-            updateEditorLinkedNotes(linkedNote);
-          };
-          const delBtn = document.createElement('button');
-          delBtn.textContent = '刪除';
-          delBtn.onclick = () => {
-            note.linkedNotes = note.linkedNotes.filter(id => id !== noteId);
-            const linkedNote = notes.find(n => n.id === noteId);
-            if (linkedNote) {
-              linkedNote.linkedNotes = linkedNote.linkedNotes.filter(id => id !== note.id);
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            tech: {
+              bg: '#0f172a',      // Dark slate background
+              panel: '#1e293b',   // Lighter panel
+              border: '#334155',  // Border color
+              accent: '#06b6d4',  // Cyan neon
+              secondary: '#6366f1', // Indigo
+              success: '#10b981', // Emerald
+              danger: '#ef4444',  // Red
             }
-            updateEditorLinkedNotes(note);
-          };
-          wrapper.appendChild(link);
-          wrapper.appendChild(delBtn);
-          editorLinkedNotesEl.appendChild(wrapper);
+          },
+          boxShadow: {
+            'neon': '0 0 5px theme("colors.tech.accent"), 0 0 10px theme("colors.tech.accent")',
+            'neon-red': '0 0 5px theme("colors.tech.danger"), 0 0 10px theme("colors.tech.danger")',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom Scrollbar for Webkit */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a; 
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155; 
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569; 
+    }
+
+    /* Content Editable Placeholder */
+    [contenteditable]:empty:before {
+      content: attr(placeholder);
+      color: #64748b;
+      cursor: text;
+    }
+
+    /* Editor Specific Styles */
+    .editor-content img {
+      max-width: 100%;
+      border-radius: 4px;
+      border: 1px solid #334155;
+      margin: 10px 0;
+      transition: all 0.2s;
+    }
+    .editor-content img.resizable {
+      box-shadow: 0 0 0 2px #06b6d4;
+    }
+    
+    /* Animation classes */
+    .fade-in {
+      animation: fadeIn 0.3s ease-in-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Glassmorphism utility */
+    .glass-panel {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+  </style>
+</head>
+<body class="bg-tech-bg text-slate-200 font-sans h-screen overflow-hidden flex flex-col md:flex-row">
+
+  <!-- Notification Toast Area -->
+  <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2"></div>
+
+  <!-- SIDEBAR (Navigation & List) -->
+  <aside class="w-full md:w-80 flex flex-col border-r border-tech-border bg-tech-panel h-[35vh] md:h-full shrink-0">
+    <!-- App Header -->
+    <div class="p-4 border-b border-tech-border flex items-center justify-between">
+      <div class="flex items-center gap-2 text-tech-accent animate-pulse">
+        <i class="fa-solid fa-microchip text-xl"></i>
+        <h1 class="font-mono text-lg font-bold tracking-wider">ZETTEL_CORE</h1>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="saveNotes()" title="匯出/保存 (JSON)" class="text-slate-400 hover:text-tech-accent transition">
+          <i class="fa-solid fa-floppy-disk"></i>
+        </button>
+        <label for="import-notes" title="導入 (JSON)" class="text-slate-400 hover:text-tech-accent transition cursor-pointer">
+          <i class="fa-solid fa-file-import"></i>
+        </label>
+        <input type="file" id="import-notes" accept=".json" class="hidden" onchange="importNotes()" />
+      </div>
+    </div>
+
+    <!-- Search & Filter -->
+    <div class="p-3 border-b border-tech-border bg-slate-800/50">
+      <div class="relative mb-2">
+        <i class="fa-solid fa-search absolute left-3 top-3 text-slate-500 text-xs"></i>
+        <input type="text" id="search-input" placeholder="搜尋標題或內容..." 
+               class="w-full bg-slate-900 border border-slate-700 rounded text-sm px-8 py-2 focus:outline-none focus:border-tech-accent focus:shadow-neon transition text-slate-200 placeholder-slate-600">
+      </div>
+      <select id="tag-filter" onchange="filterNotes()" class="w-full bg-slate-900 border border-slate-700 rounded text-sm px-2 py-1.5 text-slate-300 focus:outline-none focus:border-tech-accent">
+        <option value="">所有標籤</option>
+      </select>
+    </div>
+
+    <!-- Note List -->
+    <div id="note-list" class="flex-1 overflow-y-auto p-2 space-y-2">
+      <!-- Items generated by JS -->
+    </div>
+
+    <!-- Add New Button (Mobile/Desktop) -->
+    <div class="p-4 border-t border-tech-border">
+      <button onclick="createNewNote()" class="w-full bg-tech-accent/10 border border-tech-accent text-tech-accent hover:bg-tech-accent hover:text-slate-900 font-mono py-2 rounded transition-all duration-300 shadow-neon flex items-center justify-center gap-2 group">
+        <i class="fa-solid fa-plus transition-transform group-hover:rotate-90"></i>
+        <span>建立新資料卡</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN AREA (Editor) -->
+  <main class="flex-1 flex flex-col h-[65vh] md:h-full relative bg-tech-bg bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiLz48L3N2Zz4=')]">
+    
+    <!-- Editor Header / Toolbar -->
+    <header class="h-16 border-b border-tech-border glass-panel flex items-center justify-between px-6 shrink-0 z-10">
+      <div class="flex items-center gap-4 w-full">
+        <input type="text" id="note-title" placeholder="輸入資料卡標題..." 
+               class="bg-transparent border-none text-xl md:text-2xl font-bold text-white placeholder-slate-600 focus:outline-none w-full font-mono tracking-wide" />
+      </div>
+      
+      <div class="flex items-center gap-2 shrink-0">
+        <span id="save-status" class="text-xs text-slate-500 font-mono hidden md:block">已同步</span>
+        <button onclick="deleteCurrentNote()" id="btn-delete" class="hidden text-red-500 hover:bg-red-500/10 p-2 rounded transition border border-transparent hover:border-red-500/50" title="刪除此卡片">
+          <i class="fa-solid fa-trash-can"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Toolbar -->
+    <div class="px-6 py-2 border-b border-tech-border bg-slate-800/30 flex flex-wrap items-center gap-2 overflow-x-auto">
+      <div class="flex bg-slate-900 rounded border border-slate-700 p-0.5">
+        <button onclick="formatText('bold')" class="p-1.5 px-3 hover:bg-slate-700 rounded text-slate-300 transition" title="粗體"><i class="fa-solid fa-bold"></i></button>
+        <button onclick="formatText('italic')" class="p-1.5 px-3 hover:bg-slate-700 rounded text-slate-300 transition" title="斜體"><i class="fa-solid fa-italic"></i></button>
+        <button onclick="formatText('underline')" class="p-1.5 px-3 hover:bg-slate-700 rounded text-slate-300 transition" title="底線"><i class="fa-solid fa-underline"></i></button>
+      </div>
+      
+      <div class="h-6 w-px bg-slate-700 mx-1"></div>
+
+      <select id="fontSizeSelect" onchange="changeFontSize(this.value)" class="bg-slate-900 border border-slate-700 text-slate-300 text-xs rounded p-1.5 outline-none">
+        <option value="3">一般</option>
+        <option value="4">標題 M</option>
+        <option value="6">標題 L</option>
+      </select>
+
+      <div class="h-6 w-px bg-slate-700 mx-1"></div>
+
+      <label class="cursor-pointer bg-slate-900 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs rounded p-1.5 px-3 transition flex items-center gap-2">
+        <i class="fa-solid fa-image"></i> 插入圖片
+        <input type="file" id="imageUpload" accept="image/*" onchange="insertImage(this)" class="hidden">
+      </label>
+    </div>
+
+    <!-- Content Area -->
+    <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
+      
+      <!-- Editor Body -->
+      <div class="flex-1 overflow-y-auto p-6 relative">
+        <div id="editor-content" class="editor-content w-full h-full min-h-[300px] outline-none text-slate-300 leading-relaxed text-lg" 
+             contenteditable="true" placeholder="在此輸入系統資料..."></div>
+      </div>
+
+      <!-- Right Panel: Metadata (Tags & Links) -->
+      <aside class="w-full md:w-72 border-t md:border-t-0 md:border-l border-tech-border bg-slate-900/50 p-4 overflow-y-auto shrink-0">
+        
+        <!-- Tags Section -->
+        <div class="mb-6">
+          <h3 class="text-xs font-mono text-tech-accent mb-2 uppercase tracking-wider border-b border-slate-700 pb-1">
+            <i class="fa-solid fa-tags mr-1"></i> 資料標籤
+          </h3>
+          <div class="flex gap-2 mb-2">
+            <input type="text" id="tag-input" placeholder="輸入新標籤..." class="flex-1 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-sm focus:border-tech-accent outline-none">
+            <button onclick="addTag()" class="bg-slate-700 hover:bg-tech-accent hover:text-slate-900 px-3 rounded text-sm transition"><i class="fa-solid fa-plus"></i></button>
+          </div>
+          <div class="mb-2">
+             <select id="tag-history" onchange="addTagFromHistory(this)" class="w-full bg-slate-800 border-none text-xs text-slate-400 p-1">
+               <option value="">+ 從歷史標籤選擇</option>
+             </select>
+          </div>
+          <div id="active-tags" class="flex flex-wrap gap-2">
+            <!-- Tags go here -->
+          </div>
+        </div>
+
+        <!-- Linked Notes Section -->
+        <div>
+          <h3 class="text-xs font-mono text-tech-secondary mb-2 uppercase tracking-wider border-b border-slate-700 pb-1">
+            <i class="fa-solid fa-link mr-1"></i> 連結網絡
+          </h3>
+          <div class="relative mb-2">
+             <input list="link-suggestions" id="link-input" placeholder="搜尋筆記以連結..." 
+                    class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-sm focus:border-tech-secondary outline-none">
+             <datalist id="link-suggestions"></datalist>
+             <button onclick="addLinkedNote()" class="absolute right-1 top-1 text-tech-secondary hover:text-white"><i class="fa-solid fa-plus-circle"></i></button>
+          </div>
+          <div id="linked-notes-list" class="space-y-2">
+            <!-- Linked Cards go here -->
+          </div>
+        </div>
+
+        <!-- Action Button (Save) -->
+        <div class="mt-8">
+            <button onclick="updateCurrentNote()" id="btn-save-update" class="w-full bg-tech-success/10 border border-tech-success text-tech-success hover:bg-tech-success hover:text-slate-900 py-2 rounded font-mono text-sm transition shadow-neon-green">
+                <i class="fa-regular fa-floppy-disk mr-1"></i> 保存變更
+            </button>
+        </div>
+
+      </aside>
+    </div>
+  </main>
+
+  <script>
+    // --- State Management ---
+    let notes = [];
+    let currentNoteId = null; // null implies "New Note" mode
+
+    // --- DOM Elements ---
+    const els = {
+      list: document.getElementById('note-list'),
+      title: document.getElementById('note-title'),
+      content: document.getElementById('editor-content'),
+      tagInput: document.getElementById('tag-input'),
+      tagHistory: document.getElementById('tag-history'),
+      activeTags: document.getElementById('active-tags'),
+      linkInput: document.getElementById('link-input'),
+      linkSuggestions: document.getElementById('link-suggestions'),
+      linkedList: document.getElementById('linked-notes-list'),
+      searchInput: document.getElementById('search-input'),
+      tagFilter: document.getElementById('tag-filter'),
+      btnDelete: document.getElementById('btn-delete'),
+      btnSaveUpdate: document.getElementById('btn-save-update'),
+      status: document.getElementById('save-status'),
+      toastContainer: document.getElementById('toast-container')
+    };
+
+    // --- Initialization ---
+    window.onload = function() {
+      // Load from local storage or mock
+      const stored = localStorage.getItem('zettelkasten_notes');
+      if (stored) {
+        notes = JSON.parse(stored);
+      } else {
+        // Initial onboarding note
+        notes = [{
+          id: '1',
+          title: '歡迎使用 ZETTEL_CORE',
+          content: '<b>開始你的數位大腦旅程。</b><br><br>這是一個結合科技風格與卡片盒筆記法的系統。<br>左側選單管理筆記，右側進行編輯。',
+          tags: ['System', 'Help'],
+          linkedNotes: []
+        }];
+      }
+      renderNoteList();
+      updateTagHistory();
+      renderLinkSuggestions();
+      createNewNote(); // Start in create mode
+    };
+
+    // --- Core Operations ---
+
+    function genId() {
+      return Date.now().toString(36) + Math.random().toString(36).substr(2);
+    }
+
+    function createNewNote() {
+      currentNoteId = null;
+      els.title.value = '';
+      els.content.innerHTML = '';
+      els.btnDelete.classList.add('hidden');
+      els.btnSaveUpdate.innerHTML = '<i class="fa-solid fa-plus mr-1"></i> 建立新筆記';
+      els.status.textContent = '新資料卡模式';
+      
+      renderTagsUI([]);
+      renderLinkedUI([]);
+      
+      // Highlight selection in sidebar (remove all)
+      document.querySelectorAll('.note-item').forEach(el => el.classList.remove('border-tech-accent', 'bg-slate-800'));
+      els.title.focus();
+    }
+
+    function loadNote(id) {
+      const note = notes.find(n => n.id === id);
+      if (!note) return;
+
+      currentNoteId = note.id;
+      els.title.value = note.title;
+      els.content.innerHTML = note.content;
+      
+      // Setup UI for edit mode
+      els.btnDelete.classList.remove('hidden');
+      els.btnSaveUpdate.innerHTML = '<i class="fa-regular fa-floppy-disk mr-1"></i> 更新筆記';
+      els.status.textContent = `ID: ${note.id.substring(0,6)}...`;
+
+      renderTagsUI(note.tags || []);
+      renderLinkedUI(note.linkedNotes || []);
+      
+      // Highlight sidebar
+      document.querySelectorAll('.note-item').forEach(el => {
+        el.classList.remove('border-tech-accent', 'bg-slate-800');
+        if(el.dataset.id === id) el.classList.add('border-tech-accent', 'bg-slate-800');
+      });
+
+      // Re-attach image listeners
+      document.querySelectorAll('#editor-content img').forEach(makeImageResizable);
+    }
+
+    function updateCurrentNote() {
+      const title = els.title.value.trim();
+      const content = els.content.innerHTML;
+
+      if (!title) {
+        showToast('錯誤：標題不能為空', 'error');
+        return;
+      }
+
+      // Get current UI state for tags and links
+      const currentTags = Array.from(els.activeTags.querySelectorAll('.tag-chip span')).map(s => s.textContent);
+      const currentLinks = Array.from(els.linkedList.querySelectorAll('.link-card')).map(d => d.dataset.id);
+
+      if (currentNoteId) {
+        // Update existing
+        const index = notes.findIndex(n => n.id === currentNoteId);
+        if (index !== -1) {
+          notes[index] = { ...notes[index], title, content, tags: currentTags, linkedNotes: currentLinks };
+          showToast('資料已更新', 'success');
+        }
+      } else {
+        // Create new
+        const newId = genId();
+        const newNote = {
+          id: newId,
+          title,
+          content,
+          tags: currentTags,
+          linkedNotes: currentLinks
+        };
+        notes.push(newNote);
+        currentNoteId = newId;
+        
+        // Handle bidirectional linking
+        currentLinks.forEach(targetId => {
+          const target = notes.find(n => n.id === targetId);
+          if (target && !target.linkedNotes.includes(newId)) {
+            target.linkedNotes.push(newId);
+          }
+        });
+        
+        showToast('新資料卡已建立', 'success');
+        els.btnDelete.classList.remove('hidden');
+        els.btnSaveUpdate.innerHTML = '<i class="fa-regular fa-floppy-disk mr-1"></i> 更新筆記';
+      }
+
+      saveToStorage();
+      renderNoteList();
+      updateTagHistory();
+      renderLinkSuggestions();
+    }
+
+    function deleteCurrentNote() {
+      if (!currentNoteId) return;
+      if (!confirm('確認刪除此資料卡？此操作無法復原。')) return;
+
+      // Remove backlinks
+      notes.forEach(n => {
+        if (n.linkedNotes) {
+          n.linkedNotes = n.linkedNotes.filter(id => id !== currentNoteId);
+        }
+      });
+
+      notes = notes.filter(n => n.id !== currentNoteId);
+      saveToStorage();
+      renderNoteList();
+      renderLinkSuggestions();
+      createNewNote();
+      showToast('資料已刪除', 'info');
+    }
+
+    function saveToStorage() {
+      localStorage.setItem('zettelkasten_notes', JSON.stringify(notes));
+    }
+
+    // --- UI Rendering ---
+
+    function renderNoteList() {
+      const filterText = els.searchInput.value.toLowerCase();
+      const filterTag = els.tagFilter.value;
+
+      els.list.innerHTML = '';
+
+      const filtered = notes.filter(n => {
+        const matchText = n.title.toLowerCase().includes(filterText) || n.content.toLowerCase().includes(filterText);
+        const matchTag = filterTag ? (n.tags || []).includes(filterTag) : true;
+        return matchText && matchTag;
+      });
+
+      filtered.forEach(note => {
+        const div = document.createElement('div');
+        div.className = 'note-item p-3 border-l-2 border-transparent hover:bg-slate-800 cursor-pointer transition-colors duration-200 group';
+        div.dataset.id = note.id;
+        if (note.id === currentNoteId) div.classList.add('border-tech-accent', 'bg-slate-800');
+
+        // Extract clean text for preview
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = note.content;
+        const previewText = tempDiv.textContent.substring(0, 50) + (tempDiv.textContent.length > 50 ? '...' : '');
+
+        div.innerHTML = `
+          <div class="font-bold text-slate-200 mb-1 group-hover:text-tech-accent transition-colors">${note.title}</div>
+          <div class="text-xs text-slate-500 font-mono mb-2 line-clamp-1">${previewText || '無內容'}</div>
+          <div class="flex flex-wrap gap-1">
+            ${(note.tags || []).slice(0, 3).map(t => `<span class="text-[10px] bg-slate-700 text-slate-300 px-1.5 rounded-sm">#${t}</span>`).join('')}
+          </div>
+        `;
+        div.onclick = () => loadNote(note.id);
+        els.list.appendChild(div);
+      });
+    }
+
+    function renderTagsUI(tags) {
+      els.activeTags.innerHTML = '';
+      tags.forEach(tag => {
+        const chip = document.createElement('div');
+        chip.className = 'tag-chip bg-tech-accent/20 border border-tech-accent/50 text-tech-accent px-2 py-1 rounded text-xs flex items-center gap-2 animate-fade-in';
+        chip.innerHTML = `
+          <span>${tag}</span>
+          <button onclick="removeTag(this)" class="hover:text-white"><i class="fa-solid fa-times"></i></button>
+        `;
+        els.activeTags.appendChild(chip);
+      });
+    }
+
+    function renderLinkedUI(linkedIds) {
+      els.linkedList.innerHTML = '';
+      linkedIds.forEach(id => {
+        const note = notes.find(n => n.id === id);
+        if (note) {
+          const card = document.createElement('div');
+          card.className = 'link-card bg-slate-800 border border-slate-700 p-2 rounded flex justify-between items-center group hover:border-tech-secondary transition cursor-pointer';
+          card.dataset.id = id;
+          card.innerHTML = `
+            <div onclick="loadNote('${id}')" class="flex-1 overflow-hidden">
+               <div class="text-sm font-bold text-slate-300 group-hover:text-tech-secondary truncate"><i class="fa-solid fa-link text-[10px] mr-1"></i> ${note.title}</div>
+            </div>
+            <button onclick="removeLink(this)" class="text-slate-500 hover:text-red-400 ml-2 px-1"><i class="fa-solid fa-times"></i></button>
+          `;
+          els.linkedList.appendChild(card);
         }
       });
     }
 
-    function formatText(command, editorId) {
-      const editor = document.getElementById(editorId);
-      editor.focus();
+    function renderLinkSuggestions() {
+      els.linkSuggestions.innerHTML = '';
+      notes.forEach(note => {
+        const opt = document.createElement('option');
+        opt.value = note.title;
+        opt.dataset.id = note.id; // Datalist doesn't standardly support hidden IDs, handled in logic
+        els.linkSuggestions.appendChild(opt);
+      });
+    }
+
+    function updateTagHistory() {
+      // Collect unique tags
+      const allTags = new Set();
+      notes.forEach(n => (n.tags || []).forEach(t => allTags.add(t)));
+      
+      // Update Filter
+      const currentFilter = els.tagFilter.value;
+      els.tagFilter.innerHTML = '<option value="">所有標籤</option>';
+      allTags.forEach(tag => {
+        const opt = document.createElement('option');
+        opt.value = tag;
+        opt.textContent = tag;
+        els.tagFilter.appendChild(opt);
+      });
+      els.tagFilter.value = currentFilter;
+
+      // Update Editor History Select
+      els.tagHistory.innerHTML = '<option value="">+ 從歷史標籤選擇</option>';
+      allTags.forEach(tag => {
+        const opt = document.createElement('option');
+        opt.value = tag;
+        opt.textContent = tag;
+        els.tagHistory.appendChild(opt);
+      });
+    }
+
+    // --- Event Handlers & Helpers ---
+
+    // Search Filter
+    els.searchInput.addEventListener('input', renderNoteList);
+    
+    function filterNotes() {
+      renderNoteList();
+    }
+
+    // Tag Management
+    function addTag() {
+      const tag = els.tagInput.value.trim();
+      if (!tag) return;
+      
+      // Check duplicate in current UI
+      const currentTags = Array.from(els.activeTags.querySelectorAll('.tag-chip span')).map(s => s.textContent);
+      if (currentTags.includes(tag)) return;
+
+      // Render new tag
+      const dummy = document.createElement('div'); // Create wrapper to reuse render logic partially or just append
+      const chip = document.createElement('div');
+      chip.className = 'tag-chip bg-tech-accent/20 border border-tech-accent/50 text-tech-accent px-2 py-1 rounded text-xs flex items-center gap-2 animate-fade-in';
+      chip.innerHTML = `<span>${tag}</span><button onclick="removeTag(this)" class="hover:text-white"><i class="fa-solid fa-times"></i></button>`;
+      els.activeTags.appendChild(chip);
+      
+      els.tagInput.value = '';
+    }
+
+    function addTagFromHistory(select) {
+      const tag = select.value;
+      if (!tag) return;
+      
+      els.tagInput.value = tag;
+      addTag();
+      select.value = '';
+    }
+
+    function removeTag(btn) {
+      btn.parentElement.remove();
+    }
+
+    // Link Management
+    function addLinkedNote() {
+      const title = els.linkInput.value;
+      if (!title) return;
+
+      const targetNote = notes.find(n => n.title === title);
+      
+      if (!targetNote) {
+        showToast('找不到該標題的筆記', 'error');
+        return;
+      }
+      
+      if (targetNote.id === currentNoteId) {
+        showToast('無法連結自己', 'error');
+        return;
+      }
+
+      // Check duplicate in UI
+      const existing = Array.from(els.linkedList.querySelectorAll('.link-card')).map(d => d.dataset.id);
+      if (existing.includes(targetNote.id)) {
+        showToast('已連結此筆記', 'info');
+        return;
+      }
+
+      renderLinkedUI([...existing, targetNote.id]);
+      els.linkInput.value = '';
+    }
+
+    function removeLink(btn) {
+      btn.parentElement.remove();
+    }
+
+    // Editor Formatting
+    function formatText(command) {
       document.execCommand(command, false, null);
+      els.content.focus();
     }
 
-    function changeFontSize(editorId) {
-      const editor = document.getElementById(editorId);
-      const fontSize = document.getElementById(`fontSize${editorId === 'content' ? 'Content' : 'Edit'}`).value + 'px';
-      editor.focus();
-      document.execCommand('fontSize', false, '7');
-      const fontElements = editor.getElementsByTagName('font');
-      for (let i = 0; i < fontElements.length; i++) {
-        if (fontElements[i].size === '7') {
-          fontElements[i].removeAttribute('size');
-          fontElements[i].style.fontSize = fontSize;
-        }
-      }
+    function changeFontSize(val) {
+      document.execCommand('fontSize', false, val);
+      els.content.focus();
     }
 
-    function changeFontFamily(editorId) {
-      const editor = document.getElementById(editorId);
-      const fontFamily = document.getElementById(`fontFamily${editorId === 'content' ? 'Content' : 'Edit'}`).value;
-      editor.focus();
-      document.execCommand('fontName', false, null);
-    }
+    function insertImage(input) {
+      const file = input.files[0];
+      if (!file) return;
 
-    function insertImage(editorId) {
-      const fileInput = document.getElementById(`imageUpload${editorId === 'content' ? 'Content' : 'Edit'}`);
-      const file = fileInput.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          const img = document.createElement('img');
-          img.src = e.target.result;
-          img.classList.add('resizable');
-          img.style.width = '200px';
-          img.style.height = 'auto';
-          const editor = document.getElementById(editorId);
-          editor.focus();
-          const range = window.getSelection().getRangeAt(0);
-          range.insertNode(img);
-          range.collapse(false);
-          fileInput.value = '';
-          makeImageResizable(img);
-        };
-        reader.readAsDataURL(file);
-      }
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        // Insert placeholder logic, but simplified for single file
+        // We restore focus and insert
+        els.content.focus();
+        document.execCommand('insertImage', false, e.target.result);
+        
+        // Find the image just inserted (it will be the last one usually, or we can add resize logic to all)
+        setTimeout(() => {
+          document.querySelectorAll('#editor-content img').forEach(makeImageResizable);
+        }, 100);
+      };
+      reader.readAsDataURL(file);
+      input.value = '';
     }
 
     function makeImageResizable(img) {
-      img.addEventListener('click', function() {
-        const allImages = document.querySelectorAll('.editor-area img');
-        allImages.forEach(image => image.classList.remove('resizable'));
-        img.classList.add('resizable');
-      });
+        if(img.dataset.resizable) return;
+        img.dataset.resizable = "true";
+        
+        img.addEventListener('click', function(e) {
+            e.stopPropagation();
+            // Deselect others
+            document.querySelectorAll('img').forEach(i => i.classList.remove('resizable'));
+            img.classList.add('resizable');
+        });
+    }
 
-      img.addEventListener('resize', function() {
-        img.style.height = 'auto';
-      });
-
-      document.addEventListener('click', function(e) {
-        if (!e.target.closest('.editor-area img')) {
-          const allImages = document.querySelectorAll('.editor-area img');
-          allImages.forEach(image => image.classList.remove('resizable'));
+    // Click outside to deselect images
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('img')) {
+            document.querySelectorAll('img').forEach(i => i.classList.remove('resizable'));
         }
-      });
-    }
+    });
 
-    function addLinkedNote() {
-      const noteId = linkNoteSelect.value;
-      if (noteId && !currentLinkedNotes.includes(noteId)) {
-        currentLinkedNotes.push(noteId);
-        updateLinkedNotesDisplay();
-      }
-      linkNoteSelect.value = '';
-    }
-
+    // Import / Export
     function saveNotes() {
-      if (notes.length === 0) {
-        alert('目前沒有筆記可保存');
-        return;
-      }
       const dataStr = JSON.stringify(notes, null, 2);
       const blob = new Blob([dataStr], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'all_notes.json';
+      a.download = `zettelkasten_backup_${new Date().toISOString().split('T')[0]}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      showToast('備份檔案已下載', 'success');
     }
 
     function importNotes() {
-      const fileInput = document.getElementById('import-notes');
-      const file = fileInput.files[0];
-      if (file) {
+        const fileInput = document.getElementById('import-notes');
+        const file = fileInput.files[0];
+        if (!file) return;
+
         const reader = new FileReader();
         reader.onload = function(e) {
-          try {
-            const importedNotes = JSON.parse(e.target.result);
-            if (!Array.isArray(importedNotes)) {
-              alert('無效的筆記檔案格式');
-              return;
+            try {
+                const imported = JSON.parse(e.target.result);
+                if (!Array.isArray(imported)) throw new Error("Format");
+                
+                // Merge logic: append distinct IDs
+                const existingIds = new Set(notes.map(n => n.id));
+                let count = 0;
+                
+                imported.forEach(n => {
+                    if(!n.id) n.id = genId();
+                    if(!existingIds.has(n.id)) {
+                        notes.push(n);
+                        existingIds.add(n.id);
+                        count++;
+                    }
+                });
+
+                saveToStorage();
+                renderNoteList();
+                updateTagHistory();
+                renderLinkSuggestions();
+                showToast(`成功導入 ${count} 則筆記`, 'success');
+            } catch (err) {
+                showToast('檔案格式錯誤', 'error');
             }
-            // 檢查並重新分配 ID 以避免衝突
-            const existingIds = new Set(notes.map(n => n.id));
-            importedNotes.forEach(note => {
-              if (!note.id || existingIds.has(note.id)) {
-                note.id = genNewId();
-              }
-              existingIds.add(note.id);
-              // 確保筆記有標籤和連結筆記陣列
-              if (!Array.isArray(note.tags)) {
-                note.tags = [];
-              }
-              if (!Array.isArray(note.linkedNotes)) {
-                note.linkedNotes = [];
-              }
-            });
-            // 檢查並維護雙向連結
-            importedNotes.forEach(note => {
-              (note.linkedNotes || []).forEach(linkedId => {
-                const linkedNote = importedNotes.find(n => n.id === linkedId);
-                if (linkedNote && !linkedNote.linkedNotes.includes(note.id)) {
-                  linkedNote.linkedNotes.push(note.id);
-                }
-              });
-            });
-            // 合併筆記
-            notes = [...notes, ...importedNotes];
-            renderNotes();
-            renderTags();
-            alert('所有筆記導入成功');
-          } catch (err) {
-            alert('導入筆記失敗：無效的 JSON 格式');
-          }
-          fileInput.value = '';
+            fileInput.value = '';
         };
         reader.readAsText(file);
-      }
     }
 
-    addTagBtn.addEventListener('click', () => {
-      const tag = tagEl.value.trim();
-      if (tag && !currentTags.includes(tag)) {
-        currentTags.push(tag);
-        tagEl.value = '';
-        updateTagDisplay();
-      }
-    });
+    // Toast Notification
+    function showToast(message, type = 'info') {
+      const toast = document.createElement('div');
+      const colors = {
+        'success': 'border-tech-success text-tech-success bg-slate-900',
+        'error': 'border-tech-danger text-tech-danger bg-slate-900',
+        'info': 'border-tech-accent text-tech-accent bg-slate-900'
+      };
+      
+      toast.className = `p-3 rounded border shadow-lg flex items-center gap-2 min-w-[200px] animate-fade-in ${colors[type]}`;
+      toast.innerHTML = `
+        <i class="fa-solid ${type === 'success' ? 'fa-check' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
+        <span class="text-sm font-mono">${message}</span>
+      `;
+      
+      els.toastContainer.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-10px)';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
 
-    tagHistory.addEventListener('change', () => {
-      const tag = tagHistory.value;
-      if (tag && !currentTags.includes(tag)) {
-        currentTags.push(tag);
-        updateTagDisplay();
-      }
-    });
-
-    addBtn.addEventListener('click', () => {
-      const title = titleEl.value.trim();
-      const content = contentEl.innerHTML.trim();
-      if (!title || !content) {
-        alert('請輸入筆記標題與內容');
-        return;
-      }
-      const newId = genNewId();
-      const newNote = { id: newId, title, content, tags: [...currentTags], linkedNotes: [...currentLinkedNotes] };
-      notes.push(newNote);
-      // 添加雙向連結
-      currentLinkedNotes.forEach(linkedId => {
-        const linkedNote = notes.find(n => n.id === linkedId);
-        if (linkedNote && !linkedNote.linkedNotes.includes(newId)) {
-          linkedNote.linkedNotes.push(newId);
-        }
-      });
-      titleEl.value = '';
-      contentEl.innerHTML = '在這裡輸入和編輯文字...';
-      currentTags = [];
-      currentLinkedNotes = [];
-      updateTagDisplay();
-      updateLinkedNotesDisplay();
-      renderNotes();
-      renderTags();
-    });
-
-    saveBtn.addEventListener('click', saveNotes);
-
-    noteSelect.addEventListener('change', () => {
-      const id = noteSelect.value;
-      const note = notes.find(n => n.id === id);
-      if (note) {
-        noteEdit.innerHTML = note.content;
-        noteTitleDisplay.value = note.title;
-        updateEditorTags(note);
-        updateEditorLinkedNotes(note);
-        const images = noteEdit.querySelectorAll('img');
-        images.forEach(img => makeImageResizable(img));
-      } else {
-        noteEdit.innerHTML = '';
-        noteTitleDisplay.value = '';
-        editorTags.innerHTML = '';
-        editorLinkedNotesEl.innerHTML = '';
-      }
-    });
-
-    tagNoteSelect.addEventListener('change', () => {
-      const id = tagNoteSelect.value;
-      const note = notes.find(n => n.id === id);
-      if (note) {
-        noteEdit.innerHTML = note.content;
-        noteTitleDisplay.value = note.title;
-        noteSelect.value = note.id;
-        updateEditorTags(note);
-        updateEditorLinkedNotes(note);
-        const images = noteEdit.querySelectorAll('img');
-        images.forEach(img => makeImageResizable(img));
-      }
-    });
-
-    editorAddTagBtn.addEventListener('click', () => {
-      const id = noteSelect.value;
-      const tag = editorTagInput.value.trim();
-      if (!tag) return;
-      const note = notes.find(n => n.id === id);
-      if (note && !note.tags.includes(tag)) {
-        note.tags.push(tag);
-        updateEditorTags(note);
-        renderTags();
-        editorTagInput.value = '';
-      }
-    });
-
-    updateBtn.addEventListener('click', () => {
-      const id = noteSelect.value;
-      const note = notes.find(n => n.id === id);
-      if (note) {
-        note.content = noteEdit.innerHTML.trim();
-        renderNotes();
-        alert('筆記已更新');
-      }
-    });
-
-    deleteBtn.addEventListener('click', () => {
-      const id = noteSelect.value;
-      if (!id) {
-        alert('請選擇要刪除的筆記');
-        return;
-      }
-      if (!confirm('確定要刪除這筆筆記嗎？')) return;
-      const note = notes.find(n => n.id === id);
-      // 移除其他筆記對此筆記的連結
-      notes.forEach(n => {
-        n.linkedNotes = n.linkedNotes.filter(linkedId => linkedId !== id);
-      });
-      notes = notes.filter(n => n.id !== id);
-      noteEdit.innerHTML = '';
-      noteTitleDisplay.value = '';
-      editorTags.innerHTML = '';
-      editorLinkedNotesEl.innerHTML = '';
-      noteSelect.value = '';
-      renderNotes();
-      renderTags();
-      tagNoteSelect.innerHTML = '<option value="">請選擇</option>';
-    });
-
-    tagSelect.addEventListener('change', () => {
-      renderTagNotes(tagSelect.value);
-    });
-
-    renderNotes();
-    renderTags();
   </script>
 </body>
 </html>
