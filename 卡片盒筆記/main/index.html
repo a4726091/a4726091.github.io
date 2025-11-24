@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>ZETTL // 卡片盒核心系統</title>
   
   <!-- Tailwind CSS -->
@@ -36,7 +36,6 @@
           },
           boxShadow: {
             'neon': '0 0 5px theme("colors.tech.accent"), 0 0 10px theme("colors.tech.accent")',
-            'neon-red': '0 0 5px theme("colors.tech.danger"), 0 0 10px theme("colors.tech.danger")',
             'neon-green': '0 0 5px theme("colors.tech.success"), 0 0 10px theme("colors.tech.success")',
           }
         }
@@ -45,21 +44,11 @@
   </script>
 
   <style>
-    /* Custom Scrollbar for Webkit */
-    ::-webkit-scrollbar {
-      width: 8px;
-      height: 8px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #0f172a; 
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #334155; 
-      border-radius: 4px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #475569; 
-    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
 
     /* Content Editable Placeholder */
     [contenteditable]:empty:before {
@@ -68,288 +57,282 @@
       cursor: text;
     }
 
-    /* Editor Specific Styles */
+    /* Editor Images */
     .editor-content img {
       max-width: 100%;
       border-radius: 4px;
       border: 1px solid #334155;
       margin: 10px 0;
-      transition: all 0.2s;
     }
     .editor-content img.resizable {
       box-shadow: 0 0 0 2px #06b6d4;
     }
     
-    /* Animation classes */
-    .fade-in {
-      animation: fadeIn 0.3s ease-in-out;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(5px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* Glassmorphism utility */
-    .glass-panel {
-      background: rgba(30, 41, 59, 0.7);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    /* Transition utilities for collapsing panels */
-    .panel-transition {
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      overflow: hidden;
+    /* Layout Transitions */
+    .sidebar-transition {
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
     
-    .panel-closed-width {
-      width: 0 !important;
-      padding-left: 0 !important;
-      padding-right: 0 !important;
-      border-right: none !important;
-      border-left: none !important;
-      opacity: 0;
-    }
-
-    .panel-closed-height {
-      height: 0 !important;
-      padding-top: 0 !important;
-      padding-bottom: 0 !important;
-      border-bottom: none !important;
-      opacity: 0;
+    /* Mobile State: Hidden off-canvas */
+    .mobile-hidden-left { transform: translateX(-100%); }
+    .mobile-hidden-right { transform: translateX(100%); }
+    
+    /* Desktop State: Collapsed width */
+    .desktop-collapsed { width: 0 !important; overflow: hidden; opacity: 0; }
+    
+    /* Glassmorphism */
+    .glass-panel {
+      background: rgba(30, 41, 59, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     }
   </style>
 </head>
-<body class="bg-tech-bg text-slate-200 font-sans h-screen overflow-hidden flex flex-col md:flex-row">
+<body class="bg-tech-bg text-slate-200 font-sans h-[100dvh] w-screen overflow-hidden flex relative">
+
+  <!-- Mobile Backdrop (Click to close sidebars) -->
+  <div id="backdrop" onclick="closeAllMobilePanels()" class="fixed inset-0 bg-black/60 z-30 hidden md:hidden backdrop-blur-sm transition-opacity"></div>
 
   <!-- Notification Toast Area -->
-  <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+  <div id="toast-container" class="fixed top-5 right-5 z-[60] flex flex-col gap-2 pointer-events-none"></div>
 
-  <!-- SIDEBAR (Navigation & List) -->
-  <aside id="sidebar-left" class="panel-transition w-full md:w-80 flex flex-col border-r border-tech-border bg-tech-panel h-[35vh] md:h-full shrink-0">
-    <!-- App Header -->
-    <div class="p-4 border-b border-tech-border flex items-center justify-between shrink-0">
-      <div class="flex items-center gap-2 text-tech-accent animate-pulse">
+  <!-- LEFT SIDEBAR (Navigation) -->
+  <aside id="sidebar-left" class="sidebar-transition fixed md:relative inset-y-0 left-0 z-40 w-[85vw] md:w-80 bg-tech-panel border-r border-tech-border flex flex-col mobile-hidden-left md:transform-none shadow-2xl md:shadow-none h-full">
+    
+    <!-- Header -->
+    <div class="p-4 border-b border-tech-border flex items-center justify-between shrink-0 bg-tech-panel">
+      <div class="flex items-center gap-2 text-tech-accent">
         <i class="fa-solid fa-microchip text-xl"></i>
         <h1 class="font-mono text-lg font-bold tracking-wider">ZETTEL_CORE</h1>
       </div>
-      <div class="flex gap-2">
-        <button onclick="saveNotes()" title="匯出/保存 (JSON)" class="text-slate-400 hover:text-tech-accent transition">
-          <i class="fa-solid fa-floppy-disk"></i>
-        </button>
-        <label for="import-notes" title="導入 (JSON)" class="text-slate-400 hover:text-tech-accent transition cursor-pointer">
-          <i class="fa-solid fa-file-import"></i>
-        </label>
+      <div class="flex gap-3">
+        <button onclick="saveNotes()" class="text-slate-400 hover:text-tech-accent transition p-1"><i class="fa-solid fa-floppy-disk"></i></button>
+        <label for="import-notes" class="text-slate-400 hover:text-tech-accent transition cursor-pointer p-1"><i class="fa-solid fa-file-import"></i></label>
         <input type="file" id="import-notes" accept=".json" class="hidden" onchange="importNotes()" />
+        <!-- Close button for mobile -->
+        <button onclick="togglePanel('left')" class="md:hidden text-slate-400 hover:text-white p-1"><i class="fa-solid fa-times"></i></button>
       </div>
     </div>
 
-    <!-- Search & Filter -->
+    <!-- Search -->
     <div class="p-3 border-b border-tech-border bg-slate-800/50 shrink-0">
       <div class="relative mb-2">
         <i class="fa-solid fa-search absolute left-3 top-3 text-slate-500 text-xs"></i>
-        <input type="text" id="search-input" placeholder="搜尋標題或內容..." 
-               class="w-full bg-slate-900 border border-slate-700 rounded text-sm px-8 py-2 focus:outline-none focus:border-tech-accent focus:shadow-neon transition text-slate-200 placeholder-slate-600">
+        <input type="text" id="search-input" placeholder="搜尋..." 
+               class="w-full bg-slate-900 border border-slate-700 rounded text-sm px-8 py-2 focus:border-tech-accent focus:outline-none text-slate-200">
       </div>
-      <select id="tag-filter" onchange="filterNotes()" class="w-full bg-slate-900 border border-slate-700 rounded text-sm px-2 py-1.5 text-slate-300 focus:outline-none focus:border-tech-accent">
+      <select id="tag-filter" onchange="filterNotes()" class="w-full bg-slate-900 border border-slate-700 rounded text-sm px-2 py-1.5 text-slate-300 outline-none">
         <option value="">所有標籤</option>
       </select>
     </div>
 
     <!-- Note List -->
-    <div id="note-list" class="flex-1 overflow-y-auto p-2 space-y-2">
+    <div id="note-list" class="flex-1 overflow-y-auto p-2 space-y-2 pb-20 md:pb-2">
       <!-- Items generated by JS -->
     </div>
 
-    <!-- Add New Button (Mobile/Desktop) -->
-    <div class="p-4 border-t border-tech-border shrink-0">
-      <button onclick="createNewNote()" class="w-full bg-tech-accent/10 border border-tech-accent text-tech-accent hover:bg-tech-accent hover:text-slate-900 font-mono py-2 rounded transition-all duration-300 shadow-neon flex items-center justify-center gap-2 group">
-        <i class="fa-solid fa-plus transition-transform group-hover:rotate-90"></i>
-        <span>建立新資料卡</span>
+    <!-- Footer Action (Create) -->
+    <div class="p-4 border-t border-tech-border bg-tech-panel shrink-0 sticky bottom-0 z-10 pb-6 md:pb-4">
+      <button onclick="createNewNote()" class="w-full bg-tech-accent/10 border border-tech-accent text-tech-accent hover:bg-tech-accent hover:text-slate-900 font-mono py-3 rounded shadow-neon flex items-center justify-center gap-2 font-bold transition-all active:scale-95">
+        <i class="fa-solid fa-plus"></i> 建立新資料卡
       </button>
     </div>
   </aside>
 
-  <!-- MAIN AREA (Editor) -->
-  <main class="flex-1 flex flex-col h-[65vh] md:h-full relative bg-tech-bg bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiLz48L3N2Zz4=')]">
-    
-    <!-- Editor Header / Toolbar -->
-    <header class="h-16 border-b border-tech-border glass-panel flex items-center justify-between px-4 md:px-6 shrink-0 z-10">
-      <div class="flex items-center gap-4 w-full">
-        <!-- Toggle Left Sidebar Button -->
-        <button onclick="togglePanel('left')" class="text-slate-400 hover:text-white transition p-2 rounded hover:bg-slate-700/50" title="切換導航欄">
-            <i class="fa-solid fa-bars"></i>
-        </button>
 
-        <input type="text" id="note-title" placeholder="輸入資料卡標題..." 
-               class="bg-transparent border-none text-lg md:text-2xl font-bold text-white placeholder-slate-600 focus:outline-none w-full font-mono tracking-wide" />
+  <!-- MAIN CONTENT (Editor) -->
+  <main class="flex-1 flex flex-col h-full relative min-w-0 bg-tech-bg bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiLz48L3N2Zz4=')]">
+    
+    <!-- Top Bar -->
+    <header class="h-16 border-b border-tech-border glass-panel flex items-center justify-between px-4 shrink-0 z-20">
+      <div class="flex items-center gap-3 w-full overflow-hidden">
+        <button onclick="togglePanel('left')" class="text-slate-400 hover:text-white p-2 rounded hover:bg-slate-700/50 shrink-0">
+            <i class="fa-solid fa-bars text-lg"></i>
+        </button>
+        <input type="text" id="note-title" placeholder="輸入標題..." 
+               class="bg-transparent border-none text-lg md:text-xl font-bold text-white placeholder-slate-600 focus:outline-none w-full font-mono truncate" />
       </div>
       
-      <div class="flex items-center gap-2 shrink-0">
-        <span id="save-status" class="text-xs text-slate-500 font-mono hidden lg:block">已同步</span>
-        <button onclick="deleteCurrentNote()" id="btn-delete" class="hidden text-red-500 hover:bg-red-500/10 p-2 rounded transition border border-transparent hover:border-red-500/50" title="刪除此卡片">
+      <div class="flex items-center gap-1 shrink-0">
+        <button onclick="deleteCurrentNote()" id="btn-delete" class="hidden text-red-500 hover:bg-red-500/10 p-2 rounded mx-1" title="刪除">
           <i class="fa-solid fa-trash-can"></i>
         </button>
-        
-        <!-- Toggle Right Sidebar Button -->
-        <div class="h-6 w-px bg-slate-700 mx-2 hidden md:block"></div>
-        <button onclick="togglePanel('right')" class="text-slate-400 hover:text-tech-secondary transition p-2 rounded hover:bg-slate-700/50 hidden md:block" title="切換資訊欄">
-            <i class="fa-solid fa-columns"></i>
+        <div class="h-6 w-px bg-slate-700 mx-1"></div>
+        <button onclick="togglePanel('right')" class="text-tech-secondary hover:text-white p-2 rounded hover:bg-slate-700/50 relative">
+            <i class="fa-solid fa-sliders text-lg"></i>
+            <!-- Dot indicator for metadata -->
+            <span class="absolute top-2 right-2 w-2 h-2 bg-tech-secondary rounded-full animate-pulse"></span>
         </button>
       </div>
     </header>
 
-    <!-- Toolbar -->
-    <div class="px-6 py-2 border-b border-tech-border bg-slate-800/30 flex flex-wrap items-center gap-2 overflow-x-auto shrink-0">
+    <!-- Formatting Toolbar -->
+    <div class="px-4 py-2 border-b border-tech-border bg-slate-800/40 flex items-center gap-2 overflow-x-auto whitespace-nowrap shrink-0 no-scrollbar">
       <div class="flex bg-slate-900 rounded border border-slate-700 p-0.5">
-        <button onclick="formatText('bold')" class="p-1.5 px-3 hover:bg-slate-700 rounded text-slate-300 transition" title="粗體"><i class="fa-solid fa-bold"></i></button>
-        <button onclick="formatText('italic')" class="p-1.5 px-3 hover:bg-slate-700 rounded text-slate-300 transition" title="斜體"><i class="fa-solid fa-italic"></i></button>
-        <button onclick="formatText('underline')" class="p-1.5 px-3 hover:bg-slate-700 rounded text-slate-300 transition" title="底線"><i class="fa-solid fa-underline"></i></button>
+        <button onclick="formatText('bold')" class="p-2 px-3 text-slate-300 hover:text-white"><i class="fa-solid fa-bold"></i></button>
+        <button onclick="formatText('italic')" class="p-2 px-3 text-slate-300 hover:text-white"><i class="fa-solid fa-italic"></i></button>
+        <button onclick="formatText('underline')" class="p-2 px-3 text-slate-300 hover:text-white"><i class="fa-solid fa-underline"></i></button>
       </div>
-      
-      <div class="h-6 w-px bg-slate-700 mx-1"></div>
-
-      <select id="fontSizeSelect" onchange="changeFontSize(this.value)" class="bg-slate-900 border border-slate-700 text-slate-300 text-xs rounded p-1.5 outline-none">
-        <option value="3">一般</option>
+      <select id="fontSizeSelect" onchange="changeFontSize(this.value)" class="bg-slate-900 border border-slate-700 text-slate-300 rounded p-2 text-sm outline-none">
+        <option value="3">文字大小</option>
         <option value="4">標題 M</option>
         <option value="6">標題 L</option>
       </select>
-
-      <div class="h-6 w-px bg-slate-700 mx-1"></div>
-
-      <label class="cursor-pointer bg-slate-900 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs rounded p-1.5 px-3 transition flex items-center gap-2">
-        <i class="fa-solid fa-image"></i> 插入圖片
+      <label class="cursor-pointer bg-slate-900 border border-slate-700 text-slate-300 rounded p-2 px-3 text-sm flex items-center gap-2">
+        <i class="fa-regular fa-image"></i>
         <input type="file" id="imageUpload" accept="image/*" onchange="insertImage(this)" class="hidden">
       </label>
     </div>
 
-    <!-- Content Area -->
-    <div class="flex-1 flex flex-col md:flex-row overflow-hidden relative">
-      
-      <!-- Editor Body -->
-      <div class="flex-1 overflow-y-auto p-6 relative">
-        <div id="editor-content" class="editor-content w-full h-full min-h-[300px] outline-none text-slate-300 leading-relaxed text-lg" 
-             contenteditable="true" placeholder="在此輸入系統資料..."></div>
-      </div>
-
-      <!-- Right Panel: Metadata (Tags & Links) -->
-      <aside id="sidebar-right" class="panel-transition w-full md:w-72 border-t md:border-t-0 md:border-l border-tech-border bg-slate-900/50 p-4 overflow-y-auto shrink-0">
-        
-        <!-- Tags Section -->
-        <div class="mb-6">
-          <h3 class="text-xs font-mono text-tech-accent mb-2 uppercase tracking-wider border-b border-slate-700 pb-1">
-            <i class="fa-solid fa-tags mr-1"></i> 資料標籤
-          </h3>
-          <div class="flex gap-2 mb-2">
-            <input type="text" id="tag-input" placeholder="輸入新標籤..." class="flex-1 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-sm focus:border-tech-accent outline-none">
-            <button onclick="addTag()" class="bg-slate-700 hover:bg-tech-accent hover:text-slate-900 px-3 rounded text-sm transition"><i class="fa-solid fa-plus"></i></button>
-          </div>
-          <div class="mb-2">
-             <select id="tag-history" onchange="addTagFromHistory(this)" class="w-full bg-slate-800 border-none text-xs text-slate-400 p-1">
-               <option value="">+ 從歷史標籤選擇</option>
-             </select>
-          </div>
-          <div id="active-tags" class="flex flex-wrap gap-2">
-            <!-- Tags go here -->
-          </div>
-        </div>
-
-        <!-- Linked Notes Section -->
-        <div>
-          <h3 class="text-xs font-mono text-tech-secondary mb-2 uppercase tracking-wider border-b border-slate-700 pb-1">
-            <i class="fa-solid fa-link mr-1"></i> 連結網絡
-          </h3>
-          <div class="relative mb-2">
-             <input list="link-suggestions" id="link-input" placeholder="搜尋筆記以連結..." 
-                    class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-sm focus:border-tech-secondary outline-none">
-             <datalist id="link-suggestions"></datalist>
-             <button onclick="addLinkedNote()" class="absolute right-1 top-1 text-tech-secondary hover:text-white"><i class="fa-solid fa-plus-circle"></i></button>
-          </div>
-          <div id="linked-notes-list" class="space-y-2">
-            <!-- Linked Cards go here -->
-          </div>
-        </div>
-
-        <!-- Action Button (Save) -->
-        <div class="mt-8">
-            <button onclick="updateCurrentNote()" id="btn-save-update" class="w-full bg-tech-success/10 border border-tech-success text-tech-success hover:bg-tech-success hover:text-slate-900 py-2 rounded font-mono text-sm transition shadow-neon-green">
-                <i class="fa-regular fa-floppy-disk mr-1"></i> 保存變更
-            </button>
-        </div>
-
-      </aside>
+    <!-- Editor Area -->
+    <div class="flex-1 overflow-y-auto p-4 md:p-8">
+      <div id="editor-content" class="editor-content w-full min-h-[50vh] outline-none text-slate-300 leading-relaxed text-lg pb-20" 
+           contenteditable="true" placeholder="在此輸入內容..."></div>
     </div>
   </main>
 
-  <script>
-    // --- State Management ---
-    let notes = [];
-    let currentNoteId = null; // null implies "New Note" mode
 
-    // --- DOM Elements ---
+  <!-- RIGHT SIDEBAR (Metadata) -->
+  <aside id="sidebar-right" class="sidebar-transition fixed md:relative inset-y-0 right-0 z-40 w-[85vw] md:w-72 bg-tech-panel border-l border-tech-border flex flex-col mobile-hidden-right md:transform-none shadow-2xl md:shadow-none h-full">
+    
+    <!-- Mobile Header for Right Panel -->
+    <div class="md:hidden p-4 border-b border-tech-border flex justify-between items-center shrink-0">
+        <span class="text-tech-secondary font-bold font-mono"><i class="fa-solid fa-sliders mr-2"></i>資料屬性</span>
+        <button onclick="togglePanel('right')" class="text-slate-400 p-1"><i class="fa-solid fa-times"></i></button>
+    </div>
+
+    <!-- Content -->
+    <div class="flex-1 overflow-y-auto p-4 space-y-6 pb-24 md:pb-4">
+      
+      <!-- Tags -->
+      <div>
+        <h3 class="text-xs font-mono text-tech-accent mb-2 uppercase tracking-wider border-b border-slate-700 pb-1">
+          <i class="fa-solid fa-tags mr-1"></i> 標籤系統
+        </h3>
+        <div class="flex gap-2 mb-2">
+          <input type="text" id="tag-input" placeholder="新標籤..." class="flex-1 bg-slate-800 border border-slate-700 rounded px-2 py-2 text-sm focus:border-tech-accent outline-none">
+          <button onclick="addTag()" class="bg-slate-700 text-white px-3 rounded"><i class="fa-solid fa-plus"></i></button>
+        </div>
+        <select id="tag-history" onchange="addTagFromHistory(this)" class="w-full bg-slate-800 border-none text-xs text-slate-400 p-2 rounded mb-2">
+           <option value="">+ 歷史標籤</option>
+        </select>
+        <div id="active-tags" class="flex flex-wrap gap-2"></div>
+      </div>
+
+      <!-- Linked Notes -->
+      <div>
+        <h3 class="text-xs font-mono text-tech-secondary mb-2 uppercase tracking-wider border-b border-slate-700 pb-1">
+          <i class="fa-solid fa-link mr-1"></i> 連結網絡
+        </h3>
+        <div class="relative mb-2">
+           <input list="link-suggestions" id="link-input" placeholder="搜尋筆記..." 
+                  class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-2 text-sm focus:border-tech-secondary outline-none">
+           <datalist id="link-suggestions"></datalist>
+           <button onclick="addLinkedNote()" class="absolute right-2 top-2 text-tech-secondary"><i class="fa-solid fa-plus-circle"></i></button>
+        </div>
+        <div id="linked-notes-list" class="space-y-2"></div>
+      </div>
+
+    </div>
+
+    <!-- Footer Action (Save) -->
+    <div class="p-4 border-t border-tech-border bg-tech-panel shrink-0 sticky bottom-0 z-10 pb-6 md:pb-4">
+        <button onclick="updateCurrentNote()" id="btn-save-update" class="w-full bg-tech-success/10 border border-tech-success text-tech-success hover:bg-tech-success hover:text-slate-900 py-3 rounded font-mono font-bold text-sm transition shadow-neon-green active:scale-95 flex items-center justify-center">
+            <i class="fa-regular fa-floppy-disk mr-2"></i> 保存變更
+        </button>
+    </div>
+  </aside>
+
+  <script>
+    // --- Global State ---
+    let notes = [];
+    let currentNoteId = null;
+
+    // --- DOM Refs ---
     const els = {
       list: document.getElementById('note-list'),
       title: document.getElementById('note-title'),
       content: document.getElementById('editor-content'),
       tagInput: document.getElementById('tag-input'),
-      tagHistory: document.getElementById('tag-history'),
       activeTags: document.getElementById('active-tags'),
-      linkInput: document.getElementById('link-input'),
-      linkSuggestions: document.getElementById('link-suggestions'),
       linkedList: document.getElementById('linked-notes-list'),
       searchInput: document.getElementById('search-input'),
-      tagFilter: document.getElementById('tag-filter'),
-      btnDelete: document.getElementById('btn-delete'),
-      btnSaveUpdate: document.getElementById('btn-save-update'),
-      status: document.getElementById('save-status'),
-      toastContainer: document.getElementById('toast-container'),
       sidebarLeft: document.getElementById('sidebar-left'),
-      sidebarRight: document.getElementById('sidebar-right')
+      sidebarRight: document.getElementById('sidebar-right'),
+      backdrop: document.getElementById('backdrop'),
+      btnSave: document.getElementById('btn-save-update'),
+      btnDelete: document.getElementById('btn-delete'),
+      tagHistory: document.getElementById('tag-history'),
+      linkSuggestions: document.getElementById('link-suggestions'),
+      tagFilter: document.getElementById('tag-filter'),
+      toastContainer: document.getElementById('toast-container')
     };
 
-    // --- Initialization ---
+    // --- Init ---
     window.onload = function() {
-      // Load from local storage or mock
       const stored = localStorage.getItem('zettelkasten_notes');
-      if (stored) {
-        notes = JSON.parse(stored);
-      } else {
-        // Initial onboarding note
-        notes = [{
-          id: '1',
-          title: '歡迎使用 ZETTEL_CORE',
-          content: '<b>開始你的數位大腦旅程。</b><br><br>這是一個結合科技風格與卡片盒筆記法的系統。<br>左側選單管理筆記，右側進行編輯。<br><br>點擊上方工具列的按鈕可以開合左右面板，讓寫作更專注。',
-          tags: ['System', 'Help'],
-          linkedNotes: []
-        }];
-      }
+      notes = stored ? JSON.parse(stored) : [{
+        id: '1',
+        title: '歡迎使用 ZETTEL_CORE',
+        content: '<b>開始你的旅程。</b><br><br>這是一個 RWD 優化版本。<br>手機上點擊左上角開啟選單，右上角開啟屬性面板。',
+        tags: ['System'], linkedNotes: []
+      }];
+      
       renderNoteList();
       updateTagHistory();
       renderLinkSuggestions();
-      createNewNote(); // Start in create mode
+      createNewNote();
     };
 
-    // --- Core Operations ---
-
-    function genId() {
-      return Date.now().toString(36) + Math.random().toString(36).substr(2);
+    // --- Layout Logic (Crucial for Mobile) ---
+    function togglePanel(side) {
+      const isMobile = window.innerWidth < 768;
+      const el = side === 'left' ? els.sidebarLeft : els.sidebarRight;
+      const mobileClass = side === 'left' ? 'mobile-hidden-left' : 'mobile-hidden-right';
+      
+      if (isMobile) {
+        // Toggle slide-in class
+        const isClosed = el.classList.contains(mobileClass);
+        if (isClosed) {
+          el.classList.remove(mobileClass);
+          els.backdrop.classList.remove('hidden');
+        } else {
+          el.classList.add(mobileClass);
+          // Only hide backdrop if BOTH are closed
+          if (els.sidebarLeft.classList.contains('mobile-hidden-left') && 
+              els.sidebarRight.classList.contains('mobile-hidden-right')) {
+            els.backdrop.classList.add('hidden');
+          }
+        }
+      } else {
+        // Desktop collapse
+        el.classList.toggle('desktop-collapsed');
+      }
     }
+
+    function closeAllMobilePanels() {
+      els.sidebarLeft.classList.add('mobile-hidden-left');
+      els.sidebarRight.classList.add('mobile-hidden-right');
+      els.backdrop.classList.add('hidden');
+    }
+
+    // --- Core Logic ---
+    function genId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
 
     function createNewNote() {
       currentNoteId = null;
       els.title.value = '';
       els.content.innerHTML = '';
       els.btnDelete.classList.add('hidden');
-      els.btnSaveUpdate.innerHTML = '<i class="fa-solid fa-plus mr-1"></i> 建立新筆記';
-      els.status.textContent = '新資料卡模式';
+      els.btnSave.innerHTML = '<i class="fa-solid fa-plus mr-2"></i> 建立新筆記';
       
       renderTagsUI([]);
       renderLinkedUI([]);
       
-      // Highlight selection in sidebar (remove all)
       document.querySelectorAll('.note-item').forEach(el => el.classList.remove('border-tech-accent', 'bg-slate-800'));
-      els.title.focus();
+      
+      // On mobile, close sidebar after clicking create
+      if (window.innerWidth < 768) closeAllMobilePanels();
     }
 
     function loadNote(id) {
@@ -359,428 +342,201 @@
       currentNoteId = note.id;
       els.title.value = note.title;
       els.content.innerHTML = note.content;
-      
-      // Setup UI for edit mode
       els.btnDelete.classList.remove('hidden');
-      els.btnSaveUpdate.innerHTML = '<i class="fa-regular fa-floppy-disk mr-1"></i> 更新筆記';
-      els.status.textContent = `ID: ${note.id.substring(0,6)}...`;
+      els.btnSave.innerHTML = '<i class="fa-regular fa-floppy-disk mr-2"></i> 保存變更';
 
       renderTagsUI(note.tags || []);
       renderLinkedUI(note.linkedNotes || []);
       
-      // Highlight sidebar
       document.querySelectorAll('.note-item').forEach(el => {
         el.classList.remove('border-tech-accent', 'bg-slate-800');
         if(el.dataset.id === id) el.classList.add('border-tech-accent', 'bg-slate-800');
       });
 
-      // Re-attach image listeners
-      document.querySelectorAll('#editor-content img').forEach(makeImageResizable);
+      setTimeout(() => document.querySelectorAll('img').forEach(makeImageResizable), 100);
+      
+      // On mobile, close sidebar after selection
+      if (window.innerWidth < 768) closeAllMobilePanels();
     }
 
     function updateCurrentNote() {
       const title = els.title.value.trim();
       const content = els.content.innerHTML;
+      if (!title) return showToast('標題不能為空', 'error');
 
-      if (!title) {
-        showToast('錯誤：標題不能為空', 'error');
-        return;
-      }
-
-      // Get current UI state for tags and links
-      const currentTags = Array.from(els.activeTags.querySelectorAll('.tag-chip span')).map(s => s.textContent);
-      const currentLinks = Array.from(els.linkedList.querySelectorAll('.link-card')).map(d => d.dataset.id);
+      const tags = Array.from(els.activeTags.querySelectorAll('span:first-child')).map(s => s.textContent);
+      const links = Array.from(els.linkedList.querySelectorAll('.link-card')).map(d => d.dataset.id);
 
       if (currentNoteId) {
-        // Update existing
-        const index = notes.findIndex(n => n.id === currentNoteId);
-        if (index !== -1) {
-          notes[index] = { ...notes[index], title, content, tags: currentTags, linkedNotes: currentLinks };
-          showToast('資料已更新', 'success');
-        }
+        const idx = notes.findIndex(n => n.id === currentNoteId);
+        if (idx !== -1) notes[idx] = { ...notes[idx], title, content, tags, linkedNotes: links };
+        showToast('已更新', 'success');
       } else {
-        // Create new
         const newId = genId();
-        const newNote = {
-          id: newId,
-          title,
-          content,
-          tags: currentTags,
-          linkedNotes: currentLinks
-        };
-        notes.push(newNote);
+        notes.push({ id: newId, title, content, tags, linkedNotes: links });
         currentNoteId = newId;
-        
-        // Handle bidirectional linking
-        currentLinks.forEach(targetId => {
-          const target = notes.find(n => n.id === targetId);
-          if (target && !target.linkedNotes.includes(newId)) {
-            target.linkedNotes.push(newId);
-          }
+        // Backlink logic
+        links.forEach(lid => {
+           const t = notes.find(n => n.id === lid);
+           if(t && !t.linkedNotes.includes(newId)) t.linkedNotes.push(newId);
         });
-        
-        showToast('新資料卡已建立', 'success');
+        showToast('已建立', 'success');
         els.btnDelete.classList.remove('hidden');
-        els.btnSaveUpdate.innerHTML = '<i class="fa-regular fa-floppy-disk mr-1"></i> 更新筆記';
+        els.btnSave.innerHTML = '<i class="fa-regular fa-floppy-disk mr-2"></i> 保存變更';
       }
-
-      saveToStorage();
+      
+      saveStorage();
       renderNoteList();
       updateTagHistory();
       renderLinkSuggestions();
+      // On mobile, close right sidebar after save
+      if (window.innerWidth < 768) closeAllMobilePanels();
     }
 
     function deleteCurrentNote() {
-      if (!currentNoteId) return;
-      if (!confirm('確認刪除此資料卡？此操作無法復原。')) return;
-
-      // Remove backlinks
-      notes.forEach(n => {
-        if (n.linkedNotes) {
-          n.linkedNotes = n.linkedNotes.filter(id => id !== currentNoteId);
-        }
-      });
-
+      if (!currentNoteId || !confirm('確定刪除？')) return;
       notes = notes.filter(n => n.id !== currentNoteId);
-      saveToStorage();
+      // Remove backlinks
+      notes.forEach(n => { n.linkedNotes = n.linkedNotes.filter(id => id !== currentNoteId); });
+      saveStorage();
       renderNoteList();
-      renderLinkSuggestions();
       createNewNote();
-      showToast('資料已刪除', 'info');
+      showToast('已刪除', 'info');
     }
 
-    function saveToStorage() {
-      localStorage.setItem('zettelkasten_notes', JSON.stringify(notes));
-    }
-
-    // --- UI Layout Management ---
-
-    function togglePanel(side) {
-        const isMobile = window.innerWidth < 768;
-        
-        if (side === 'left') {
-            if (isMobile) {
-                // Mobile: Toggle height or display
-                els.sidebarLeft.classList.toggle('panel-closed-height');
-            } else {
-                // Desktop: Toggle width
-                els.sidebarLeft.classList.toggle('panel-closed-width');
-            }
-        } else if (side === 'right') {
-            // Right panel is usually inside flex-col on mobile, but at bottom
-            // logic is same: hide width on desktop, hide height on mobile
-             if (isMobile) {
-                els.sidebarRight.classList.toggle('panel-closed-height');
-            } else {
-                els.sidebarRight.classList.toggle('panel-closed-width');
-            }
-        }
-    }
-
-    // --- UI Rendering ---
-
+    // --- Renderers ---
     function renderNoteList() {
-      const filterText = els.searchInput.value.toLowerCase();
-      const filterTag = els.tagFilter.value;
-
+      const txt = els.searchInput.value.toLowerCase();
+      const tag = els.tagFilter.value;
       els.list.innerHTML = '';
-
-      const filtered = notes.filter(n => {
-        const matchText = n.title.toLowerCase().includes(filterText) || n.content.toLowerCase().includes(filterText);
-        const matchTag = filterTag ? (n.tags || []).includes(filterTag) : true;
-        return matchText && matchTag;
-      });
-
-      filtered.forEach(note => {
+      
+      notes.filter(n => 
+        (n.title.toLowerCase().includes(txt) || n.content.toLowerCase().includes(txt)) &&
+        (!tag || (n.tags||[]).includes(tag))
+      ).forEach(n => {
         const div = document.createElement('div');
-        div.className = 'note-item p-3 border-l-2 border-transparent hover:bg-slate-800 cursor-pointer transition-colors duration-200 group';
-        div.dataset.id = note.id;
-        if (note.id === currentNoteId) div.classList.add('border-tech-accent', 'bg-slate-800');
-
-        // Extract clean text for preview
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = note.content;
-        const previewText = tempDiv.textContent.substring(0, 50) + (tempDiv.textContent.length > 50 ? '...' : '');
-
-        div.innerHTML = `
-          <div class="font-bold text-slate-200 mb-1 group-hover:text-tech-accent transition-colors">${note.title}</div>
-          <div class="text-xs text-slate-500 font-mono mb-2 line-clamp-1">${previewText || '無內容'}</div>
-          <div class="flex flex-wrap gap-1">
-            ${(note.tags || []).slice(0, 3).map(t => `<span class="text-[10px] bg-slate-700 text-slate-300 px-1.5 rounded-sm">#${t}</span>`).join('')}
-          </div>
-        `;
-        div.onclick = () => loadNote(note.id);
+        div.className = 'note-item p-3 border-l-2 border-transparent hover:bg-slate-800 cursor-pointer mb-1 rounded-r transition-colors';
+        if (n.id === currentNoteId) div.classList.add('border-tech-accent', 'bg-slate-800');
+        div.dataset.id = n.id;
+        div.onclick = () => loadNote(n.id);
+        div.innerHTML = `<div class="font-bold text-slate-200 truncate">${n.title}</div>
+                         <div class="text-xs text-slate-500 truncate">${n.content.replace(/<[^>]*>/g, '')}</div>`;
         els.list.appendChild(div);
       });
     }
 
     function renderTagsUI(tags) {
-      els.activeTags.innerHTML = '';
-      tags.forEach(tag => {
-        const chip = document.createElement('div');
-        chip.className = 'tag-chip bg-tech-accent/20 border border-tech-accent/50 text-tech-accent px-2 py-1 rounded text-xs flex items-center gap-2 animate-fade-in';
-        chip.innerHTML = `
-          <span>${tag}</span>
-          <button onclick="removeTag(this)" class="hover:text-white"><i class="fa-solid fa-times"></i></button>
-        `;
-        els.activeTags.appendChild(chip);
-      });
+      els.activeTags.innerHTML = tags.map(t => `
+        <div class="bg-tech-accent/20 border border-tech-accent/40 text-tech-accent px-2 py-1 rounded text-xs flex items-center gap-1">
+          <span>${t}</span><button onclick="this.parentElement.remove()" class="hover:text-white ml-1">&times;</button>
+        </div>
+      `).join('');
     }
 
-    function renderLinkedUI(linkedIds) {
+    function renderLinkedUI(ids) {
       els.linkedList.innerHTML = '';
-      linkedIds.forEach(id => {
-        const note = notes.find(n => n.id === id);
-        if (note) {
-          const card = document.createElement('div');
-          card.className = 'link-card bg-slate-800 border border-slate-700 p-2 rounded flex justify-between items-center group hover:border-tech-secondary transition cursor-pointer';
-          card.dataset.id = id;
-          card.innerHTML = `
-            <div onclick="loadNote('${id}')" class="flex-1 overflow-hidden">
-               <div class="text-sm font-bold text-slate-300 group-hover:text-tech-secondary truncate"><i class="fa-solid fa-link text-[10px] mr-1"></i> ${note.title}</div>
-            </div>
-            <button onclick="removeLink(this)" class="text-slate-500 hover:text-red-400 ml-2 px-1"><i class="fa-solid fa-times"></i></button>
-          `;
-          els.linkedList.appendChild(card);
-        }
+      ids.forEach(id => {
+        const n = notes.find(x => x.id === id);
+        if(!n) return;
+        const div = document.createElement('div');
+        div.className = 'link-card bg-slate-800 p-2 rounded flex justify-between items-center border border-slate-700 hover:border-tech-secondary cursor-pointer';
+        div.dataset.id = id;
+        div.innerHTML = `<div onclick="loadNote('${id}')" class="truncate text-sm text-slate-300"><i class="fa-solid fa-link text-xs mr-1"></i>${n.title}</div>
+                         <button onclick="this.parentElement.remove()" class="text-slate-500 hover:text-red-400">&times;</button>`;
+        els.linkedList.appendChild(div);
       });
     }
 
-    function renderLinkSuggestions() {
-      els.linkSuggestions.innerHTML = '';
-      notes.forEach(note => {
-        const opt = document.createElement('option');
-        opt.value = note.title;
-        opt.dataset.id = note.id; // Datalist doesn't standardly support hidden IDs, handled in logic
-        els.linkSuggestions.appendChild(opt);
-      });
+    // --- Helpers ---
+    function addTag() {
+      const t = els.tagInput.value.trim();
+      if(!t) return;
+      const curr = Array.from(els.activeTags.querySelectorAll('span:first-child')).map(s => s.textContent);
+      if(!curr.includes(t)) {
+        const temp = document.createElement('div');
+        temp.innerHTML = `<div class="bg-tech-accent/20 border border-tech-accent/40 text-tech-accent px-2 py-1 rounded text-xs flex items-center gap-1"><span>${t}</span><button onclick="this.parentElement.remove()" class="hover:text-white ml-1">&times;</button></div>`;
+        els.activeTags.appendChild(temp.firstChild);
+      }
+      els.tagInput.value = '';
+    }
+    
+    function addTagFromHistory(sel) { 
+        if(sel.value) { els.tagInput.value = sel.value; addTag(); sel.value = ''; } 
+    }
+
+    function addLinkedNote() {
+      const val = document.getElementById('link-input').value;
+      const target = notes.find(n => n.title === val);
+      if(target && target.id !== currentNoteId) {
+         const curr = Array.from(els.linkedList.querySelectorAll('.link-card')).map(d => d.dataset.id);
+         if(!curr.includes(target.id)) renderLinkedUI([...curr, target.id]);
+      }
+      document.getElementById('link-input').value = '';
     }
 
     function updateTagHistory() {
-      // Collect unique tags
-      const allTags = new Set();
-      notes.forEach(n => (n.tags || []).forEach(t => allTags.add(t)));
-      
-      // Update Filter
-      const currentFilter = els.tagFilter.value;
-      els.tagFilter.innerHTML = '<option value="">所有標籤</option>';
-      allTags.forEach(tag => {
-        const opt = document.createElement('option');
-        opt.value = tag;
-        opt.textContent = tag;
-        els.tagFilter.appendChild(opt);
-      });
-      els.tagFilter.value = currentFilter;
-
-      // Update Editor History Select
-      els.tagHistory.innerHTML = '<option value="">+ 從歷史標籤選擇</option>';
-      allTags.forEach(tag => {
-        const opt = document.createElement('option');
-        opt.value = tag;
-        opt.textContent = tag;
-        els.tagHistory.appendChild(opt);
-      });
+      const all = new Set(notes.flatMap(n => n.tags || []));
+      const opts = ['<option value="">所有標籤</option>', ...[...all].map(t => `<option value="${t}">${t}</option>`)];
+      els.tagFilter.innerHTML = opts.join('');
+      els.tagHistory.innerHTML = ['<option value="">+ 歷史標籤</option>', ...[...all].map(t => `<option value="${t}">${t}</option>`)].join('');
     }
 
-    // --- Event Handlers & Helpers ---
-
-    // Search Filter
-    els.searchInput.addEventListener('input', renderNoteList);
-    
-    function filterNotes() {
-      renderNoteList();
+    function renderLinkSuggestions() {
+      els.linkSuggestions.innerHTML = notes.map(n => `<option value="${n.title}"></option>`).join('');
     }
 
-    // Tag Management
-    function addTag() {
-      const tag = els.tagInput.value.trim();
-      if (!tag) return;
-      
-      // Check duplicate in current UI
-      const currentTags = Array.from(els.activeTags.querySelectorAll('.tag-chip span')).map(s => s.textContent);
-      if (currentTags.includes(tag)) return;
+    function saveStorage() { localStorage.setItem('zettelkasten_notes', JSON.stringify(notes)); }
 
-      // Render new tag
-      const dummy = document.createElement('div'); // Create wrapper to reuse render logic partially or just append
-      const chip = document.createElement('div');
-      chip.className = 'tag-chip bg-tech-accent/20 border border-tech-accent/50 text-tech-accent px-2 py-1 rounded text-xs flex items-center gap-2 animate-fade-in';
-      chip.innerHTML = `<span>${tag}</span><button onclick="removeTag(this)" class="hover:text-white"><i class="fa-solid fa-times"></i></button>`;
-      els.activeTags.appendChild(chip);
-      
-      els.tagInput.value = '';
-    }
-
-    function addTagFromHistory(select) {
-      const tag = select.value;
-      if (!tag) return;
-      
-      els.tagInput.value = tag;
-      addTag();
-      select.value = '';
-    }
-
-    function removeTag(btn) {
-      btn.parentElement.remove();
-    }
-
-    // Link Management
-    function addLinkedNote() {
-      const title = els.linkInput.value;
-      if (!title) return;
-
-      const targetNote = notes.find(n => n.title === title);
-      
-      if (!targetNote) {
-        showToast('找不到該標題的筆記', 'error');
-        return;
-      }
-      
-      if (targetNote.id === currentNoteId) {
-        showToast('無法連結自己', 'error');
-        return;
-      }
-
-      // Check duplicate in UI
-      const existing = Array.from(els.linkedList.querySelectorAll('.link-card')).map(d => d.dataset.id);
-      if (existing.includes(targetNote.id)) {
-        showToast('已連結此筆記', 'info');
-        return;
-      }
-
-      renderLinkedUI([...existing, targetNote.id]);
-      els.linkInput.value = '';
-    }
-
-    function removeLink(btn) {
-      btn.parentElement.remove();
-    }
-
-    // Editor Formatting
-    function formatText(command) {
-      document.execCommand(command, false, null);
-      els.content.focus();
-    }
-
-    function changeFontSize(val) {
-      document.execCommand('fontSize', false, val);
-      els.content.focus();
-    }
-
-    function insertImage(input) {
-      const file = input.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        // Insert placeholder logic, but simplified for single file
-        // We restore focus and insert
-        els.content.focus();
-        document.execCommand('insertImage', false, e.target.result);
-        
-        // Find the image just inserted (it will be the last one usually, or we can add resize logic to all)
-        setTimeout(() => {
-          document.querySelectorAll('#editor-content img').forEach(makeImageResizable);
-        }, 100);
-      };
-      reader.readAsDataURL(file);
-      input.value = '';
-    }
-
-    function makeImageResizable(img) {
-        if(img.dataset.resizable) return;
-        img.dataset.resizable = "true";
-        
-        img.addEventListener('click', function(e) {
-            e.stopPropagation();
-            // Deselect others
-            document.querySelectorAll('img').forEach(i => i.classList.remove('resizable'));
-            img.classList.add('resizable');
-        });
-    }
-
-    // Click outside to deselect images
-    document.addEventListener('click', function(e) {
-        if (!e.target.closest('img')) {
-            document.querySelectorAll('img').forEach(i => i.classList.remove('resizable'));
-        }
-    });
-
-    // Import / Export
     function saveNotes() {
-      const dataStr = JSON.stringify(notes, null, 2);
-      const blob = new Blob([dataStr], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
-      a.download = `zettelkasten_backup_${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(a);
+      a.href = URL.createObjectURL(new Blob([JSON.stringify(notes,null,2)], {type:'application/json'}));
+      a.download = `zettelkasten_${new Date().toISOString().slice(0,10)}.json`;
       a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      showToast('備份檔案已下載', 'success');
     }
-
+    
     function importNotes() {
-        const fileInput = document.getElementById('import-notes');
-        const file = fileInput.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            try {
-                const imported = JSON.parse(e.target.result);
-                if (!Array.isArray(imported)) throw new Error("Format");
-                
-                // Merge logic: append distinct IDs
-                const existingIds = new Set(notes.map(n => n.id));
-                let count = 0;
-                
-                imported.forEach(n => {
-                    if(!n.id) n.id = genId();
-                    if(!existingIds.has(n.id)) {
-                        notes.push(n);
-                        existingIds.add(n.id);
-                        count++;
-                    }
-                });
-
-                saveToStorage();
-                renderNoteList();
-                updateTagHistory();
-                renderLinkSuggestions();
-                showToast(`成功導入 ${count} 則筆記`, 'success');
-            } catch (err) {
-                showToast('檔案格式錯誤', 'error');
-            }
-            fileInput.value = '';
-        };
-        reader.readAsText(file);
-    }
-
-    // Toast Notification
-    function showToast(message, type = 'info') {
-      const toast = document.createElement('div');
-      const colors = {
-        'success': 'border-tech-success text-tech-success bg-slate-900',
-        'error': 'border-tech-danger text-tech-danger bg-slate-900',
-        'info': 'border-tech-accent text-tech-accent bg-slate-900'
+      const r = new FileReader();
+      r.onload = e => {
+         try {
+           const d = JSON.parse(e.target.result);
+           const exist = new Set(notes.map(n => n.id));
+           d.forEach(n => { if(!n.id) n.id=genId(); if(!exist.has(n.id)) notes.push(n); });
+           saveStorage(); renderNoteList(); updateTagHistory(); renderLinkSuggestions();
+           showToast('導入成功', 'success');
+         } catch(e) { showToast('格式錯誤', 'error'); }
       };
-      
-      toast.className = `p-3 rounded border shadow-lg flex items-center gap-2 min-w-[200px] animate-fade-in ${colors[type]}`;
-      toast.innerHTML = `
-        <i class="fa-solid ${type === 'success' ? 'fa-check' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
-        <span class="text-sm font-mono">${message}</span>
-      `;
-      
-      els.toastContainer.appendChild(toast);
-      
-      setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateY(-10px)';
-        setTimeout(() => toast.remove(), 300);
-      }, 3000);
+      if(document.getElementById('import-notes').files[0]) r.readAsText(document.getElementById('import-notes').files[0]);
     }
 
+    // Editor Utils
+    function formatText(cmd) { document.execCommand(cmd, false, null); els.content.focus(); }
+    function changeFontSize(v) { document.execCommand('fontSize', false, v); els.content.focus(); }
+    function insertImage(inp) {
+      if(!inp.files[0]) return;
+      const r = new FileReader();
+      r.onload = e => { 
+        els.content.focus(); 
+        document.execCommand('insertImage', false, e.target.result);
+        setTimeout(() => document.querySelectorAll('img').forEach(makeImageResizable), 100);
+      };
+      r.readAsDataURL(inp.files[0]);
+      inp.value = '';
+    }
+    function makeImageResizable(img) {
+      if(img.dataset.resizable) return;
+      img.dataset.resizable = "true";
+      img.onclick = (e) => { e.stopPropagation(); document.querySelectorAll('img').forEach(i=>i.classList.remove('resizable')); img.classList.add('resizable'); };
+    }
+    document.onclick = (e) => { if(!e.target.closest('img')) document.querySelectorAll('img').forEach(i=>i.classList.remove('resizable')); };
+    els.searchInput.oninput = renderNoteList;
+
+    function showToast(msg, type) {
+      const d = document.createElement('div');
+      d.className = `p-3 rounded border shadow-lg flex items-center gap-2 animate-[fadeIn_0.3s] bg-slate-900 ${type==='error'?'border-red-500 text-red-500':'border-tech-accent text-tech-accent'}`;
+      d.innerHTML = `<span>${msg}</span>`;
+      els.toastContainer.appendChild(d);
+      setTimeout(() => d.remove(), 2500);
+    }
   </script>
 </body>
 </html>
