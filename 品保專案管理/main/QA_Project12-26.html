@@ -1,0 +1,1712 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QA 多專案管理系統</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.28/dist/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* 全域字體與背景設定 */
+        body { font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif; background-color: #f3f4f6; }
+        
+        /* 甘特圖樣式設定 */
+        .gantt-bar-container { background-color: #e5e7eb; border-radius: 9999px; height: 1.25rem; width: 100%; position: relative; overflow: hidden; }
+        .gantt-bar { height: 100%; border-radius: 9999px; transition: width 0.5s ease-in-out; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.7rem; white-space: nowrap; }
+        
+        /* 自定義捲軸樣式 */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* ===== PDF 匯出專用樣式 (關鍵技巧) ===== */
+        /* 將此區塊移出可視範圍，但保持渲染狀態，以便 html2canvas 抓取完整內容 */
+        
+
+        /* ===== PDF 匯出專用樣式 (修改) ===== */
+.pdf-export-hidden {
+    position: absolute;
+    top: 0;
+    left: -99999px;
+    width: 1200px; /* A4 比例寬度 */
+    background: white;
+    padding: 40px; /* 增加內距讓畫面不貼邊 */
+}
+
+/* PDF 章節標題樣式 */
+.pdf-section-title {
+    margin-top: 40px;
+    margin-bottom: 20px;
+    padding: 10px;
+    background-color: #f3f4f6;
+    border-left: 5px solid #2563eb;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #1f2937;
+}
+
+/* 強制換頁標記 (若內容太長可由 JS 偵測高度，或簡單地用 CSS 間距區隔) */
+.pdf-page-break {
+    height: 50px;
+    width: 100%;
+}
+
+        /* ===== PDF 匯出時隱藏特定元素 ===== */
+        /* 用於隱藏按鈕等不需要出現在報表上的元素 */
+        .pdf-export-hidden .pdf-hide {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // 解構 React Hook
+        const { useState, useEffect } = React;
+        
+        // 工具函式：產生隨機 ID (Base36 字串)
+        const generateId = () => Math.random().toString(36).substr(2, 9);
+
+        // ===== Dashboard 計算工具：計算各 Tab 的進度百分比 =====
+        const calcProjectProgress = (project) => {
+            // TAB1：部品送樣進度（分母：總零件數，分子：狀態為"結案"的數量）
+            const totalParts = project.parts.length;
+            const closedParts = project.parts.filter(p => p.status === "結案").length;
+            const tab1 = totalParts === 0 ? 0 : Math.round(closedParts / totalParts * 100);
+
+            // TAB2：PPAP 文件完成度（計算所有零件的所有文件狀態）
+            const docKeys = ["drawing", "bubble", "eval", "cp", "sip", "sop"];
+            let docDone = 0;
+            let docTotal = 0;
+
+            project.parts.forEach(p => {
+                const d = project.docs[p.id] || {};
+                docKeys.forEach(k => {
+                    docTotal++;
+                    if (d[k] === 2) docDone++; // 狀態 2 代表已完成
+                });
+            });
+            const tab2 = docTotal === 0 ? 0 : Math.round(docDone / docTotal * 100);
+
+            // TAB3：問題點處理率（分母：總問題數，分子：已確認有效或無效的問題）
+            const issues = project.issues || [];
+            // 此處邏輯：只要狀態是 "有效" 視為解決 (可根據需求修改邏輯)
+            const solved = issues.filter(i => i.result === "有效").length; 
+            const tab3 = issues.length === 0 ? 100 : Math.round(solved / issues.length * 100);
+
+            return { tab1, tab2, tab3 };
+        };
+
+        /* ===== IndexedDB 基礎工具：瀏覽器端資料庫操作 ===== */
+        const DB_NAME = "qa-project-db";
+        const STORE_NAME = "kv"; // Key-Value 儲存區
+        const DB_VERSION = 2;    // 資料庫版本
+
+        // 開啟資料庫並處理版本升級 (Schema Migration)
+        const openDB = () =>
+            new Promise((resolve, reject) => {
+                const req = indexedDB.open(DB_NAME, DB_VERSION);
+                
+                req.onupgradeneeded = (e) => {
+                    const db = req.result;
+                    const oldVersion = e.oldVersion;
+
+                    switch (oldVersion) {
+                        case 0:
+                            // v0 ➜ v1：第一次建立資料庫，新增 kv store
+                            if (!db.objectStoreNames.contains("kv")) {
+                                db.createObjectStore("kv");
+                            }
+                            // 注意：這裡不加 break，讓它繼續往下執行 (Waterfall pattern)
+                        case 1:
+                            // v1 ➜ v2：資料結構拆分，將 projects 獨立出來 (若未來需要更細緻的查詢)
+                            if (!db.objectStoreNames.contains("projects")) {
+                                const projectStore = db.createObjectStore("projects");
+                                // 嘗試遷移舊資料
+                                const tx = e.target.transaction;
+                                const kvStore = tx.objectStore("kv");
+                                const getReq = kvStore.get("qa-projects");
+                                getReq.onsuccess = () => {
+                                    const projects = getReq.result || {};
+                                    Object.entries(projects).forEach(([id, project]) => {
+                                        projectStore.put(project, id);
+                                    });
+                                };
+                            }
+                    }
+                };
+
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+
+        // IndexedDB: 寫入資料
+        const idbSet = async (key, value) => {
+            const db = await openDB();
+            const tx = db.transaction(STORE_NAME, "readwrite");
+            tx.objectStore(STORE_NAME).put(value, key);
+        };
+
+        // IndexedDB: 讀取資料
+        const idbGet = async (key) => {
+            const db = await openDB();
+            const tx = db.transaction(STORE_NAME, "readonly");
+            return new Promise(resolve => {
+                const req = tx.objectStore(STORE_NAME).get(key);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => resolve(null);
+            });
+        };
+
+        // IndexedDB: 清空資料 (用於匯入新備份前)
+        const idbClear = async () => {
+            const db = await openDB();
+            const tx = db.transaction(STORE_NAME, "readwrite");
+            tx.objectStore(STORE_NAME).clear();
+        };
+
+
+        // ===== 資料備份與還原功能 =====
+
+        // 匯入前自動備份 (防呆機制)
+        const autoBackupBeforeImport = (projects) => {
+            const payload = {
+                schemaVersion: 2,
+                projects
+            };
+            const blob = new Blob(
+                [JSON.stringify(payload, null, 2)],
+                { type: "application/json" }
+            );
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            // 檔名加上時間戳記
+            a.href = url;
+            a.download = `QA_AutoBackup_BeforeImport_${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        };
+
+        // 匯出 JSON 備份函式
+        const exportJSONBackup = (projects) => {
+            const payload = {
+                schemaVersion: 2,
+                projects
+            };
+            const dataStr = JSON.stringify(payload, null, 2);
+            const blob = new Blob([dataStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `QA_Backup_${new Date().toISOString().slice(0,10)}.json`; // 檔名：QA_Backup_2025-01-01.json
+            a.click();
+            
+            // 記錄最後備份時間
+            idbSet("qa-last-backup", Date.now());
+            localStorage.setItem("qa-last-backup", Date.now());
+
+            URL.revokeObjectURL(url);
+        };
+
+        // 正規化匯入資料 (處理不同版本 Schema)
+        const normalizeImportedData = (data) => {
+            // v1：舊版沒有 schemaVersion，直接是 projects 物件
+            if (!data.schemaVersion) {
+                return {
+                    schemaVersion: 2,
+                    projects: data
+                };
+            }
+            switch (data.schemaVersion) {
+                case 1:
+                    // 預留相容性處理
+                    return {
+                        schemaVersion: 2,
+                        projects: data.projects
+                    };
+                case 2:
+                    return data; // 目前版本
+                default:
+                    throw new Error("不支援的資料版本");
+            }
+        };
+
+        // 匯入 JSON 備份流程
+        const importJSONBackup = (setProjects, setCurrentId) => {
+            const input = document.createElement("input");
+            input.type = "file";
+            input.accept = "application/json";
+
+            input.onchange = () => {
+                const file = input.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = async () => {
+                    try {
+                        const rawData = JSON.parse(reader.result);
+                        const normalized = normalizeImportedData(rawData);
+                        const data = normalized.projects;
+
+                        // 🔒 匯入前自動備份目前資料（防呆）
+                        const currentProjects = (await idbGet("qa-projects")) || {};
+                        autoBackupBeforeImport(currentProjects);
+
+                        if (!confirm("已自動備份目前資料。\n確定要匯入並覆蓋現有資料？")) {
+                            return;
+                        }
+
+                        // 清除 IndexedDB 原資料
+                        await idbClear();
+
+                        // 更新 React State (介面重繪)
+                        setProjects(data);
+
+                        // 重設目前選中的專案 ID
+                        const firstId = Object.keys(data)[0] || null;
+                        setCurrentId(firstId);
+
+                        alert("資料匯入完成");
+                    } catch {
+                        alert("JSON 格式錯誤，匯入失敗");
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        };
+
+        /* ===== PDF 匯出功能 (截圖法) ===== */
+        const exportPageToPDF = async () => {
+            const { jsPDF } = window.jspdf;
+
+            // ⚠️ 抓取預先定義好的 "完整內容" 隱藏區域 (排除左側 Sidebar 與捲軸影響)
+            const content = document.querySelector(".pdf-export-hidden");
+            if (!content) {
+                alert("找不到匯出區域");
+                return;
+            }
+
+            // 使用 html2canvas 將 DOM 轉為 Canvas
+            const canvas = await html2canvas(content, {
+                scale: 1,              // 解析度倍率
+                useCORS: true,         // 允許跨域圖片 (若有)
+                backgroundColor: "#ffffff"
+            });
+
+            const imgData = canvas.toDataURL("image/png");
+            const pdf = new jsPDF("p", "mm", "a4"); // A4 縱向
+
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+
+            // 計算圖片在 PDF 中的縮放尺寸
+            const imgWidth = pageWidth;
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+            let heightLeft = imgHeight;
+            let position = 0;
+
+            // 第一頁
+            pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+
+            // 🔁 自動分頁邏輯：如果圖片高度超過一頁，則新增頁面
+            while (heightLeft > 0) {
+                position = heightLeft - imgHeight;
+                pdf.addPage();
+                pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+            }
+
+            pdf.save("QA專案畫面匯出.pdf");
+        };
+
+        // 預設示範資料（若 localStorage/IndexedDB 為空時使用）
+        const demoProjects = {
+            "proj-2025ev-new": {
+                info: { model: "Model-X 2025 (EV)", purpose: "新開發件", pm: "Alex Chen", sop: "2025-12-01" },
+                parts: [
+                    { id: "1", vendor: "供應商A", no: "805-A01", name: "前保險桿總成", provisionalMethod: "否", date: "2025-05-01", status: "結案", checkDate: "2025-05-05", result: "合格", sketch: "", remarks: "", remarksSketch: "" },
+                    { id: "2", vendor: "供應商B", no: "805-B02", name: "左後視鏡", provisionalMethod: "是", date: "2025-05-10", status: "NG待重送", checkDate: "2025-05-12", result: "NG", sketch: "", remarks: "", remarksSketch: "" },
+                ],
+                docs: {
+                    "1": { drawing: 2, bubble: 2, eval: 2, cp: 2, sip: 1, sop: 0 },
+                    "2": { drawing: 2, bubble: 0, eval: 0, cp: 1, sip: 0, sop: 0 },
+                },
+                issues: [
+                    { id: "101", partNo: "805-B02", desc: "鏡面組裝間隙過大 (>3mm)", solution: "修正模具 Slide core", pic: "王小明", planDate: "2025-05-15", result: "待確認" }
+                ],
+                tasks: [
+                    { id: "201", title: "確認廠商 ISO9001 證書效期", pic: "Admin", due: "2025-06-01", done: false }
+                ],
+                meetings: [
+                    { 
+                        id: "m1", 
+                        date: "2025-05-20", 
+                        type: "試模檢討", 
+                        subject: "前保險桿 T1 試模檢討會", 
+                        attendees: "Alex, 供應商A", 
+                        relatedPartNo: "805-A01", 
+                        content: "1. 結合線位置需調整\n2. 咬花深度不足", 
+                        actionItems: "請廠商於 5/25 前提供修正計畫" 
+                    }
+                ]
+            }
+        };
+
+        // ===== 側邊欄組件 (Sidebar) =====
+        const Sidebar = ({
+            currentProjectId,
+            setCurrentProjectId,
+            projects,
+            setProjects,
+            setCurrentId,
+            collapsed,
+            setCollapsed,
+            setActiveView
+        }) => {
+            // 新增專案 Modal 的狀態
+            const [showNewProject, setShowNewProject] = useState(false);
+            const [newModel, setNewModel] = useState("");
+            const [newPurpose, setNewPurpose] = useState("新開發件");
+            const [newOwner, setNewOwner] = useState("");
+
+            // 建立新專案函式
+            const createProject = () => {
+                if (!newModel.trim()) return alert("請輸入車型名稱");
+                const id = `proj-${Date.now()}`;
+                const newProj = {
+                    info: { model: newModel, purpose: newPurpose, owner: newOwner || "未指定", sop: "2025-12-31" },
+                    parts: [], docs: {}, issues: [], tasks: []
+                };
+                setProjects(prev => ({ ...prev, [id]: newProj }));
+                setCurrentProjectId(id);
+                setShowNewProject(false);
+                setNewModel("");
+            };
+
+            // 刪除專案函式
+            const deleteProject = (id) => {
+                if (!confirm("確定要永久刪除此專案？所有資料將無法復原")) return;
+                setProjects(prev => {
+                    const { [id]: _, ...rest } = prev; // 解構賦值移除該 key
+                    return rest;
+                });
+                // 若刪除的是當前專案，切換到其他專案
+                if (currentProjectId === id && Object.keys(projects).length > 1) {
+                    setCurrentProjectId(Object.keys(projects).find(k => k !== id));
+                }
+            };
+
+            return (
+                <div className={`${collapsed ? "w-20" : "w-72"} bg-slate-800 text-white h-screen fixed left-0 top-0 overflow-y-auto shadow-lg z-10 transition-all duration-300`}>
+                    <div className="p-6 border-b border-slate-700">
+                        {/* 系統標題 */}
+                        {!collapsed && (
+                            <h2 className="text-2xl font-bold flex items-center gap-2">
+                                <i className="fas fa-project-diagram text-blue-400"></i> QA PMS
+                            </h2>
+                        )}
+
+                        {/* 收合按鈕 */}
+                        <button
+                            onClick={() => setCollapsed(v => !v)}
+                            className="absolute top-5 right-4 text-slate-300 hover:text-white"
+                            title={collapsed ? "展開選單" : "收合選單"}
+                        >
+                            <i className={`fas ${collapsed ? "fa-chevron-right" : "fa-chevron-left"}`}></i>
+                        </button>
+
+                        {!collapsed && (
+                            <p className="text-xs text-slate-400 mt-1">多專案管理系統 v3.0</p>
+                        )}
+                    </div>
+
+                    <div className="p-4 space-y-2">
+                        {/* 匯出按鈕 */}
+                        <button
+                            onClick={() => exportJSONBackup(projects)}
+                            className="w-full bg-slate-600 hover:bg-slate-700 py-2 rounded-lg flex items-center justify-center gap-2 text-sm"
+                        >
+                            <i className="fas fa-download"></i> {!collapsed && <span>匯出全部資料</span>}
+                        </button>
+
+                        {/* 匯入按鈕 */}
+                        <button
+                            onClick={() => importJSONBackup(setProjects, setCurrentId)}
+                            className="w-full bg-emerald-600 hover:bg-emerald-700 py-2 rounded-lg flex items-center justify-center gap-2 text-sm"
+                        >
+                            <i className="fas fa-upload"></i> {!collapsed && <span>匯入資料</span>}
+                        </button>
+
+                        {/* 切換至 Dashboard */}
+                        <button
+                            onClick={() => {
+                                setActiveView("dashboard");
+                                setActiveTab(null);
+                            }}
+                            className="w-full bg-indigo-600 hover:bg-indigo-700 py-2 rounded-lg flex items-center justify-center gap-2 text-sm"
+                        >
+                            <i className="fas fa-chart-pie"></i> 專案總覽
+                        </button>
+
+                        {/* 開啟新增專案 Modal */}
+                        <button
+                            onClick={() => setShowNewProject(true)}
+                            className="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded-lg flex items-center justify-center gap-2 mt-2"
+                        >
+                            <i className="fas fa-plus"></i>  {!collapsed && <span>新增專案</span>}
+                        </button>
+                    </div>
+
+                    {/* 專案列表區塊 */}
+                    {!collapsed && (
+                        <nav className="px-4 space-y-2">
+                            <p className="text-xs uppercase text-slate-500 px-2 mb-2">專案列表</p>
+                            {Object.entries(projects).map(([id, p]) => (
+                                <div key={id} className={`rounded-lg overflow-hidden ${currentProjectId === id ? 'ring-2 ring-blue-400' : ''}`}>
+                                    <button
+                                        onClick={() => {
+                                            setCurrentProjectId(id);
+                                            setActiveView("project");
+                                        }}
+                                        className={`w-full text-left p-4 text-left transition ${currentProjectId === id ? 'bg-blue-600' : 'bg-slate-700 hover:bg-slate-600'}`}
+                                    >
+                                        {!collapsed && (    
+                                            <div className="font-medium truncate">{p.info.model}</div>
+                                        )}
+                                        <div className="text-xs opacity-90 mt-1">
+                                            <span className="inline-block px-2 py-0.5 bg-white bg-opacity-20 rounded">
+                                                {p.info.purpose}
+                                            </span>
+                                        </div>
+                                        <div className="text-xs mt-1 opacity-75">擔當: {p.info.owner || "未指定"}</div>
+                                    </button>
+                                    {/* 刪除按鈕 (僅在選中且非唯一專案時顯示) */}
+                                    {currentProjectId === id && Object.keys(projects).length > 1 && (
+                                        <button onClick={() => deleteProject(id)} className="w-full bg-red-600 hover:bg-red-700 py-2 text-sm">
+                                            <i className="fas fa-trash mr-1"></i> 刪除專案
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
+                        </nav>
+                    )}  
+
+                    {/* 新增專案 Modal */}
+                    {showNewProject && (
+                        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50" onClick={() => setShowNewProject(false)}>
+                            <div className="bg-white text-gray-800 rounded-xl p-6 w-96 shadow-2xl" onClick={e => e.stopPropagation()}>
+                                <h3 className="text-lg font-bold mb-4">新增專案</h3>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">車型</label>
+                                        <input value={newModel} onChange={e => setNewModel(e.target.value)} className="w-full border rounded-lg px-3 py-2" placeholder="例：Model-Y 2026" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">目的</label>
+                                        <select value={newPurpose} onChange={e => setNewPurpose(e.target.value)} className="w-full border rounded-lg px-3 py-2">
+                                            <option>新開發件</option>
+                                            <option>設計變更</option>
+                                            <option>工程變更</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">擔當</label>
+                                        <input
+                                            value={newOwner}
+                                            onChange={e => setNewOwner(e.target.value)}
+                                            className="w-full border rounded-lg px-3 py-2"
+                                            placeholder="例：王小明"
+                                        />
+                                    </div>
+                                    <div className="flex justify-end gap-3 pt-4">
+                                        <button onClick={() => setShowNewProject(false)} className="px-5 py-2 text-gray-600">取消</button>
+                                        <button onClick={createProject} className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">建立專案</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // ===== 專案標頭組件 (顯示基本資訊與整體進度) =====
+        const ProjectHeader = ({ project }) => {
+            // 根據專案目的設定標籤顏色
+            const purposeStyle = project.info.purpose === "新開發件" ? "bg-blue-100 text-blue-800" :
+                                project.info.purpose === "設計變更" ? "bg-purple-100 text-purple-800" :
+                                "bg-orange-100 text-orange-800";
+            
+            // 計算簡易整體進度
+            const totalParts = project.parts.length;
+            const submitted = project.parts.filter(p => p.date).length;
+            const pendingSubmit = totalParts - submitted;
+            const measured = project.parts.filter(p => p.result === "合格" || p.result === "NG").length;
+            const qualified = project.parts.filter(p => p.result === "合格").length;
+            const ng = project.parts.filter(p => p.result === "NG").length;
+            const pendingVerify = submitted - measured;
+            // 總進度 = 結案數 / 總數
+            const overall = totalParts > 0 ? Math.round(
+                project.parts.filter(p => p.status === "結案").length / totalParts * 100
+            ) : 0;
+
+            return (
+                <div className="bg-white p-6 rounded-xl shadow-sm mb-6 flex justify-between items-center border border-gray-100">
+                    <div>
+                        <span className={`${purposeStyle} text-xs font-bold px-3 py-1 rounded-full inline-block mb-2`}>
+                            {project.info.purpose}
+                        </span>
+                        <h1 className="text-2xl font-bold text-slate-800">{project.info.model}</h1>
+                        <div className="text-slate-500 text-sm mt-2 flex gap-6">
+                            <span className="flex items-center gap-2">
+                                <i className="fas fa-user"></i>
+                                擔當：
+                                {/* 直接修改擔當 input */}
+                                <input
+                                    value={project.info.owner || ""}
+                                    onChange={e =>
+                                        project.info.owner = e.target.value
+                                    }
+                                    onBlur={() => {}}
+                                    className="border rounded px-2 py-0.5 text-sm w-28"
+                                    placeholder="輸入擔當"
+                                />
+                            </span>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-6">
+                        {/* 進度統計區塊 */}
+                        <div className="text-right">
+                            <div className="text-sm text-slate-500">整體進度</div>
+                            <div className="text-3xl font-bold text-blue-600">{overall}%</div>
+                            <div className="text-sm text-gray-600 mt-2">
+                                應送檢: {totalParts}件<br/>
+                                已送檢: {submitted}件<br/>
+                                待送檢: {pendingSubmit}件<br/>
+                                量測完成: {measured}件<br/>
+                                合格: {qualified}件<br/>
+                                NG: {ng}件<br/>
+                                待驗: {pendingVerify}件
+                            </div>
+                        </div>
+
+                        {/* PDF 匯出按鈕 */}
+                        <button
+                            onClick={exportPageToPDF}
+                            className="bg-red-600 text-white px-5 py-3 rounded-lg hover:bg-red-700 shadow-sm pdf-hide"
+                        >
+                            <i className="fas fa-file-pdf mr-2"></i>匯出目前畫面
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        // ===== Tab1: 部品送樣清單組件 =====
+        const Tab1_Submission = ({ project, updateProject }) => {
+            // 定義 Modal 開關與編輯狀態
+            const [isModalOpen, setIsModalOpen] = useState(false);
+            const [editItem, setEditItem] = useState(null);
+            
+            // 定義圖片預覽狀態 (一般簡圖 / 備註簡圖)
+            const [sketchPreview, setSketchPreview] = useState("");
+            const [remarksSketchPreview, setRemarksSketchPreview] = useState("");
+            // 點擊圖片放大的狀態
+            const [selectedSketch, setSelectedSketch] = useState(null);
+
+            // 處理 Excel / CSV 匯入功能
+            const handleImportParts = () => {
+                const input = document.createElement("input");
+                input.type = "file";
+                input.accept = ".xlsx,.xls,.csv";
+
+                input.onchange = async () => {
+                    const file = input.files[0];
+                    if (!file) return;
+
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const data = new Uint8Array(e.target.result);
+                        // 使用 SheetJS 讀取
+                        const workbook = XLSX.read(data, { type: "array" });
+                        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const rows = XLSX.utils.sheet_to_json(sheet);
+
+                        /**
+                         * Excel / CSV 欄位對應邏輯：
+                         * 假設欄位名稱為：廠商 | 件號 | 件名
+                         */
+
+                         //廠商	件號	件名	是否以暫定工法	送樣時間	狀態	檢查日	結果	進度預覽	備註	操作
+                        const importedParts = rows.map(r => ({
+                            id: generateId(),
+                                // 基本欄位
+    vendor: r["廠商"] || "",
+    no: r["件號"] || "",
+    name: r["件名"] || "",
+
+    // 🔽 追加可匯入欄位
+    provisionalMethod: r["是否以暫定工法"] || "否",
+    date: r["送樣時間"] || "",
+    status: r["狀態"] || "待送樣",
+    checkDate: r["檢查日"] || "",
+    result: r["結果"] || "",
+
+    // 進度預覽是「由狀態推導」，不直接存值
+    // （甘特條會自動跟 status 走）
+    
+    remarks: r["備註"] || "",
+
+    // 圖片仍維持手動上傳
+    sketch: "",
+    remarksSketch: ""
+                        }));
+
+                        // 更新專案：合併舊資料與新匯入資料，並初始化 docs 結構
+                        updateProject(p => ({
+                            ...p,
+                            parts: [...p.parts, ...importedParts],
+                            docs: {
+                                ...p.docs,
+                                ...Object.fromEntries(
+                                    importedParts.map(x => [
+                                        x.id,
+                                        { drawing: 0, bubble: 0, eval: 0, cp: 0, sip: 0, sop: 0 }
+                                    ])
+                                )
+                            }
+                        }));
+
+                        alert(`成功匯入 ${importedParts.length} 筆零件`);
+                    };
+                    reader.readAsArrayBuffer(file);
+                };
+                input.click();
+            };
+
+            // 當編輯項目改變時，同步更新圖片預覽
+            useEffect(() => {
+                if (editItem) {
+                    setSketchPreview(editItem.sketch || "");
+                    setRemarksSketchPreview(editItem.remarksSketch || "");
+                } else {
+                    setSketchPreview("");
+                    setRemarksSketchPreview("");
+                }
+            }, [editItem]);
+
+            // 處理表單儲存 (新增或更新)
+            const handleSave = async (e) => {
+                e.preventDefault();
+                const f = new FormData(e.target);
+                
+                // 處理簡圖上傳 (轉換為 Base64)
+                const file = f.get("sketch");
+                let sketchData = editItem ? editItem.sketch : "";
+                if (file && file.size > 0) {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    await new Promise((resolve) => {
+                        reader.onload = () => {
+                            sketchData = reader.result;
+                            resolve();
+                        };
+                    });
+                }
+                
+                // 處理備註簡圖上傳
+                const remarksFile = f.get("remarksSketch");
+                let remarksSketchData = editItem ? editItem.remarksSketch : "";
+                if (remarksFile && remarksFile.size > 0) {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(remarksFile);
+                    await new Promise((resolve) => {
+                        reader.onload = () => {
+                            remarksSketchData = reader.result;
+                            resolve();
+                        };
+                    });
+                }
+
+                // 建立資料物件
+                const item = {
+                    id: editItem ? editItem.id : generateId(),
+                    vendor: f.get("vendor"),
+                    no: f.get("no"),
+                    name: f.get("name"),
+                    provisionalMethod: f.get("provisionalMethod"),
+                    date: f.get("date"),
+                    status: f.get("status"),
+                    checkDate: f.get("checkDate") || "",
+                    result: f.get("result") || "",
+                    sketch: sketchData,
+                    remarks: f.get("remarks") || "",
+                    remarksSketch: remarksSketchData
+                };
+
+                // 更新 State
+                if (editItem) {
+                    updateProject(p => ({ ...p, parts: p.parts.map(x => x.id === item.id ? item : x) }));
+                } else {
+                    updateProject(p => ({
+                        ...p,
+                        parts: [...p.parts, item],
+                        docs: { ...p.docs, [item.id]: { drawing: 0, bubble: 0, eval: 0, cp: 0, sip: 0, sop: 0 } }
+                    }));
+                }
+                setIsModalOpen(false);
+                setEditItem(null);
+                setSketchPreview("");
+                setRemarksSketchPreview("");
+            };
+
+            // 刪除零件
+            const handleDelete = (id) => {
+                if (confirm("確定刪除此零件？相關文件資料也會一併移除")) {
+                    updateProject(p => {
+                        const { [id]: _, ...newDocs } = p.docs; // 移除對應的 doc
+                        return { ...p, parts: p.parts.filter(x => x.id !== id), docs: newDocs };
+                    });
+                }
+            };
+
+            // 狀態顏色對應
+            const getStatusColor = (s) => {
+                switch(s) {
+                    case "結案": return "bg-green-500";
+                    case "NG待重送": return "bg-red-500";
+                    case "待檢": return "bg-blue-500";
+                    default: return "bg-gray-400";
+                }
+            };
+
+            // 甘特圖寬度對應 (視覺化進度)
+            const getGanttWidth = (s) => {
+                const map = { "結案": "100%", "NG待重送": "40%", "待檢": "60%" };
+                return map[s] || "20%";
+            };
+
+            return (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div className="p-4 bg-gray-50 border-b flex justify-between items-center">
+                        <h3 className="font-bold text-gray-700">1. 部品送樣清單</h3>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={handleImportParts}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md text-sm pdf-hide"
+                            >
+                                <i className="fas fa-file-import mr-1"></i> 匯入 Excel / CSV
+                            </button>
+                            <button
+                                onClick={() => { setEditItem(null); setIsModalOpen(true); }}
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm pdf-hide"
+                            >
+                                <i className="fas fa-plus mr-1"></i> 新增零件
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead className="bg-gray-50 text-xs uppercase text-gray-700">
+                                <tr>
+                                    <th className="px-4 py-3 text-left">序列</th>
+                                    <th className="px-4 py-3 text-left">廠商</th>
+                                    <th className="px-4 py-3 text-left">件號</th>
+                                    <th className="px-4 py-3 text-left">件名</th>
+                                    <th className="px-4 py-3">是否以暫定工法</th>
+                                    <th className="px-4 py-3">送樣時間</th>
+                                    <th className="px-4 py-3">狀態</th>
+                                    <th className="px-4 py-3">檢查日</th>
+                                    <th className="px-4 py-3">結果</th>
+                                    
+                                    <th className="px-4 py-3">備註</th>
+                                    <th className="px-4 py-3 text-right pdf-hide">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {project.parts.map((p, index) => (
+                                    <tr key={p.id} className="border-b hover:bg-gray-50">
+                                        <td className="px-4 py-3">{index + 1}</td>
+                                        <td className="px-4 py-3">{p.vendor}</td>
+                                        <td className="px-4 py-3 font-medium">{p.no}</td>
+                                        <td className="px-4 py-3 flex items-center">
+                                            {p.name}
+                                            {/* 顯示簡圖縮圖，點擊可放大 */}
+                                            {p.sketch && <img src={p.sketch} alt="簡圖" className="ml-2 w-10 h-10 object-contain rounded cursor-pointer" onClick={() => setSelectedSketch(p.sketch)} />}
+                                        </td>
+                                        <td className="px-4 py-3">{p.provisionalMethod}</td>
+                                        <td className="px-4 py-3">{p.date}</td>
+                                        <td className="px-4 py-3"><span className={`${getStatusColor(p.status)} text-white px-2 py-1 rounded text-xs`}>{p.status}</span></td>
+                                        <td className="px-4 py-3">{p.checkDate || "-"}</td>
+                                        <td className="px-4 py-3 font-bold" style={{color: p.result==="合格"?"green":p.result==="NG"?"red":"gray"}}>{p.result || "-"}</td>
+                                        
+                                        <td className="px-4 py-3 whitespace-pre-line">
+                                            {p.remarks}
+                                            {/* 顯示備註圖縮圖 */}
+                                            {p.remarksSketch && <img src={p.remarksSketch} alt="備註簡圖" className="ml-2 w-10 h-10 object-contain rounded cursor-pointer" onClick={() => setSelectedSketch(p.remarksSketch)} />}
+                                        </td>
+                                        <td className="px-4 py-3 text-right pdf-hide">
+                                            <button onClick={() => { setEditItem(p); setIsModalOpen(true); }} className="text-blue-600 mr-3"><i className="fas fa-edit"></i></button>
+                                            <button onClick={() => handleDelete(p.id)} className="text-red-500"><i className="fas fa-trash-alt"></i></button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        {project.parts.length === 0 && <div className="text-center py-8 text-gray-400">尚未新增任何零件</div>}
+                    </div>
+
+                    {/* 新增/編輯 Modal */}
+                    {isModalOpen && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                            <div className="bg-white rounded-xl w-[800px] max-h-[80vh] flex flex-col">
+                                <h3 className="text-lg font-bold mb-4">{editItem ? "編輯零件" : "新增零件"}</h3>
+                                <form onSubmit={handleSave} className="flex-1 overflow-y-auto p-6 space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium">廠商</label>
+                                        <input name="vendor" defaultValue={editItem?.vendor} className="w-full border rounded p-2"/>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div><label className="block text-sm font-medium">件號</label><input name="no" defaultValue={editItem?.no} required className="w-full border rounded p-2"/></div>
+                                        <div><label className="block text-sm font-medium">件名</label><input name="name" defaultValue={editItem?.name} required className="w-full border rounded p-2"/></div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium">是否以暫定工法</label>
+                                        <select name="provisionalMethod" defaultValue={editItem?.provisionalMethod || "否"} className="w-full border rounded p-2">
+                                            <option>是</option>
+                                            <option>否</option>
+                                        </select>
+                                    </div>
+                                    <div><label className="block text-sm font-medium">送樣時間</label><input type="date" name="date" defaultValue={editItem?.date} className="w-full border rounded p-2"/></div>
+                                    <div><label className="block text-sm font-medium">檢查日</label><input type="date" name="checkDate" defaultValue={editItem?.checkDate} className="w-full border rounded p-2"/></div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium">狀態</label>
+                                            <select name="status" defaultValue={editItem?.status || "待送樣"} className="w-full border rounded p-2">
+                                                <option>待送樣</option><option>待檢</option><option>NG待重送</option><option>結案</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium">結果</label>
+                                            <select name="result" defaultValue={editItem?.result || "-"} className="w-full border rounded p-2">
+                                                <option>-</option><option>合格</option><option>NG</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium">上傳簡圖</label>
+                                        <input type="file" name="sketch" accept="image/*" className="w-full border rounded p-2"/>
+                                        {sketchPreview && <img src={sketchPreview} alt="預覽" className="mt-2 w-20 h-20 object-contain"/>}
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium">備註</label>
+                                        <textarea name="remarks" defaultValue={editItem?.remarks} className="w-full border rounded p-2" rows="3"></textarea>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium">上傳備註簡圖</label>
+                                        <input type="file" name="remarksSketch" accept="image/*" className="w-full border rounded p-2"/>
+                                        {remarksSketchPreview && <img src={remarksSketchPreview} alt="備註預覽" className="mt-2 w-20 h-20 object-contain"/>}
+                                    </div>
+                                    <div className="flex justify-end gap-3 mt-6">
+                                        <button type="button" onClick={() => {setIsModalOpen(false); setEditItem(null); setSketchPreview(""); setRemarksSketchPreview("");}} className="px-4 py-2 text-gray-600">取消</button>
+                                        <button type="submit" className="px-5 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">儲存</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* 圖片放大檢視 Modal */}
+                    {selectedSketch && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setSelectedSketch(null)}>
+                            <div className="bg-white rounded-lg p-4 max-w-4xl max-h-screen overflow-auto" onClick={e => e.stopPropagation()}>
+                                <div className="flex justify-end">
+                                    <button onClick={() => setSelectedSketch(null)} className="text-gray-600 hover:text-gray-800">
+                                        <i className="fas fa-times text-xl"></i>
+                                    </button>
+                                </div>
+                                <img src={selectedSketch} alt="放大簡圖" className="max-w-full max-h-[80vh] object-contain" />
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // ===== Tab2: PPAP 文件矩陣組件 =====
+        const Tab2_Docs = ({ project, updateProject }) => {
+            const docTypes = [
+                { key: "drawing", label: "圖面" },
+                { key: "bubble", label: "泡泡圖" },
+                { key: "eval", label: "評價表" },
+                { key: "cp", label: "管制計畫" },
+                { key: "sip", label: "檢驗標準" },
+                { key: "sop", label: "作業標準" },
+            ];
+
+            // 切換狀態邏輯：0(未上傳) -> 1(審核中) -> 2(已確認) -> 0...
+            const toggle = (partId, key) => {
+                updateProject(p => ({
+                    ...p,
+                    docs: {
+                        ...p.docs,
+                        [partId]: {
+                            ...(p.docs[partId] || {}),
+                            [key]: ((p.docs[partId]?.[key] || 0) + 1) % 3
+                        }
+                    }
+                }));
+            };
+
+            // 取得對應圖示 Class
+            const getIcon = (v) => {
+                if (v === 2) return "text-green-500 fa-check-circle";
+                if (v === 1) return "text-yellow-500 fa-clock";
+                return "text-gray-300 fa-circle";
+            };
+
+            // 計算單一零件的文件完成度
+            const progress = (partId) => {
+                const d = project.docs[partId] || {};
+                const done = docTypes.filter(t => d[t.key] === 2).length;
+                return Math.round(done / docTypes.length * 100);
+            };
+
+            return (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div className="p-4 bg-gray-50 border-b flex justify-between items-center">
+                        <h3 className="font-bold text-gray-700">2. PPAP 資料準備狀況</h3>
+                        <div className="text-xs text-gray-500 flex gap-4 items-center">
+                            <span><i className="fas fa-circle text-gray-300"></i> 未上傳</span>
+                            <span><i className="fas fa-clock text-yellow-500"></i> 審核中</span>
+                            <span><i className="fas fa-check-circle text-green-500"></i> 已確認</span>
+                        </div>
+                    </div>
+                    <table className="w-full text-sm">
+                        <thead className="bg-gray-50 text-xs uppercase text-gray-700">
+                            <tr>
+                                <th className="px-4 py-3 text-left">件號 / 件名</th>
+                                {docTypes.map(d => <th key={d.key} className="px-2 py-3">{d.label}</th>)}
+                                <th className="px-4 py-3">完成度</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {project.parts.map(part => {
+                                const prog = progress(part.id);
+                                return (
+                                    <tr key={part.id} className="border-b hover:bg-gray-50">
+                                        <td className="px-4 py-3 text-left">
+                                            <div className="font-medium">{part.no}</div>
+                                            <div className="text-xs text-gray-500">{part.name}</div>
+                                        </td>
+                                        {/* 點擊圖示切換狀態 */}
+                                        {docTypes.map(d => (
+                                            <td key={d.key} className="text-center cursor-pointer" onClick={() => toggle(part.id, d.key)}>
+                                                <i className={`fas ${getIcon(project.docs[part.id]?.[d.key])} text-lg`}></i>
+                                            </td>
+                                        ))}
+                                        <td className="px-4 py-3">
+                                            <div className="w-32 bg-gray-200 rounded-full h-2">
+                                                <div className="bg-blue-600 h-2 rounded-full" style={{width: `${prog}%`}}></div>
+                                            </div>
+                                            <span className="text-xs text-gray-500">{prog}%</span>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                    {project.parts.length === 0 && <div className="text-center py-8 text-gray-400">尚未有部品資料</div>}
+                </div>
+            );
+        };
+
+        // ===== Tab3: 問題點追蹤組件 =====
+        const Tab3_Issues = ({ project, updateProject }) => {
+            const [isOpen, setIsOpen] = useState(false);
+            const [edit, setEdit] = useState(null);
+
+            // 儲存問題點
+            const save = (e) => {
+                e.preventDefault();
+                const f = new FormData(e.target);
+                const item = {
+                    id: edit ? edit.id : generateId(),
+                    partNo: f.get("partNo"),
+                    desc: f.get("desc"),
+                    solution: f.get("solution"),
+                    pic: f.get("pic"),
+                    planDate: f.get("planDate"),
+                    result: f.get("result")
+                };
+                if (edit) {
+                    updateProject(p => ({ ...p, issues: p.issues.map(i => i.id === item.id ? item : i) }));
+                } else {
+                    updateProject(p => ({ ...p, issues: [...p.issues, item] }));
+                }
+                setIsOpen(false);
+                setEdit(null);
+            };
+
+            return (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div className="p-4 bg-gray-50 border-b flex justify-between">
+                        <h3 className="font-bold text-gray-700">3. 問題點追蹤</h3>
+                        <button onClick={() => { setEdit(null); setIsOpen(true); }} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm">
+                            <i className="fas fa-plus mr-1"></i> 新增問題
+                        </button>
+                    </div>
+                    <table className="w-full text-sm">
+                        <thead className="bg-gray-50 text-xs uppercase">
+                            <tr>
+                                <th className="px-4 py-3 text-left">件號</th>
+                                <th className="px-4 py-3">問題描述</th>
+                                <th className="px-4 py-3">對策</th>
+                                <th className="px-4 py-3">擔當</th>
+                                <th className="px-4 py-3">預定完成</th>
+                                <th className="px-4 py-3">確認</th>
+                                <th className="px-4 py-3 text-right">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {project.issues.map(i => (
+                                <tr key={i.id} className="border-b hover:bg-gray-50">
+                                    <td className="px-4 py-3 font-medium">{i.partNo}</td>
+                                    <td className="px-4 py-3 text-red-600">{i.desc}</td>
+                                    <td className="px-4 py-3 text-gray-600">{i.solution}</td>
+                                    <td className="px-4 py-3"><span className="bg-gray-100 px-2 py-1 rounded text-xs">{i.pic}</span></td>
+                                    <td className="px-4 py-3">{i.planDate}</td>
+                                    <td className="px-4 py-3">
+                                        <span className={`px-2 py-1 rounded text-xs text-white ${i.result === "有效" ? "bg-green-500" : "bg-orange-500"}`}>
+                                            {i.result || "待確認"}
+                                        </span>
+                                    </td>
+                                    <td className="px-4 py-3 text-right">
+                                        <button onClick={() => { setEdit(i); setIsOpen(true); }} className="text-blue-600 mr-3"><i className="fas fa-edit"></i></button>
+                                        <button onClick={() => updateProject(p => ({ ...p, issues: p.issues.filter(x => x.id !== i.id) }))} className="text-red-500"><i className="fas fa-trash-alt"></i></button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                    {project.issues.length === 0 && <div className="text-center py-8 text-gray-400">尚無問題點</div>}
+                    
+                    {/* 新增/編輯 Modal */}
+                    {isOpen && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                            <div className="bg-white rounded-lg p-6 w-full max-w-lg">
+                                <h3 className="text-lg font-bold mb-4">{edit ? "編輯" : "新增"}問題點</h3>
+                                <form onSubmit={save} className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium">關聯件號</label>
+                                        <select name="partNo" defaultValue={edit?.partNo} className="w-full border rounded p-2">
+                                            {project.parts.map(p => <option key={p.id} value={p.no}>{p.no} {p.name}</option>)}
+                                        </select>
+                                    </div>
+                                    <textarea name="desc" defaultValue={edit?.desc} placeholder="問題描述" rows="2" required className="w-full border rounded p-2"></textarea>
+                                    <textarea name="solution" defaultValue={edit?.solution} placeholder="對策內容" rows="2" required className="w-full border rounded p-2"></textarea>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div><label className="block text-sm font-medium">擔當</label><input name="pic" defaultValue={edit?.pic} className="w-full border rounded p-2"/></div>
+                                        <div><label className="block text-sm font-medium">預定完成日</label><input type="date" name="planDate" defaultValue={edit?.planDate} className="w-full border rounded p-2"/></div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium">效果確認</label>
+                                        <select name="result" defaultValue={edit?.result || "待確認"} className="w-full border rounded p-2">
+                                            <option>待確認</option><option>有效</option><option>無效</option>
+                                        </select>
+                                    </div>
+                                    <div className="flex justify-end gap-3">
+                                        <button type="button" onClick={() => {setIsOpen(false); setEdit(null);}} className="px-4 py-2 text-gray-600">取消</button>
+                                        <button type="submit" className="px-5 py-2 bg-blue-600 text-white rounded">儲存</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // ===== Tab4: 其他任務 To-Do List 組件 =====
+        const Tab4_Tasks = ({ project, updateProject }) => {
+            const [newTask, setNewTask] = useState("");
+            
+            // 新增任務
+            const add = () => {
+                if (!newTask.trim()) return;
+                updateProject(p => ({
+                    ...p,
+                    tasks: [...p.tasks, { id: generateId(), title: newTask, pic: "我", due: new Date().toISOString().split("T")[0], done: false }]
+                }));
+                setNewTask("");
+            };
+
+            return (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 max-w-4xl mx-auto">
+                    <h3 className="font-bold mb-6 flex justify-between items-center">
+                        <span><i className="fas fa-clipboard-list mr-2"></i> 其他待辦事項</span>
+                        <span className="text-sm text-gray-500">{project.tasks.filter(t => t.done).length} / {project.tasks.length} 完成</span>
+                    </h3>
+                    <div className="flex gap-3 mb-6">
+                        <input
+                            type="text"
+                            value={newTask}
+                            onChange={e => setNewTask(e.target.value)}
+                            onKeyPress={e => e.key === "Enter" && add()}
+                            placeholder="輸入新任務..."
+                            className="flex-1 border rounded-lg px-4 py-2"/>
+                        <button onClick={add} className="bg-blue-600 text-white px-6 rounded-lg hover:bg-blue-700">新增</button>
+                    </div>
+                    <div className="space-y-3">
+                        {project.tasks.map(t => (
+                            <div key={t.id} className={`flex items-center p-4 rounded-lg border ${t.done ? "bg-gray-50" : "bg-white"}`}>
+                                <input type="checkbox" checked={t.done} onChange={() => updateProject(p => ({
+                                    ...p, tasks: p.tasks.map(x => x.id === t.id ? {...x, done: !x.done} : x)
+                                }))} className="mr-4 w-5 h-5"/>
+                                <div className="flex-1">
+                                    <div className={`${t.done ? "line-through text-gray-400" : ""}`}>{t.title}</div>
+                                    <div className="text-xs text-gray-500">Due: {t.due} • {t.pic}</div>
+                                </div>
+                                <button onClick={() => updateProject(p => ({ ...p, tasks: p.tasks.filter(x => x.id !== t.id) }))} className="text-gray-400 hover:text-red-500">
+                                    <i className="fas fa-times"></i>
+                                </button>
+                            </div>
+                        ))}
+                        {project.tasks.length === 0 && <div className="text-center text-gray-400 py-8">尚無待辦事項</div>}
+                    </div>
+                </div>
+            );
+        };
+        
+        // ===== Tab5: 會議紀錄組件 =====
+        const Tab5_Meetings = ({ project, updateProject }) => {
+            // 圖片預覽狀態
+            const [picPreview, setPicPreview] = useState("");
+            const [selectedImg, setSelectedImg] = useState(null);
+            
+            const [isOpen, setIsOpen] = useState(false);
+            const [edit, setEdit] = useState(null);
+
+            // 當編輯狀態改變時，載入已存在的圖片
+            useEffect(() => {
+                if (edit) {
+                    setPicPreview(edit.pic || "");
+                } else {
+                    setPicPreview("");
+                }
+            }, [edit]);
+
+            // 儲存會議紀錄
+            const save = async (e) => {
+                e.preventDefault();
+                const f = new FormData(e.target);
+                
+                // 處理圖片上傳
+                const file = f.get("meetingPic");
+                let picData = edit ? edit.pic : "";
+                if (file && file.size > 0) {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    await new Promise((resolve) => {
+                        reader.onload = () => {
+                            picData = reader.result;
+                            resolve();
+                        };
+                    });
+                }
+
+                const item = {
+                    id: edit ? edit.id : generateId(),
+                    date: f.get("date"),
+                    type: f.get("type"),
+                    subject: f.get("subject"),
+                    attendees: f.get("attendees"),
+                    relatedPartNo: f.get("relatedPartNo"),
+                    content: f.get("content"),
+                    actionItems: f.get("actionItems"),
+                    pic: picData // 儲存 Base64 圖片資料
+                };
+
+                if (edit) {
+                    updateProject(p => ({ ...p, meetings: (p.meetings || []).map(m => m.id === item.id ? item : m) }));
+                } else {
+                    updateProject(p => ({ ...p, meetings: [...(p.meetings || []), item] }));
+                }
+                setIsOpen(false);
+                setEdit(null);
+                setPicPreview("");
+            };
+
+            return (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div className="p-4 bg-gray-50 border-b flex justify-between items-center">
+                        <h3 className="font-bold text-gray-700"><i className="fas fa-comments mr-2"></i>5. 會議紀錄管理</h3>
+                        <button onClick={() => { setEdit(null); setIsOpen(true); }} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm">
+                            <i className="fas fa-plus mr-1"></i> 新增紀錄
+                        </button>
+                    </div>
+                    <div className="divide-y divide-gray-100">
+                        {(project.meetings || []).map(m => (
+                            <div key={m.id} className="p-6 hover:bg-gray-50 transition">
+                                <div className="flex justify-between items-start mb-3">
+                                    <div>
+                                        <span className="bg-indigo-100 text-indigo-700 text-xs px-2 py-1 rounded mr-2 font-bold">{m.type}</span>
+                                        <span className="text-gray-500 text-sm">{m.date}</span>
+                                        <h4 className="text-lg font-bold text-gray-800 mt-1">{m.subject}</h4>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button onClick={() => { setEdit(m); setIsOpen(true); }} className="p-2 text-blue-600 hover:bg-blue-50 rounded"><i className="fas fa-edit"></i></button>
+                                        <button onClick={() => updateProject(p => ({ ...p, meetings: p.meetings.filter(x => x.id !== m.id) }))} className="p-2 text-red-500 hover:bg-red-50 rounded"><i className="fas fa-trash-alt"></i></button>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                    <div className="bg-gray-50 p-3 rounded">
+                                        <div className="text-gray-500 mb-1"><i className="fas fa-users mr-1"></i> 出席人員</div>
+                                        <div className="text-gray-700">{m.attendees}</div>
+                                        <div className="text-gray-500 mt-2 mb-1"><i className="fas fa-link mr-1"></i> 關聯部品</div>
+                                        <div className="text-blue-600 font-medium">{m.relatedPartNo || "無"}</div>
+                                    </div>
+                                    <div className="bg-amber-50 p-3 rounded border-l-4 border-amber-400">
+                                        <div className="text-amber-700 font-bold mb-1"><i className="fas fa-exclamation-circle mr-1"></i> 待辦/結論 (Action Items)</div>
+                                        <div className="text-gray-700 whitespace-pre-line">{m.actionItems}</div>
+                                    </div>
+                                </div>
+                                <div className="mt-4 text-gray-600 text-sm border-t pt-3">
+                                    <div className="font-bold mb-1 underline">會議內容摘要：</div>
+                                    <div className="whitespace-pre-line leading-relaxed">{m.content}</div>
+                                </div>
+
+                                {/* 顯示會議照片 */}
+                                {m.pic && (
+                                    <div className="mt-3">
+                                        <img src={m.pic} alt="會議照片" 
+                                            onClick={() => setSelectedImg(m.pic)}
+                                            className="w-48 h-auto rounded shadow-sm cursor-pointer hover:opacity-90 transition"/>
+                                        <p className="text-xs text-gray-400 mt-1 italic">點擊圖片可放大</p>
+                                    </div>
+                                )}
+
+                                {/* 圖片放大檢視 Modal */}
+                                {selectedImg && (
+                                    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60]" onClick={() => setSelectedImg(null)}>
+                                        <div className="relative max-w-4xl max-h-[90vh] p-2 bg-white rounded-lg shadow-2xl" onClick={e => e.stopPropagation()}>
+                                            <button onClick={() => setSelectedImg(null)} className="absolute -top-10 -right-10 text-white text-3xl hover:text-gray-300">
+                                                <i className="fas fa-times"></i>
+                                            </button>
+                                            <img src={selectedImg} alt="放大" className="max-w-full max-h-[80vh] block mx-auto rounded"/>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                        {(!project.meetings || project.meetings.length === 0) && <div className="text-center py-12 text-gray-400">目前尚無會議紀錄</div>}
+                    </div>
+
+                    {/* 新增/編輯 Modal */}
+                    {isOpen && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                            <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                                <h3 className="text-xl font-bold mb-4">{edit ? "編輯" : "新增"}會議紀錄</h3>
+                                <form onSubmit={save} className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div><label className="block text-sm font-medium">日期</label><input type="date" name="date" defaultValue={edit?.date || new Date().toISOString().split('T')[0]} className="w-full border rounded p-2" required/></div>
+                                        <div>
+                                            <label className="block text-sm font-medium">類型</label>
+                                            <select name="type" defaultValue={edit?.type || "例行週會"} className="w-full border rounded p-2">
+                                                <option>例行週會</option><option>試模檢討</option><option>品質異常會</option><option>設計變更會</option><option>其他</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div><label className="block text-sm font-medium">會議主題</label><input name="subject" defaultValue={edit?.subject} className="w-full border rounded p-2" placeholder="例：Model-X 內飾件進度確認" required/></div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div><label className="block text-sm font-medium">出席人員</label><input name="attendees" defaultValue={edit?.attendees} className="w-full border rounded p-2" placeholder="多位請用逗號隔開"/></div>
+                                        <div>
+                                            <label className="block text-sm font-medium">關聯部品</label>
+                                            <select name="relatedPartNo" defaultValue={edit?.relatedPartNo} className="w-full border rounded p-2">
+                                                <option value="">無關聯</option>
+                                                {project.parts.map(p => <option key={p.id} value={p.no}>{p.no} {p.name}</option>)}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div><label className="block text-sm font-medium">會議內容摘要</label><textarea name="content" defaultValue={edit?.content} rows="5" className="w-full border rounded p-2" placeholder="請列出會議討論重點..."></textarea></div>
+                                    
+                                    {/* 圖片上傳預覽區 */}
+                                    <div>
+                                        <label className="block text-sm font-medium">上傳會議照片 / 紀錄圖</label>
+                                        <input type="file" name="meetingPic" accept="image/*" 
+                                            onChange={(e) => {
+                                                if (e.target.files[0]) {
+                                                    const r = new FileReader();
+                                                    r.onload = (ev) => setPicPreview(ev.target.result);
+                                                    r.readAsDataURL(e.target.files[0]);
+                                                }
+                                            }}
+                                            className="w-full border rounded p-2 text-sm"/>
+                                        {picPreview && (
+                                            <img src={picPreview} alt="預覽" className="mt-2 w-32 h-20 object-cover rounded border shadow-sm"/>
+                                        )}
+                                    </div>
+
+                                    <div><label className="block text-sm font-medium text-amber-700 font-bold">待辦事項 (Action Items)</label><textarea name="actionItems" defaultValue={edit?.actionItems} rows="3" className="w-full border border-amber-300 rounded p-2 bg-amber-50" placeholder="誰負責？何時完成？"></textarea></div>
+                                    <div className="flex justify-end gap-3 pt-4 border-t">
+                                        <button type="button" onClick={() => {setIsOpen(false); setEdit(null);}} className="px-4 py-2 text-gray-600">取消</button>
+                                        <button type="submit" className="px-6 py-2 bg-indigo-600 text-white rounded font-bold hover:bg-indigo-700">儲存紀錄</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+        
+        // ===== Dashboard 儀表板組件 =====
+        const Dashboard = ({ projects, setCurrentId, setActiveView, setActiveTab }) => {
+
+        return (
+        <div className="space-y-6">
+            <h1 className="text-2xl font-bold mb-4">
+                📊 專案總覽 Dashboard
+            </h1>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* 遍歷所有專案並顯示卡片 */}
+                {Object.entries(projects).map(([id, p]) => {
+                    const prog = calcProjectProgress(p); // 計算進度
+
+                    // TAB1 計算詳細分類
+                    const totalParts = p.parts.length;
+                    const submitted = p.parts.filter(part => part.date).length;
+                    const pendingSubmit = totalParts - submitted; // 待送檢
+                    const qualified = p.parts.filter(part => part.result === "合格").length; // 合格
+                    const ng = p.parts.filter(part => part.result === "NG").length; // NG
+                    const measured = qualified + ng;
+                    const pendingVerify = submitted - measured; // 待驗
+
+                    const psPercent = (pendingSubmit / totalParts) * 100 || 0;
+                    const qPercent = (qualified / totalParts) * 100 || 0;
+                    const ngPercent = (ng / totalParts) * 100 || 0;
+                    const pvPercent = (pendingVerify / totalParts) * 100 || 0;
+
+                    let start1 = 0;
+                    const pie1 = `conic-gradient(
+                        #e5e7eb ${start1}% ${start1 += psPercent}%,
+                        #22c55e ${start1}% ${start1 += qPercent}%,
+                        #ef4444 ${start1}% ${start1 += ngPercent}%,
+                        #3b82f6 ${start1}% 100%
+                    )`;
+
+                    // TAB2 計算詳細分類
+                    const docKeys = ["drawing", "bubble", "eval", "cp", "sip", "sop"];
+                    let docDone = 0;
+                    let docTotal = 0;
+                    p.parts.forEach(part => {
+                        const d = p.docs[part.id] || {};
+                        docKeys.forEach(k => {
+                            docTotal++;
+                            if (d[k] === 2) docDone++;
+                        });
+                    });
+                    const donePercent2 = (docDone / docTotal) * 100 || 0;
+                    const undonePercent2 = 100 - donePercent2;
+                    const pie2 = `conic-gradient(
+                        #22c55e 0% ${donePercent2}%,
+                        #e5e7eb ${donePercent2}% 100%
+                    )`;
+
+                    // TAB3 計算詳細分類
+                    const issues = p.issues || [];
+                    const solved = issues.filter(i => i.result === "有效").length;
+                    const solvedPercent3 = (solved / issues.length) * 100 || 0;
+                    const unsolvedPercent3 = 100 - solvedPercent3;
+                    const pie3 = `conic-gradient(
+                        #22c55e 0% ${solvedPercent3}%,
+                        #e5e7eb ${solvedPercent3}% 100%
+                    )`;
+
+                    return (
+                        <div
+                            key={id}
+                            onClick={() => {
+                                // 點擊卡片跳轉至該專案
+                                setCurrentId(id);
+                                setActiveView("project");
+                                setActiveTab("tab1");
+                            }}
+                            className="bg-white rounded-xl p-6 shadow border cursor-pointer hover:ring-2 hover:ring-blue-400"
+                        >
+                            <div className="font-bold text-lg mb-3">
+                                {p.info.model}
+                            </div>
+
+                            
+
+                            {/*顯示各項進度數值+ 圓餅圖視覺化 */}
+                            <div className="mt-4 space-y-2">
+                                <div className="flex items-center gap-2">
+                                    <div>🔹 部品送樣（TAB1）：{prog.tab1}%</div>
+                                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: pie1 }}></div>
+                                    
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div>🔹 PPAP 文件（TAB2）：{prog.tab2}%</div>
+                                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: pie2 }}></div>
+                                    
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div>🔹 問題點對應（TAB3）：{prog.tab3}%</div>
+                                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: pie3 }}></div>
+                                    
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+};
+        
+
+        // ===== 主應用程式組件 (App) =====
+        const App = () => {
+            // 控制是否顯示備份提醒
+            const [showBackupReminder, setShowBackupReminder] = useState(false);
+
+            // 專案資料 State
+            const [projects, setProjects] = useState(demoProjects);
+            // 當前選中的專案 ID
+            const [currentId, setCurrentId] = useState(null);
+            // 當前選中的分頁 (Tab)
+            const [activeTab, setActiveTab] = useState("tab1");
+            // 當前視圖 (Project Detail 或 Dashboard)
+            const [activeView, setActiveView] = useState("project"); 
+            // 側邊欄縮放狀態
+            const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+            // 初始化：從 IndexedDB 讀取資料
+            useEffect(() => {
+                (async () => {
+                    const saved = await idbGet("qa-projects");
+                    if (saved) setProjects(saved);
+                })();
+            }, []);
+
+            // 監聽 projects 變化：自動存入 IndexedDB 與 LocalStorage 紀錄
+            useEffect(() => {
+                // v1 相容模式存檔
+                idbSet("qa-projects", projects);
+
+                // v2 架構：也可將專案拆開儲存 (備用)
+                Object.entries(projects).forEach(([id, project]) => {
+                    idbSet(`project:${id}`, project);
+                });
+
+                // 更新最後修改時間
+                idbSet("qa-last-modified", Date.now());
+                localStorage.setItem("qa-last-modified", Date.now());
+            }, [projects]);
+
+            // 當沒有選中專案且有專案存在時，預設選取第一個
+            useEffect(() => {
+                if (!currentId && Object.keys(projects).length > 0) {
+                    setCurrentId(Object.keys(projects)[0]);
+                }
+            }, [projects]);
+
+            // 檢查是否需要備份 (修改時間 > 備份時間)
+            useEffect(() => {
+                (async () => {
+                    const lastModified = (await idbGet("qa-last-modified")) || 0;
+                    const lastBackup = (await idbGet("qa-last-backup")) || 0;
+
+                    if (lastModified > lastBackup) {
+                        setShowBackupReminder(true);
+                    }
+                })();
+            }, []);
+            
+            // 視窗關閉前警告 (若未備份)
+            useEffect(() => {
+                const handler = (e) => {
+                    const lastModified = Number(localStorage.getItem("qa-last-modified") || 0);
+                    const lastBackup = Number(localStorage.getItem("qa-last-backup") || 0);
+                    if (lastModified > lastBackup) {
+                        e.preventDefault();
+                        e.returnValue = "離開前是否已匯出備份？";
+                    }
+                };
+                window.addEventListener("beforeunload", handler);
+                return () => window.removeEventListener("beforeunload", handler);
+            }, []);
+
+            // 取得當前專案資料物件
+            const current = projects[currentId] || { info: {}, parts: [], docs: {}, issues: [], tasks: [] };
+            
+            // 更新當前專案的輔助函式
+            const updateCurrent = (fn) => {
+                setProjects(p => ({ ...p, [currentId]: fn(p[currentId]) }));
+            };
+
+            // 載入中狀態處理
+            if (activeView === "project" && !currentId) {
+                return (
+                    <div className="flex items-center justify-center h-screen text-xl text-gray-500">
+                        載入中…
+                    </div>
+                );
+            }
+
+            return (
+                <div className="flex h-screen overflow-hidden">
+                    {/* 左側選單 */}
+                    <Sidebar
+                        currentProjectId={currentId}
+                        setCurrentProjectId={setCurrentId}
+                        projects={projects}
+                        setProjects={setProjects}
+                        setCurrentId={setCurrentId}
+                        collapsed={sidebarCollapsed}
+                        setCollapsed={setSidebarCollapsed}
+                        setActiveView={setActiveView}
+                    />
+                    
+                    {/* 右側主內容區 */}
+                    <div className={`flex-1 ${sidebarCollapsed ? "ml-20" : "ml-72"} p-8 overflow-y-auto pdf-export-area transition-all duration-300`}>
+                        
+                        {/* ===== PDF 匯出專用隱藏區 (完整渲染所有 Tabs 生成報告) ===== */}
+<div className="pdf-export-hidden pdf-export-area">
+    {/* 0. 專案封面/標頭 */}
+    <div className="mb-8 text-center border-b-2 border-gray-800 pb-4">
+        <h1 className="text-4xl font-bold mb-2">QA 專案管理報告</h1>
+        <p className="text-gray-500">匯出日期：{new Date().toLocaleDateString()}</p>
+    </div>
+    <ProjectHeader project={current} />
+
+    {/* 1. 部品送樣清單 */}
+    <div className="pdf-section-title">1. 部品送樣清單</div>
+    {/* 注意：這裡傳入 dummy updateProject 避免在 PDF 預覽區誤觸發更新 */}
+    <Tab1_Submission project={current} updateProject={() => {}} />
+    
+    <div className="pdf-page-break"></div>
+
+    {/* 2. PPAP 文件狀況 */}
+    <div className="pdf-section-title">2. PPAP 文件矩陣</div>
+    <Tab2_Docs project={current} updateProject={() => {}} />
+
+    <div className="pdf-page-break"></div>
+
+    {/* 3. 問題點追蹤 */}
+    <div className="pdf-section-title">3. 問題點追蹤表</div>
+    <Tab3_Issues project={current} updateProject={() => {}} />
+
+    <div className="pdf-page-break"></div>
+
+    {/* 4. 會議紀錄 (選擇性匯出) */}
+    <div className="pdf-section-title">4. 會議紀錄摘要</div>
+    <Tab5_Meetings project={current} updateProject={() => {}} />
+    
+    {/* 頁尾聲明 */}
+    <div className="mt-10 text-center text-xs text-gray-400 border-t pt-4">
+        本報表由 QA PMS 系統自動產生
+    </div>
+
+</div>
+
+                        {/* 根據視圖模式顯示內容 */}
+                        {activeView === "dashboard" ? (
+                            <Dashboard 
+                                projects={projects} 
+                                setCurrentId={setCurrentId} 
+                                setActiveView={setActiveView} 
+                                setActiveTab={setActiveTab} />
+                        ) : (
+                            <>
+                                {/* 專案標頭 */}
+                                <ProjectHeader project={current} />
+
+                                {/* Tab 切換按鈕 */}
+                                <div className="mb-6">
+                                    <div className="flex gap-4 border-b">
+                                        {[
+                                            { id: "tab1", icon: "fa-box-open", label: "1. 部品送樣" },
+                                            { id: "tab2", icon: "fa-file-contract", label: "2. PPAP 文件" },
+                                            { id: "tab3", icon: "fa-bug", label: "3. 問題點追蹤" },
+                                            { id: "tab4", icon: "fa-list-check", label: "4. 其他任務" },
+                                            { id: "tab5", icon: "fa-comments", label: "5. 會議紀錄" },
+                                        ].map(t => (
+                                            <button
+                                                key={t.id}
+                                                onClick={() => setActiveTab(t.id)}
+                                                className={`px-6 py-3 font-medium transition ${activeTab === t.id ? "text-blue-600 border-b-4 border-blue-600" : "text-gray-600 hover:text-gray-900"}`}
+                                            >
+                                                <i className={`fas ${t.icon} mr-2`}></i>{t.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                {/* 根據 Tab 顯示對應組件 */}
+                                {activeTab === "tab1" && <Tab1_Submission project={current} updateProject={updateCurrent} />}
+                                {activeTab === "tab2" && <Tab2_Docs project={current} updateProject={updateCurrent} />}
+                                {activeTab === "tab3" && <Tab3_Issues project={current} updateProject={updateCurrent} />}
+                                {activeTab === "tab4" && <Tab4_Tasks project={current} updateProject={updateCurrent} />}
+                                {activeTab === "tab5" && <Tab5_Meetings project={current} updateProject={updateCurrent} />}
+                            </>
+                        )}
+                    </div>
+
+                    {/* 備份提醒 Modal */}
+                    {showBackupReminder && (
+                        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                            <div className="bg-white rounded-xl p-6 w-[360px] shadow-lg">
+                                <h3 className="text-lg font-semibold mb-2">
+                                    尚未備份資料
+                                </h3>
+                                <p className="text-sm text-gray-600 mb-4">
+                                    偵測到資料在上次備份後有異動，建議立即匯出 JSON 備份。
+                                </p>
+                                <div className="flex justify-end gap-3">
+                                    <button
+                                        onClick={() => setShowBackupReminder(false)}
+                                        className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                                    >
+                                        稍後再說
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            exportJSONBackup(projects);
+                                            setShowBackupReminder(false);
+                                        }}
+                                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                                    >
+                                        立即備份
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+        // React 啟動點
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
