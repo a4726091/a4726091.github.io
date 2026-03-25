@@ -553,7 +553,7 @@ function scalePicture(scaleNunber, container) {
 	let newScale = container.scaleX + scaleNunber;
     newScale = Math.max(minScale, Math.min(maxScale, newScale));
 
-	
+
 		//儲存現在縮放量
 		let nowX = container.scaleX + scaleNunber;
 		let nowY = container.scaleY + scaleNunber;
@@ -806,19 +806,26 @@ if (detectmob() == true) {
 				touchType = "tap";
 		})
 
-		hammer.on("press", (e) => {
-				document.getElementById("consoleLog").textContent = "press,長按";
-				touchType = "press";
-				//rightClickMenu.x = 10;
-				//rightClickMenu.y = 10;
-				//rightClickMenu.visible = true;
-        touchMenu.x = 10;
-				touchMenu.y = 10;
-        touchMenu.visible = true;
-				bubblemode = false;
-				stage.update();
+		// 1. 在 press 事件最開頭加入 preventDefault，並提高 press 時間門檻
+hammer.get('press').set({ 
+    time: 600,      // 將長按時間拉長到 600ms，減少與 pinch 的衝突
+    threshold: 10   // 允許輕微移動（單位：像素）
+});
 
-		})
+hammer.on("press", (e) => {
+    e.preventDefault();   // 重要：阻止後續預設手勢
+    document.getElementById("consoleLog").textContent = "press,長按";
+    
+    touchType = "press";
+    initDrag = false;     // 明確關閉拖曳，避免與 pan 衝突
+    
+    touchMenu.x = 10;
+    touchMenu.y = 10;
+    touchMenu.visible = true;
+    bubblemode = false;
+    
+    stage.update();
+});
 
 		hammer.on("panstart", (e) => {
 				document.getElementById("consoleLog").textContent = "panstart";
@@ -859,6 +866,9 @@ var maxScale = 8.0;          // 最大縮放倍率（可依需求調整）
 
 // === 替換原本的 pinch 事件處理 ===
 hammer.on("pinchstart", (e) => {
+
+if (touchType === "press") return;   // 如果剛剛是長按，就忽略 pinch
+
     touchType = "pinchstart";
     document.getElementById("consoleLog").textContent = "pinchstart";
 
@@ -1023,6 +1033,10 @@ function changeNumber() {
 }
 /////////////////////////////////////
 function tick(event) {
+
+	    if (touchType === "press") {
+         return;   // 長按期間暫停所有自動拖曳與縮放更新
+       }
 		//滑鼠座標轉圖面座標
 		childCh = pic.globalToLocal(stage.mouseX, stage.mouseY);
 		///////////////////////////////////////////////////////////
