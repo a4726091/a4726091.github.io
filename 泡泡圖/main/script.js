@@ -791,7 +791,11 @@ if (detectmob() == true) {
 		let pan = new Hammer.Pan();
 		let pinch = new Hammer.Pinch();
 
-
+		//開啟上傳menu
+    touchMenu.x = 10;
+    touchMenu.y = 10;
+    touchMenu.visible = true;
+    bubblemode = false;
 
 		hammer.add([pan, pinch])
 		hammer.get('pinch').set({
@@ -805,7 +809,7 @@ if (detectmob() == true) {
 				document.getElementById("consoleLog").textContent = "tap";
 				touchType = "tap";
 		})
-
+/*
 		// 1. 在 press 事件最開頭加入 preventDefault，並提高 press 時間門檻
 hammer.get('press').set({ 
     time: 600,      // 將長按時間拉長到 600ms，減少與 pinch 的衝突
@@ -826,7 +830,7 @@ hammer.on("press", (e) => {
     
     stage.update();
 });
-
+*/
 		hammer.on("panstart", (e) => {
 				document.getElementById("consoleLog").textContent = "panstart";
 				//longTouchMode = true;
