@@ -134,10 +134,6 @@ touchMenu.addChild(touchMenuBackground);
 touchMenu.x = 100;
 touchMenu.y = 100;
 
-touchMenu.regX = 0;
-touchMenu.regY = 0;
-touchMenu.scaleX = touchMenu.scaleY = 1;   // 強制重置 scale
-
 var touchinput = new creatNewrightClickButton(rightClickButtonLocation("X",1), rightClickButtonLocation("Y",1), rightcheckBabblesWidth*3+rightcheckGap*2, rightcheckBabblesHeight, "#000000", "Lightyellow", findbubble2, "",touchMenu);
 
 var touch9 = new creatNewrightClickButton(rightClickButtonLocation("X",3), rightClickButtonLocation("Y",2), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", changeTouchNumberTO9, "9",touchMenu);
@@ -553,11 +549,6 @@ function handle(delta) {
 }
 //圖片的放大縮小
 function scalePicture(scaleNunber, container) {
-
-	let newScale = container.scaleX + scaleNunber;
-    newScale = Math.max(minScale, Math.min(maxScale, newScale));
-
-
 		//儲存現在縮放量
 		let nowX = container.scaleX + scaleNunber;
 		let nowY = container.scaleY + scaleNunber;
@@ -797,8 +788,6 @@ if (detectmob() == true) {
 
 
 
-	stage.update();
-
 		hammer.add([pan, pinch])
 		hammer.get('pinch').set({
 				enable: true
@@ -812,33 +801,19 @@ if (detectmob() == true) {
 				touchType = "tap";
 		})
 
-		// 1. 在 press 事件最開頭加入 preventDefault，並提高 press 時間門檻
-hammer.get('press').set({ 
-    time: 600,      // 將長按時間拉長到 600ms，減少與 pinch 的衝突
-    threshold: 10   // 允許輕微移動（單位：像素）
-});
+		hammer.on("press", (e) => {
+				document.getElementById("consoleLog").textContent = "press,長按";
+				touchType = "press";
+				//rightClickMenu.x = 10;
+				//rightClickMenu.y = 10;
+				//rightClickMenu.visible = true;
+        touchMenu.x = 10;
+				touchMenu.y = 10;
+        touchMenu.visible = true;
+				bubblemode = false;
+				stage.update();
 
-hammer.on("press", (e) => {
-document.getElementById("consoleLog").textContent = "press,長按";
-    touchType = "press";
-    
-    // === 重要修正開始 ===
-    initDrag = false;                    // 強制關閉拖曳狀態
-    e.preventDefault();                  // 阻止後續手勢辨識
-    
-    // 先暫停 tick() 中對 pic 的 regX/regY 自動更新
-    // 方法一：新增一個全域旗標
-    window.isTouchMenuOpen = true;       // 在全域變數區先宣告 var isTouchMenuOpen = false;
-    
-    // 設定 touchMenu 位置（建議改用更安全的座標，避免與 canvas 邊界衝突）
-    touchMenu.x = Math.min(stage.mouseX + 20, windowWidth - (rightcheckBabblesWidth*3 + rightcheckGap*4) - 20);
-    touchMenu.y = Math.min(stage.mouseY + 20, windowHeight - (rightcheckBabblesHeight*5 + rightcheckGap*6) - 20);
-    
-    touchMenu.visible = true;
-    bubblemode = false;
-    
-    stage.update();
-});
+		})
 
 		hammer.on("panstart", (e) => {
 				document.getElementById("consoleLog").textContent = "panstart";
@@ -870,74 +845,43 @@ document.getElementById("consoleLog").textContent = "press,長按";
 				pinchout: 多点触控时两手指越来越远
 				*/
 
+		hammer.on("pinchstart", (e) => {
+				document.getElementById("consoleLog").textContent = "pinchstart";
+				touchType = "pinchstart";
+				//計算中心位置
+				var point = pic.globalToLocal(e.center.x, e.center.y);
+				pic.regX = point.x;
+				pic.regY = point.y;
+				pic.x = e.center.x;
+				pic.y = e.center.y;
+		})
 
+		hammer.on("pinchin", (e) => {
+				touchType = "pinchin";
+				document.getElementById("consoleLog").textContent = "pinchin,縮小 : " + e.center.x + "," + e.center.y;
+				//以中心位置縮小
+				scalePicture(countPicSacle(pic, "smaller"), pic);
+				/*
+  //定位圖片中心至縮放中心
+	pic.regX = e.center.x;
+	pic.regY = e.center.y;
+  scalePicture(-0.01, pic);
+  */
+		})
 
-// === 在全域變數區新增這些變數 ===
-var lastScale = 1;           // 記錄上一次 pinch 的 scale 值
-var minScale = 0.2;          // 最小縮放倍率（可依需求調整）
-var maxScale = 8.0;          // 最大縮放倍率（可依需求調整）
-
-// === 替換原本的 pinch 事件處理 ===
-hammer.on("pinchstart", (e) => {
-
-if (touchType === "press") return;   // 如果剛剛是長按，就忽略 pinch
-
-    touchType = "pinchstart";
-    document.getElementById("consoleLog").textContent = "pinchstart";
-
-    // 記錄起始縮放狀態
-    lastScale = 1;
-
-    // 計算中心位置（重要！讓縮放以兩指中心為基準）
-    var point = pic.globalToLocal(e.center.x, e.center.y);
-    pic.regX = point.x;
-    pic.regY = point.y;
-    pic.x = e.center.x;
-    pic.y = e.center.y;
-});
-
-hammer.on("pinchmove", (e) => {   // 改用 pinchmove 而非 pinchin/pinchout
-    touchType = "pinchmove";
-    
-    // e.scale 是相對於 pinchstart 時的總縮放比例
-    let currentScale = e.scale;
-    let deltaScale = currentScale - lastScale;   // 計算這次手勢的變化量
-
-    if (Math.abs(deltaScale) > 0.01) {   // 加入閾值，避免過於頻繁的小變化
-        // 計算新的縮放倍率（相對目前 scale）
-        let newScaleX = pic.scaleX * (1 + deltaScale * 1.2);  // 1.2 可微調靈敏度
-        let newScaleY = pic.scaleY * (1 + deltaScale * 1.2);
-
-        // 限制縮放範圍
-        newScaleX = Math.max(minScale, Math.min(maxScale, newScaleX));
-        newScaleY = Math.max(minScale, Math.min(maxScale, newScaleY));
-
-        pic.scaleX = newScaleX;
-        pic.scaleY = newScaleY;
-
-        lastScale = currentScale;   // 更新上次 scale
-    }
-
-    // 持續更新中心位置，讓縮放感覺更跟手
-    var point = pic.globalToLocal(e.center.x, e.center.y);
-    pic.regX = point.x;
-    pic.regY = point.y;
-    pic.x = e.center.x;
-    pic.y = e.center.y;
-
-    stage.update();
-});
-
-hammer.on("pinchend", (e) => {
-    touchType = "pinchend";
-    lastScale = 1;   // 重置
-    document.getElementById("consoleLog").textContent = "pinchend";
-});
-
-
-
-
-
+		hammer.on("pinchout", (e) => {
+						touchType = "pinchout";
+						document.getElementById("consoleLog").textContent = "pinchout,放大 : " + e.center.x + "," + e.center.y;
+						//以中心位置放大
+						scalePicture(countPicSacle(pic, "bigger"), pic);
+						//scalePicture(0.01, pic);
+						/*
+  //定位圖片中心至縮放中心
+	pic.regX = e.center.x;
+	pic.regY = e.center.y;
+  scalePicture(0.01, pic);
+  */
+				})
 				/*
 		stage.on("mousedown", function(evt) {
 				longTouchMode = true;
@@ -1046,16 +990,6 @@ function changeNumber() {
 }
 /////////////////////////////////////
 function tick(event) {
-
-	   if (window.isTouchMenuOpen === true) {
-        // 長按選單開啟期間，暫停 pic 的自動 regX/regY 更新
-        stage.update(event);
-        return;
-    }
-
-	    if (touchType === "press") {
-         return;   // 長按期間暫停所有自動拖曳與縮放更新
-       }
 		//滑鼠座標轉圖面座標
 		childCh = pic.globalToLocal(stage.mouseX, stage.mouseY);
 		///////////////////////////////////////////////////////////
