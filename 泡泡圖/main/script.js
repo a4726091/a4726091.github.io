@@ -794,7 +794,7 @@ if (detectmob() == true) {
 		//開啟上傳menu
     touchMenu.x = windowWidth/2;
     touchMenu.y = windowHeight/2;
-    touchMenu.visible = true;
+    //touchMenu.visible = true;
     //bubblemode = false;
 
 	stage.update();
