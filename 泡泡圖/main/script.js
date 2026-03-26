@@ -178,6 +178,7 @@ uploadTXTLable3.scaleY =rightcheckBabblesHeight*5+rightcheckGap*4/20;
 touchMenu.addChild(uploadTXTLable3);
 */
 
+/*
 // 替換原本的 uploadTXTLable3 建立方式
 var uploadTXTLable3 = new createjs.DOMElement("uploadTXTLable2");
 uploadTXTLable3.x = 0;
@@ -185,7 +186,35 @@ uploadTXTLable3.y = 0;
 uploadTXTLable3.scaleX = windowWidth/100;
 uploadTXTLable3.scaleY = windowHeight/100;
 touchMenu.addChild(uploadTXTLable3);
+*/
 
+// 替換原本的 uploadTXTLable3 建立方式
+// 在 touchMenu 建立區塊中，替換原本的 uploadTXTLable3 相關程式碼
+
+var uploadTXTLable3 = new createjs.DOMElement("uploadTXTLable2");
+
+// === 正確設定大小與位置 ===
+uploadTXTLable3.x = rightClickButtonLocation("X", 1);
+uploadTXTLable3.y = rightClickButtonLocation("Y", 1);
+
+// 直接設定實際想要的像素大小（推薦方式）
+uploadTXTLable3.scaleX = 1;   // 先重置為 1
+uploadTXTLable3.scaleY = 1;
+
+// 計算並設定目標寬高（以 touchMenu 內的按鈕區域為基準）
+var targetWidth  = rightcheckBabblesWidth * 3 + rightcheckGap * 2;   // 想要的寬度
+var targetHeight = rightcheckBabblesHeight * 5 + rightcheckGap * 4;  // 想要的高度
+
+// 根據 HTML 元素原本的大小計算合理的 scale
+// 先取得元素原始尺寸（較安全）
+var htmlElement = document.getElementById("uploadTXTLable2");
+var originalWidth  = htmlElement.offsetWidth  || 80;   // 預設 80px
+var originalHeight = htmlElement.offsetHeight || 20;   // 預設 20px
+
+uploadTXTLable3.scaleX = targetWidth  / originalWidth;
+uploadTXTLable3.scaleY = targetHeight / originalHeight;
+
+touchMenu.addChild(uploadTXTLable3);
 
 
 
