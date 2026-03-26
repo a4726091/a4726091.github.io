@@ -169,12 +169,25 @@ touchMenu.addChild(touchCoverground);
 
 var touchinputSaveData = new creatNewrightClickButton(rightClickButtonLocation("X",1), rightClickButtonLocation("Y",1), rightcheckBabblesWidth*3+rightcheckGap*2, rightcheckBabblesHeight*5+rightcheckGap*4, "#000000", "Lightyellow", touchDelAllButton, "上傳資料",touchMenu);
 
+/*
 var uploadTXTLable3 = new createjs.DOMElement("uploadTXTLable2");
 uploadTXTLable3.x = rightClickButtonLocation("X",1);
 uploadTXTLable3.y = rightClickButtonLocation("Y",1);
 uploadTXTLable3.scaleX = rightcheckBabblesWidth*3+rightcheckGap*2/80;
 uploadTXTLable3.scaleY =rightcheckBabblesHeight*5+rightcheckGap*4/20;
 touchMenu.addChild(uploadTXTLable3);
+*/
+
+// 替換原本的 uploadTXTLable3 建立方式
+var uploadTXTLable3 = new createjs.DOMElement("uploadTXTLable2");
+uploadTXTLable3.x = 0;
+uploadTXTLable3.y = 0;
+uploadTXTLable3.scaleX = 1;   // 強制重置為 1，避免大數值
+uploadTXTLable3.scaleY = 1;
+touchMenu.addChild(uploadTXTLable3);
+
+
+
 
 //隱藏選單
 touchMenu.visible = false;
