@@ -549,6 +549,10 @@ function handle(delta) {
 }
 //圖片的放大縮小
 function scalePicture(scaleNunber, container) {
+
+	let newScale = container.scaleX + scaleNunber;
+    newScale = Math.max(minScale, Math.min(maxScale, newScale));
+	
 		//儲存現在縮放量
 		let nowX = container.scaleX + scaleNunber;
 		let nowY = container.scaleY + scaleNunber;
@@ -845,43 +849,66 @@ if (detectmob() == true) {
 				pinchout: 多点触控时两手指越来越远
 				*/
 
-		hammer.on("pinchstart", (e) => {
-				document.getElementById("consoleLog").textContent = "pinchstart";
-				touchType = "pinchstart";
-				//計算中心位置
-				var point = pic.globalToLocal(e.center.x, e.center.y);
-				pic.regX = point.x;
-				pic.regY = point.y;
-				pic.x = e.center.x;
-				pic.y = e.center.y;
-		})
+// === 在全域變數區新增這些變數 ===
+var lastScale = 1;           // 記錄上一次 pinch 的 scale 值
+var minScale = 0.2;          // 最小縮放倍率（可依需求調整）
+var maxScale = 8.0;          // 最大縮放倍率（可依需求調整）
 
-		hammer.on("pinchin", (e) => {
-				touchType = "pinchin";
-				document.getElementById("consoleLog").textContent = "pinchin,縮小 : " + e.center.x + "," + e.center.y;
-				//以中心位置縮小
-				scalePicture(countPicSacle(pic, "smaller"), pic);
-				/*
-  //定位圖片中心至縮放中心
-	pic.regX = e.center.x;
-	pic.regY = e.center.y;
-  scalePicture(-0.01, pic);
-  */
-		})
+// === 替換原本的 pinch 事件處理 ===
+hammer.on("pinchstart", (e) => {
+    touchType = "pinchstart";
+    document.getElementById("consoleLog").textContent = "pinchstart";
 
-		hammer.on("pinchout", (e) => {
-						touchType = "pinchout";
-						document.getElementById("consoleLog").textContent = "pinchout,放大 : " + e.center.x + "," + e.center.y;
-						//以中心位置放大
-						scalePicture(countPicSacle(pic, "bigger"), pic);
-						//scalePicture(0.01, pic);
-						/*
-  //定位圖片中心至縮放中心
-	pic.regX = e.center.x;
-	pic.regY = e.center.y;
-  scalePicture(0.01, pic);
-  */
-				})
+    // 記錄起始縮放狀態
+    lastScale = 1;
+
+    // 計算中心位置（重要！讓縮放以兩指中心為基準）
+    var point = pic.globalToLocal(e.center.x, e.center.y);
+    pic.regX = point.x;
+    pic.regY = point.y;
+    pic.x = e.center.x;
+    pic.y = e.center.y;
+});
+
+hammer.on("pinchmove", (e) => {   // 改用 pinchmove 而非 pinchin/pinchout
+    touchType = "pinchmove";
+    
+    // e.scale 是相對於 pinchstart 時的總縮放比例
+    let currentScale = e.scale;
+    let deltaScale = currentScale - lastScale;   // 計算這次手勢的變化量
+
+    if (Math.abs(deltaScale) > 0.01) {   // 加入閾值，避免過於頻繁的小變化
+        // 計算新的縮放倍率（相對目前 scale）
+        let newScaleX = pic.scaleX * (1 + deltaScale * 1.2);  // 1.2 可微調靈敏度
+        let newScaleY = pic.scaleY * (1 + deltaScale * 1.2);
+
+        // 限制縮放範圍
+        newScaleX = Math.max(minScale, Math.min(maxScale, newScaleX));
+        newScaleY = Math.max(minScale, Math.min(maxScale, newScaleY));
+
+        pic.scaleX = newScaleX;
+        pic.scaleY = newScaleY;
+
+        lastScale = currentScale;   // 更新上次 scale
+    }
+
+    // 持續更新中心位置，讓縮放感覺更跟手
+    var point = pic.globalToLocal(e.center.x, e.center.y);
+    pic.regX = point.x;
+    pic.regY = point.y;
+    pic.x = e.center.x;
+    pic.y = e.center.y;
+
+    stage.update();
+});
+
+hammer.on("pinchend", (e) => {
+    touchType = "pinchend";
+    lastScale = 1;   // 重置
+    document.getElementById("consoleLog").textContent = "pinchend";
+});
+
+		
 				/*
 		stage.on("mousedown", function(evt) {
 				longTouchMode = true;
