@@ -134,6 +134,10 @@ touchMenu.addChild(touchMenuBackground);
 touchMenu.x = 100;
 touchMenu.y = 100;
 
+touchMenu.regX = 0;
+touchMenu.regY = 0;
+touchMenu.scaleX = touchMenu.scaleY = 1;   // 強制重置 scale
+
 var touchinput = new creatNewrightClickButton(rightClickButtonLocation("X",1), rightClickButtonLocation("Y",1), rightcheckBabblesWidth*3+rightcheckGap*2, rightcheckBabblesHeight, "#000000", "Lightyellow", findbubble2, "",touchMenu);
 
 var touch9 = new creatNewrightClickButton(rightClickButtonLocation("X",3), rightClickButtonLocation("Y",2), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", changeTouchNumberTO9, "9",touchMenu);
@@ -791,11 +795,7 @@ if (detectmob() == true) {
 		let pan = new Hammer.Pan();
 		let pinch = new Hammer.Pinch();
 
-		//開啟上傳menu
-    touchMenu.x = windowWidth/2;
-    touchMenu.y = windowHeight/2;
-    //touchMenu.visible = true;
-    //bubblemode = false;
+
 
 	stage.update();
 
@@ -811,7 +811,7 @@ if (detectmob() == true) {
 				document.getElementById("consoleLog").textContent = "tap";
 				touchType = "tap";
 		})
-/*
+
 		// 1. 在 press 事件最開頭加入 preventDefault，並提高 press 時間門檻
 hammer.get('press').set({ 
     time: 600,      // 將長按時間拉長到 600ms，減少與 pinch 的衝突
@@ -819,20 +819,27 @@ hammer.get('press').set({
 });
 
 hammer.on("press", (e) => {
-    e.preventDefault();   // 重要：阻止後續預設手勢
-    document.getElementById("consoleLog").textContent = "press,長按";
-    
+document.getElementById("consoleLog").textContent = "press,長按";
     touchType = "press";
-    initDrag = false;     // 明確關閉拖曳，避免與 pan 衝突
     
-    touchMenu.x = 10;
-    touchMenu.y = 10;
+    // === 重要修正開始 ===
+    initDrag = false;                    // 強制關閉拖曳狀態
+    e.preventDefault();                  // 阻止後續手勢辨識
+    
+    // 先暫停 tick() 中對 pic 的 regX/regY 自動更新
+    // 方法一：新增一個全域旗標
+    window.isTouchMenuOpen = true;       // 在全域變數區先宣告 var isTouchMenuOpen = false;
+    
+    // 設定 touchMenu 位置（建議改用更安全的座標，避免與 canvas 邊界衝突）
+    touchMenu.x = Math.min(stage.mouseX + 20, windowWidth - (rightcheckBabblesWidth*3 + rightcheckGap*4) - 20);
+    touchMenu.y = Math.min(stage.mouseY + 20, windowHeight - (rightcheckBabblesHeight*5 + rightcheckGap*6) - 20);
+    
     touchMenu.visible = true;
     bubblemode = false;
     
     stage.update();
 });
-*/
+
 		hammer.on("panstart", (e) => {
 				document.getElementById("consoleLog").textContent = "panstart";
 				//longTouchMode = true;
@@ -1039,6 +1046,12 @@ function changeNumber() {
 }
 /////////////////////////////////////
 function tick(event) {
+
+	   if (window.isTouchMenuOpen === true) {
+        // 長按選單開啟期間，暫停 pic 的自動 regX/regY 更新
+        stage.update(event);
+        return;
+    }
 
 	    if (touchType === "press") {
          return;   // 長按期間暫停所有自動拖曳與縮放更新
