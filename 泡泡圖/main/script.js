@@ -131,8 +131,8 @@ touchMenuBackground.graphics
 touchMenuBackground.alpha = 0.7;
 touchMenu.addChild(touchMenuBackground);
 
-touchMenu.x = 100;
-touchMenu.y = 100;
+touchMenu.x = 0;
+touchMenu.y = 0;
 
 var touchinput = new creatNewrightClickButton(rightClickButtonLocation("X",1), rightClickButtonLocation("Y",1), rightcheckBabblesWidth*3+rightcheckGap*2, rightcheckBabblesHeight, "#000000", "Lightyellow", findbubble2, "",touchMenu);
 
@@ -182,8 +182,8 @@ touchMenu.addChild(uploadTXTLable3);
 var uploadTXTLable3 = new createjs.DOMElement("uploadTXTLable2");
 uploadTXTLable3.x = 0;
 uploadTXTLable3.y = 0;
-uploadTXTLable3.scaleX = 1;   // 強制重置為 1，避免大數值
-uploadTXTLable3.scaleY = 1;
+uploadTXTLable3.scaleX = windowWidth/100;
+uploadTXTLable3.scaleY = windowHeight/100;
 touchMenu.addChild(uploadTXTLable3);
 
 
