@@ -792,10 +792,12 @@ if (detectmob() == true) {
 		let pinch = new Hammer.Pinch();
 
 		//開啟上傳menu
-    touchMenu.x = 10;
-    touchMenu.y = 10;
+    touchMenu.x = windowWidth/2;
+    touchMenu.y = windowHeight/2;
     touchMenu.visible = true;
-    bubblemode = false;
+    //bubblemode = false;
+
+	stage.update();
 
 		hammer.add([pan, pinch])
 		hammer.get('pinch').set({
