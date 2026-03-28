@@ -131,8 +131,13 @@ touchMenuBackground.graphics
 touchMenuBackground.alpha = 0.7;
 touchMenu.addChild(touchMenuBackground);
 
+
+
+
+
 touchMenu.x = 0;
 touchMenu.y = 0;
+stage.update();
 
 var touchinput = new creatNewrightClickButton(rightClickButtonLocation("X",1), rightClickButtonLocation("Y",1), rightcheckBabblesWidth*3+rightcheckGap*2, rightcheckBabblesHeight, "#000000", "Lightyellow", findbubble2, "",touchMenu);
 
@@ -151,13 +156,36 @@ var touchback = new creatNewrightClickButton(rightClickButtonLocation("X",2), ri
 var touchDelAll = new creatNewrightClickButton(rightClickButtonLocation("X",3), rightClickButtonLocation("Y",5), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", touchDelAllButton, "C",touchMenu);
 
 //下一個泡泡圖
-var touchNextbubble = new creatNewrightClickButton(rightClickButtonLocation("X",3), rightClickButtonLocation("Y",6), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", Nextbubble, "->",touchMenu);
+var touchbackbubble = new creatNewrightClickButton(rightClickButtonLocation("X",3), rightClickButtonLocation("Y",6), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", Nextbubble, "->",touchMenu);
 
 //隱藏小鍵盤
-var touchNextbubble = new creatNewrightClickButton(rightClickButtonLocation("X",2), rightClickButtonLocation("Y",6), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", hideNum, "X",touchMenu);
+var touchhidebubble = new creatNewrightClickButton(rightClickButtonLocation("X",2), rightClickButtonLocation("Y",6), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", hideNum, "X",touchMenu);
 
 //下一個泡泡圖
-var touchNextbubble = new creatNewrightClickButton(rightClickButtonLocation("X",1), rightClickButtonLocation("Y",6), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", backbubble, "<-",touchMenu);
+var touchNextbubble2 = new creatNewrightClickButton(rightClickButtonLocation("X",1), rightClickButtonLocation("Y",6), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", backbubble, "<-",touchMenu);
+
+
+//因為方塊無法正確移動，所以創建一個新的方塊，隱藏，按下X時再調出
+//下一個泡泡圖2
+var touchbackbubble2 = new creatNewrightClickButton(rightClickButtonLocation("X",3), rightClickButtonLocation("Y",2), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", Nextbubble, "->",touchMenu);
+
+//隱藏小鍵盤2
+var touchhidebubble2 = new creatNewrightClickButton(rightClickButtonLocation("X",2), rightClickButtonLocation("Y",2), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", showNum, "X",touchMenu);
+
+//下一個泡泡圖2
+var touchNextbubble2 = new creatNewrightClickButton(rightClickButtonLocation("X",1), rightClickButtonLocation("Y",2), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", backbubble, "<-",touchMenu);
+
+touchbackbubble2.Shape.visible=false;
+touchbackbubble2.text.visible=false;
+
+touchhidebubble2.Shape.visible=false;
+touchhidebubble2.text.visible=false;
+
+touchNextbubble2.Shape.visible=false;
+touchNextbubble2.text.visible=false;
+
+
+
 
 var touchCoverground = new createjs.Shape();
 touchCoverground.graphics
@@ -529,6 +557,11 @@ async function inputSaveData(file) {
     touchinputSaveData.text.visible = false;
     uploadTXTLable3.visible = false;
 
+	//定位小鍵盤至下方
+    touchMenu.regY = rightcheckBabblesHeight*6+rightcheckGap*7;
+    touchMenu.y = windowHeight;
+
+	stage.update();
 }
 
 function getSaveDate(front, back, str) {
@@ -1458,8 +1491,149 @@ function backbubble(){
 
 }
 
+
+
 function hideNum(){
 	console.log("隱藏小鍵盤");
 
+	touchMenuBackground.width =rightcheckBabblesWidth*3+rightcheckGap*4;
+    touchMenuBackground.height =rightcheckBabblesHeight*2+rightcheckGap*3;
+
+    
+ 
+	touch0.text.visible = false;
+ 	touch0.Shape.visible = false;
+
+	touch1.text.visible = false;
+ 	touch1.Shape.visible = false;
+
+	touch2.text.visible = false;
+ 	touch2.Shape.visible = false;
 	
+	touch3.text.visible = false;
+ 	touch3.Shape.visible = false;
+	
+	touch4.text.visible = false;
+ 	touch4.Shape.visible = false;
+	
+	touch5.text.visible = false;
+ 	touch5.Shape.visible = false;
+	
+	touch6.text.visible = false;
+ 	touch6.Shape.visible = false;
+	
+	touch7.text.visible = false;
+ 	touch7.Shape.visible = false;
+	
+	touch8.text.visible = false;
+ 	touch8.Shape.visible = false;
+	
+	touch9.text.visible = false;
+ 	touch9.Shape.visible = false;
+
+	touchback.text.visible = false;
+ 	touchback.Shape.visible = false;
+
+	touchDelAll.text.visible = false;
+ 	touchDelAll.Shape.visible = false;
+
+    touchbackbubble2.Shape.visible=true;
+    touchbackbubble2.text.visible=true;
+
+    touchhidebubble2.Shape.visible=true;
+    touchhidebubble2.text.visible=true;
+
+    touchNextbubble2.Shape.visible=true;
+    touchNextbubble2.text.visible=true;
+ 
+/*
+	touchbackbubble.text.y=rightClickButtonLocation("Y",2);
+	touchbackbubble.Shape.y=rightClickButtonLocation("Y",2);
+
+	touchhidebubble.text.y=rightClickButtonLocation("Y",2);
+    touchhidebubble.Shape.y=rightClickButtonLocation("Y",2);
+
+	touchNextbubble.text.y=rightClickButtonLocation("Y",2);
+	touchNextbubble.Shape.y=rightClickButtonLocation("Y",2);
+*/
+
+    // 調整剩餘按鈕的位置（上移到新背景區域）
+	    /*
+    if (touchbackbubble) touchbackbubble.Shape.y = rightcheckBabblesHeight * 1;
+	if (touchbackbubble) touchbackbubble.text.y  = rightcheckBabblesHeight * 1 + rightcheckBabblesHeight / 2;
+
+
+    if (touchhidebubble) touchhidebubble.Shape.y = rightcheckBabblesHeight * 1;
+    if (touchhidebubble) touchhidebubble.text.y  = rightcheckBabblesHeight * 1 + rightcheckBabblesHeight / 2;
+
+    if (touchNextbubble) touchNextbubble.Shape.y = rightcheckBabblesHeight * 1;
+    if (touchNextbubble) touchNextbubble.text.y  = rightcheckBabblesHeight * 1 + rightcheckBabblesHeight / 2;
+*/
+
+	touchMenu.regY = rightcheckBabblesHeight*2+rightcheckGap*3;
+    touchMenu.y = windowHeight;
+
+
+	stage.update();
+}
+
+function showNum(){
+	console.log("顯示小鍵盤");
+
+	touchMenuBackground.width =rightcheckBabblesWidth*3+rightcheckGap*4;
+    touchMenuBackground.height =rightcheckBabblesHeight*6+rightcheckGap*7;
+
+    
+ 
+	touch0.text.visible = true;
+ 	touch0.Shape.visible = true;
+
+	touch1.text.visible = true;
+ 	touch1.Shape.visible = true;
+
+	touch2.text.visible = true;
+ 	touch2.Shape.visible = true;
+	
+	touch3.text.visible = true;
+ 	touch3.Shape.visible = true;
+	
+	touch4.text.visible = true;
+ 	touch4.Shape.visible = true;
+	
+	touch5.text.visible = true;
+ 	touch5.Shape.visible = true;
+	
+	touch6.text.visible = true;
+ 	touch6.Shape.visible = true;
+	
+	touch7.text.visible = true;
+ 	touch7.Shape.visible = true;
+	
+	touch8.text.visible = true;
+ 	touch8.Shape.visible = true;
+	
+	touch9.text.visible = true;
+ 	touch9.Shape.visible = true;
+
+	touchback.text.visible = true;
+ 	touchback.Shape.visible = true;
+
+	touchDelAll.text.visible = true;
+ 	touchDelAll.Shape.visible = true;
+/////////////////////////////////////////////////////////////
+    touchbackbubble2.Shape.visible=false;
+    touchbackbubble2.text.visible=false;
+
+    touchhidebubble2.Shape.visible=false;
+    touchhidebubble2.text.visible=false;
+
+    touchNextbubble2.Shape.visible=false;
+    touchNextbubble2.text.visible=false;
+ 
+
+	touchMenu.regY = rightcheckBabblesHeight*6+rightcheckGap*7;
+    touchMenu.y = windowHeight;
+
+
+	stage.update();
 }
