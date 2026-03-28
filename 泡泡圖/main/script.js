@@ -127,7 +127,7 @@ touchMenuBackground.graphics
 		.setStrokeStyle(2)
 		.beginStroke("#000000")
 		.beginFill("DeepSkyBlue")
-		.drawRect(0, 0, rightcheckBabblesWidth*3+rightcheckGap*4, rightcheckBabblesHeight*5+rightcheckGap*6);
+		.drawRect(0, 0, rightcheckBabblesWidth*3+rightcheckGap*4, rightcheckBabblesHeight*6+rightcheckGap*7);
 touchMenuBackground.alpha = 0.7;
 touchMenu.addChild(touchMenuBackground);
 
@@ -137,28 +137,27 @@ touchMenu.y = 0;
 var touchinput = new creatNewrightClickButton(rightClickButtonLocation("X",1), rightClickButtonLocation("Y",1), rightcheckBabblesWidth*3+rightcheckGap*2, rightcheckBabblesHeight, "#000000", "Lightyellow", findbubble2, "",touchMenu);
 
 var touch9 = new creatNewrightClickButton(rightClickButtonLocation("X",3), rightClickButtonLocation("Y",2), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", changeTouchNumberTO9, "9",touchMenu);
-
 var touch8 = new creatNewrightClickButton(rightClickButtonLocation("X",2), rightClickButtonLocation("Y",2), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", changeTouchNumberTO8, "8",touchMenu);
-
 var touch7 = new creatNewrightClickButton(rightClickButtonLocation("X",1), rightClickButtonLocation("Y",2), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", changeTouchNumberTO7, "7",touchMenu);
-
 var touch6 = new creatNewrightClickButton(rightClickButtonLocation("X",3), rightClickButtonLocation("Y",3), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", changeTouchNumberTO6, "6",touchMenu);
-
 var touch5 = new creatNewrightClickButton(rightClickButtonLocation("X",2), rightClickButtonLocation("Y",3), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", changeTouchNumberTO5, "5",touchMenu);
-
 var touch4 = new creatNewrightClickButton(rightClickButtonLocation("X",1), rightClickButtonLocation("Y",3), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", changeTouchNumberTO4, "4",touchMenu);
-
 var touch3 = new creatNewrightClickButton(rightClickButtonLocation("X",3), rightClickButtonLocation("Y",4), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", changeTouchNumberTO3, "3",touchMenu);
-
 var touch2 = new creatNewrightClickButton(rightClickButtonLocation("X",2), rightClickButtonLocation("Y",4), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", changeTouchNumberTO2, "2",touchMenu);
-
 var touch1 = new creatNewrightClickButton(rightClickButtonLocation("X",1), rightClickButtonLocation("Y",4), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", changeTouchNumberTO1, "1",touchMenu);
-
 var touch0 = new creatNewrightClickButton(rightClickButtonLocation("X",1), rightClickButtonLocation("Y",5), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", changeTouchNumberTO0, "0",touchMenu);
-
 var touchback = new creatNewrightClickButton(rightClickButtonLocation("X",2), rightClickButtonLocation("Y",5), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", changeTouchNumberBack, "<-",touchMenu);
 
 var touchDelAll = new creatNewrightClickButton(rightClickButtonLocation("X",3), rightClickButtonLocation("Y",5), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", touchDelAllButton, "C",touchMenu);
+
+//下一個泡泡圖
+var touchNextbubble = new creatNewrightClickButton(rightClickButtonLocation("X",3), rightClickButtonLocation("Y",6), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", Nextbubble, "->",touchMenu);
+
+//隱藏小鍵盤
+var touchNextbubble = new creatNewrightClickButton(rightClickButtonLocation("X",2), rightClickButtonLocation("Y",6), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", hideNum, "X",touchMenu);
+
+//下一個泡泡圖
+var touchNextbubble = new creatNewrightClickButton(rightClickButtonLocation("X",1), rightClickButtonLocation("Y",6), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", backbubble, "<-",touchMenu);
 
 var touchCoverground = new createjs.Shape();
 touchCoverground.graphics
@@ -169,24 +168,7 @@ touchMenu.addChild(touchCoverground);
 
 var touchinputSaveData = new creatNewrightClickButton(rightClickButtonLocation("X",1), rightClickButtonLocation("Y",1), rightcheckBabblesWidth*3+rightcheckGap*2, rightcheckBabblesHeight*5+rightcheckGap*4, "#000000", "Lightyellow", touchDelAllButton, "上傳資料",touchMenu);
 
-/*
-var uploadTXTLable3 = new createjs.DOMElement("uploadTXTLable2");
-uploadTXTLable3.x = rightClickButtonLocation("X",1);
-uploadTXTLable3.y = rightClickButtonLocation("Y",1);
-uploadTXTLable3.scaleX = rightcheckBabblesWidth*3+rightcheckGap*2/80;
-uploadTXTLable3.scaleY =rightcheckBabblesHeight*5+rightcheckGap*4/20;
-touchMenu.addChild(uploadTXTLable3);
-*/
 
-/*
-// 替換原本的 uploadTXTLable3 建立方式
-var uploadTXTLable3 = new createjs.DOMElement("uploadTXTLable2");
-uploadTXTLable3.x = 0;
-uploadTXTLable3.y = 0;
-uploadTXTLable3.scaleX = windowWidth/100;
-uploadTXTLable3.scaleY = windowHeight/100;
-touchMenu.addChild(uploadTXTLable3);
-*/
 
 // 替換原本的 uploadTXTLable3 建立方式
 // 在 touchMenu 建立區塊中，替換原本的 uploadTXTLable3 相關程式碼
@@ -316,38 +298,39 @@ function rightClickButtonLocation(rowType,row){
 //在觸控小鍵盤模式下更新輸入數字
 
 function changeTouchNumberTO1(){
-  touchinput.text.text = touchinput.text.text+"1";
+	
+  touchinput.text.text = String(touchinput.text.text)+"1";
 }
 function changeTouchNumberTO2(){
-  touchinput.text.text = touchinput.text.text+"2";
+  touchinput.text.text = String(touchinput.text.text)+"2";
 }
 function changeTouchNumberTO3(){
-  touchinput.text.text = touchinput.text.text+"3";
+  touchinput.text.text = String(touchinput.text.text)+"3";
 }
 function changeTouchNumberTO4(){
-  touchinput.text.text = touchinput.text.text+"4";
+  touchinput.text.text = String(touchinput.text.text)+"4";
 }
 function changeTouchNumberTO5(){
-  touchinput.text.text = touchinput.text.text+"5";
+  touchinput.text.text = String(touchinput.text.text)+"5";
 }
 function changeTouchNumberTO6(){
-  touchinput.text.text = touchinput.text.text+"6";
+  touchinput.text.text = String(touchinput.text.text)+"6";
 }
 function changeTouchNumberTO7(){
-  touchinput.text.text = touchinput.text.text+"7";
+  touchinput.text.text = String(touchinput.text.text)+"7";
 }
 function changeTouchNumberTO8(){
-  touchinput.text.text = touchinput.text.text+"8";
+  touchinput.text.text = String(touchinput.text.text)+"8";
 }
 function changeTouchNumberTO9(){
-  touchinput.text.text = touchinput.text.text+"9";
+  touchinput.text.text = String(touchinput.text.text)+"9";
 }
 function changeTouchNumberTO0(){
-  touchinput.text.text = touchinput.text.text+"0";
+  touchinput.text.text = String(touchinput.text.text)+"0";
 }
 function changeTouchNumberBack(){
   var s
-  s =  touchinput.text.text;
+  s =  String(touchinput.text.text);
   s = s.substring(0,s.length-1);
   touchinput.text.text = s;
 }
@@ -1422,7 +1405,7 @@ function findbubble2() {
 		//方便inputbubbleTextdata(儲存泡泡球數字大小的變數)調用
 		var tempTextSizeData, tempCorrectNumber, tt;
 		var textTemp = document.getElementById("textbox2");
-    var findNumber;
+        var findNumber;
   
     if(textTemp.value == ""){
       findNumber = touchinput.text.text;
@@ -1453,4 +1436,30 @@ function findbubble2() {
 				alert("資料輸入有誤");
 		}
   
+}
+function Nextbubble(){
+
+	var inputToint = parseInt(touchinput.text.text, 10);
+	inputToint = inputToint + 1;
+	touchinput.text.text = inputToint;
+	console.log("下一個泡泡圖"+touchinput.text.text);
+
+	findbubble2();
+
+}
+function backbubble(){
+
+	var inputToint = parseInt(touchinput.text.text, 10);
+	inputToint = inputToint - 1;
+	touchinput.text.text = inputToint;
+	console.log("下一個泡泡圖"+touchinput.text.text);
+
+	findbubble2();
+
+}
+
+function hideNum(){
+	console.log("隱藏小鍵盤");
+
+	
 }
