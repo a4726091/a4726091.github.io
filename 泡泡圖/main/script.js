@@ -139,7 +139,9 @@ touchMenu.x = 0;
 touchMenu.y = 0;
 stage.update();
 
-var touchinput = new creatNewrightClickButton(rightClickButtonLocation("X",1), rightClickButtonLocation("Y",1), rightcheckBabblesWidth*3+rightcheckGap*2, rightcheckBabblesHeight, "#000000", "Lightyellow", findbubble2, "",touchMenu);
+var touchinput = new creatNewrightClickButton(rightClickButtonLocation("X",1), rightClickButtonLocation("Y",1), rightcheckBabblesWidth*3+rightcheckGap*2, rightcheckBabblesHeight, "#000000", "Lightyellow", findbubble2, "1",touchMenu);
+
+
 
 var touch9 = new creatNewrightClickButton(rightClickButtonLocation("X",3), rightClickButtonLocation("Y",2), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", changeTouchNumberTO9, "9",touchMenu);
 var touch8 = new creatNewrightClickButton(rightClickButtonLocation("X",2), rightClickButtonLocation("Y",2), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", changeTouchNumberTO8, "8",touchMenu);
@@ -194,7 +196,7 @@ touchCoverground.graphics
 		.drawRect(rightClickButtonLocation("X",1), rightClickButtonLocation("Y",1), rightcheckBabblesWidth*3+rightcheckGap*2, rightcheckBabblesHeight*5+rightcheckGap*4);
 touchMenu.addChild(touchCoverground);
 
-var touchinputSaveData = new creatNewrightClickButton(rightClickButtonLocation("X",1), rightClickButtonLocation("Y",1), rightcheckBabblesWidth*3+rightcheckGap*2, rightcheckBabblesHeight*5+rightcheckGap*4, "#000000", "Lightyellow", touchDelAllButton, "上傳資料",touchMenu);
+var touchinputSaveData = new creatNewrightClickButton(rightClickButtonLocation("X",1), rightClickButtonLocation("Y",1), rightcheckBabblesWidth*3+rightcheckGap*2, rightcheckBabblesHeight*6+rightcheckGap*5, "#000000", "Lightyellow", touchDelAllButton, "上傳資料",touchMenu);
 
 
 
@@ -213,7 +215,7 @@ uploadTXTLable3.scaleY = 1;
 
 // 計算並設定目標寬高（以 touchMenu 內的按鈕區域為基準）
 var targetWidth  = rightcheckBabblesWidth * 3 + rightcheckGap * 2;   // 想要的寬度
-var targetHeight = rightcheckBabblesHeight * 5 + rightcheckGap * 4;  // 想要的高度
+var targetHeight = rightcheckBabblesHeight * 6 + rightcheckGap * 5;  // 想要的高度
 
 // 根據 HTML 元素原本的大小計算合理的 scale
 // 先取得元素原始尺寸（較安全）
