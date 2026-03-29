@@ -66,7 +66,7 @@ rightClickMenuBackground.graphics
 		.setStrokeStyle(2)
 		.beginStroke("#000000")
 		.beginFill("DeepSkyBlue")
-		.drawRect(0, 0, rightcheckBabblesWidth*3+rightcheckGap*4, rightcheckBabblesHeight*6+rightcheckGap*7);
+		.drawRect(0, 0, rightcheckBabblesWidth*3+rightcheckGap*4, rightcheckBabblesHeight*7+rightcheckGap*8);
 rightClickMenuBackground.alpha = 0.7;
 rightClickMenu.addChild(rightClickMenuBackground);
 //創建右鍵選單的按鈕
@@ -83,6 +83,11 @@ var rightClickfindBubble = new creatNewrightClickButton(rightClickButtonLocation
 var outputImg = new creatNewrightClickButton(rightClickButtonLocation("X",2), rightClickButtonLocation("Y",5), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", outputContainToImage, "匯出成圖片",rightClickMenu);
 var rightClickOkButton = new creatNewrightClickButton(rightClickButtonLocation("X",3), rightClickButtonLocation("Y",6), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "#ff1571", rightClickOk, "確定",rightClickMenu);
 var rightClickfindBubble = new creatNewrightClickButton(rightClickButtonLocation("X",2), rightClickButtonLocation("Y",6), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", changeNumber, "數字變更",rightClickMenu);
+var BubbleBack = new creatNewrightClickButton(rightClickButtonLocation("X",1), rightClickButtonLocation("Y",7), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", FBubbleBack, "數字向前",rightClickMenu);
+var BubblePush = new creatNewrightClickButton(rightClickButtonLocation("X",2), rightClickButtonLocation("Y",7), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", FBubblePush, "數字向後",rightClickMenu);
+
+
+
 // 新建的domelment的座標會位於本身在html的位置上，所以一開始要設定在左上角與canvas切齊
 var textarea2 = new createjs.DOMElement("textbox2");
 textarea2.x = rightClickButtonLocation("X",3);
@@ -130,10 +135,6 @@ touchMenuBackground.graphics
 		.drawRect(0, 0, rightcheckBabblesWidth*3+rightcheckGap*4, rightcheckBabblesHeight*6+rightcheckGap*7);
 touchMenuBackground.alpha = 0.7;
 touchMenu.addChild(touchMenuBackground);
-
-
-
-
 
 touchMenu.x = 0;
 touchMenu.y = 0;
@@ -1337,101 +1338,8 @@ function outputArray(i) {
 
 }
 /////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////
-/*
-function addTable() {
-  var myTableDiv = document.getElementById("myDynamicTable");
-
-  var table2 = document.createElement('TABLE');
-  table2.border = '1';
-  table2.id = "table2Id";
-
-  var tableBody = document.createElement('TBODY');
-  table2.appendChild(tableBody);
-
-  for (var i = 0; i < 1; i++) {
-  var row = table2.insertRow(0);
-  var cell0 = row.insertCell(0);
-  var cell1 = row.insertCell(1);
-  var cell2 = row.insertCell(2);
-  var cell3 = row.insertCell(3);
-  var cell4 = row.insertCell(4);
-  var cell5 = row.insertCell(5);
-  var cell6 = row.insertCell(6);
-  var cell7 = row.insertCell(7);
-
-  cell0.innerHTML = "bubblenumber";
-  cell1.innerHTML = "bubbleX";
-  cell2.innerHTML = "bubbleY";
-  cell3.innerHTML = "bubbleStrokeColor";
-  cell4.innerHTML = "bubbleFillColor";
-  cell5.innerHTML = "bubblesize";
-  cell6.innerHTML = "bubbleTextSizeData";
-  cell7.innerHTML = "bubbleTextColorData";
-
-  }
-  myTableDiv.appendChild(table2);
-}
-addTable();
-/////////////////////////////////////////////////
-function AddTable2(i) {
-  var table = document.getElementById("table2Id");
-  
-  var row = table.insertRow(i);
-  var cell0 = row.insertCell(0);
-  var cell1 = row.insertCell(1);
-  var cell2 = row.insertCell(2);
-  var cell3 = row.insertCell(3);
-  var cell4 = row.insertCell(4);
-  var cell5 = row.insertCell(5);
-  var cell6 = row.insertCell(6);
-  var cell7 = row.insertCell(7);
-  
-  cell0.innerHTML = bubblenumber[i];
-  cell1.innerHTML = bubbleX[i].toFixed(2);
-  cell2.innerHTML = bubbleY[i].toFixed(2);
-  cell3.innerHTML = bubbleStroke[i];
-  cell4.innerHTML = bubbleFill[i];
-  cell5.innerHTML = bubblesize[i];
-  cell6.innerHTML = bubbleTextData[i];
-  cell7.innerHTML = bubbleTextColorData[i];
-}
-*/
-
 //////////////////////////////////////////////
-//尋找泡泡球->已有更好的->此FUNCTION棄用
-/*
-function findbubble() {
-		//inputbubblenumber[8]
-		var textTemp = document.getElementById("textbox2");
-
-		console.log(pic.numChildren);
-
-		var tt = (pic.numChildren - 3) / 2;
-		if (textTemp.value <= tt && textTemp.value > 0) {
-				var childByPic = pic.getChildAt(countPicChild(textTemp.value));
-				childByPic.alpha = 0.7;
-				childByPic.color = "red";
-				childByPic.font = inputbubbleTextdata[textTemp.value] + "px Impact";
-				var pt = pic.localToGlobal(childByPic.x, childByPic.y);
-				pic.regX = childByPic.x;
-				pic.regY = childByPic.y;
-				pic.x = windowWidth / 2;
-				pic.y = windowHeight / 2;
-		} else {
-				alert("資料輸入有誤");
-		}
-		//console.log("childByPic"+childByPic.x+","+childByPic.y);
-		//console.log("pt"+pt.x+","+pt.y);
-}
-
-function countPicChild(i) {
-		var tempI;
-		//tempI = 3 + ( (i-1) * 2 ) + 1 ;
-		tempI = 3 + ((i - 1) * 2) + 1;
-		return tempI
-}
-*/
+//尋找泡泡球
 function findbubble2() {
 		//先遍歷匯入的泡泡求陣列的總數，如果要找的數字等於泡泡球的話，
 		//找出預先儲存好泡泡球數字在pic這個容器下的順序(bubbleNumberInPicOrder[i])並儲存在tt下，
@@ -1548,29 +1456,6 @@ function hideNum(){
     touchNextbubble2.Shape.visible=true;
     touchNextbubble2.text.visible=true;
  
-/*
-	touchbackbubble.text.y=rightClickButtonLocation("Y",2);
-	touchbackbubble.Shape.y=rightClickButtonLocation("Y",2);
-
-	touchhidebubble.text.y=rightClickButtonLocation("Y",2);
-    touchhidebubble.Shape.y=rightClickButtonLocation("Y",2);
-
-	touchNextbubble.text.y=rightClickButtonLocation("Y",2);
-	touchNextbubble.Shape.y=rightClickButtonLocation("Y",2);
-*/
-
-    // 調整剩餘按鈕的位置（上移到新背景區域）
-	    /*
-    if (touchbackbubble) touchbackbubble.Shape.y = rightcheckBabblesHeight * 1;
-	if (touchbackbubble) touchbackbubble.text.y  = rightcheckBabblesHeight * 1 + rightcheckBabblesHeight / 2;
-
-
-    if (touchhidebubble) touchhidebubble.Shape.y = rightcheckBabblesHeight * 1;
-    if (touchhidebubble) touchhidebubble.text.y  = rightcheckBabblesHeight * 1 + rightcheckBabblesHeight / 2;
-
-    if (touchNextbubble) touchNextbubble.Shape.y = rightcheckBabblesHeight * 1;
-    if (touchNextbubble) touchNextbubble.text.y  = rightcheckBabblesHeight * 1 + rightcheckBabblesHeight / 2;
-*/
 
 	touchMenu.regY = rightcheckBabblesHeight*2+rightcheckGap*3;
     touchMenu.y = windowHeight;
@@ -1638,4 +1523,91 @@ function showNum(){
 
 
 	stage.update();
+}
+
+
+ 
+//在指定的數字後所有的泡泡圖-1
+function FBubbleBack(){
+	console.log("在指定的數字後所有的泡泡圖-1");
+    var textTemp = document.getElementById("textbox2");
+    var targetNum = Number(textTemp.value);
+
+    if (isNaN(targetNum) || targetNum < 1) {
+        alert("請在文字方塊輸入有效的數字！");
+        return;
+    }
+
+    console.log("執行數字向前：從 " + targetNum + " 開始全部 -1");
+
+    var adjustedCount = 0;
+
+    // 遍歷 pic 中的所有子元素
+    for (var i = 0; i < pic.numChildren; i++) {
+        var child = pic.getChildAt(i);
+
+        // 只處理 Text 物件（排除跟隨滑鼠的 textAtMouse）
+        if (child instanceof createjs.Text && child !== textAtMouse) {
+            var currentNum = Number(child.text);
+            
+            if (!isNaN(currentNum) && currentNum >= targetNum) {
+                child.text = (currentNum - 1).toString();
+                adjustedCount++;
+            }
+        }
+    }
+
+    // 同時更新陣列資料（保持一致性）
+    for (var j = 1; j < bubblenumber.length; j++) {
+        if (bubblenumber[j] >= targetNum) {
+            bubblenumber[j]--;
+        }
+    }
+
+    console.log("已調整 " + adjustedCount + " 個泡泡圖數字");
+    stage.update();
+
+
+}
+
+//在指定的數字後所有的泡泡圖+1
+function FBubblePush(){
+	console.log("在指定的數字後所有的泡泡圖+1");
+	var textTemp = document.getElementById("textbox2");
+    var targetNum = Number(textTemp.value);
+
+    if (isNaN(targetNum) || targetNum < 1) {
+        alert("請在文字方塊輸入有效的數字！");
+        return;
+    }
+
+    console.log("執行數字向後：從 " + targetNum + " 開始全部 +1");
+
+    var adjustedCount = 0;
+
+    // 遍歷 pic 中的所有子元素
+    for (var i = 0; i < pic.numChildren; i++) {
+        var child = pic.getChildAt(i);
+
+        if (child instanceof createjs.Text && child !== textAtMouse) {
+            var currentNum = Number(child.text);
+            
+            if (!isNaN(currentNum) && currentNum >= targetNum) {
+                child.text = (currentNum + 1).toString();
+                adjustedCount++;
+            }
+        }
+    }
+
+    // 同時更新陣列資料
+    for (var j = 1; j < bubblenumber.length; j++) {
+        if (bubblenumber[j] >= targetNum) {
+            bubblenumber[j]++;
+        }
+    }
+
+    console.log("已調整 " + adjustedCount + " 個泡泡圖數字");
+    stage.update();
+
+	
 }
