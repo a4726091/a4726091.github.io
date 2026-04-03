@@ -132,7 +132,7 @@ touchMenuBackground.graphics
 		.setStrokeStyle(2)
 		.beginStroke("#000000")
 		.beginFill("DeepSkyBlue")
-		.drawRect(0, 0, rightcheckBabblesWidth*3+rightcheckGap*4, rightcheckBabblesHeight*6+rightcheckGap*7);
+		.drawRect(0, 0, rightcheckBabblesWidth*3+rightcheckGap*4, rightcheckBabblesHeight*7+rightcheckGap*8);
 touchMenuBackground.alpha = 0.7;
 touchMenu.addChild(touchMenuBackground);
 
@@ -154,18 +154,26 @@ var touch3 = new creatNewrightClickButton(rightClickButtonLocation("X",3), right
 var touch2 = new creatNewrightClickButton(rightClickButtonLocation("X",2), rightClickButtonLocation("Y",4), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", changeTouchNumberTO2, "2",touchMenu);
 var touch1 = new creatNewrightClickButton(rightClickButtonLocation("X",1), rightClickButtonLocation("Y",4), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", changeTouchNumberTO1, "1",touchMenu);
 var touch0 = new creatNewrightClickButton(rightClickButtonLocation("X",1), rightClickButtonLocation("Y",5), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", changeTouchNumberTO0, "0",touchMenu);
-var touchback = new creatNewrightClickButton(rightClickButtonLocation("X",2), rightClickButtonLocation("Y",5), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", changeTouchNumberBack, "<-",touchMenu);
+var touchdot = new creatNewrightClickButton(rightClickButtonLocation("X",2), rightClickButtonLocation("Y",5), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", changeTouchNumberDot, ".",touchMenu);
+var touchOKNG = new creatNewrightClickButton(rightClickButtonLocation("X",3), rightClickButtonLocation("Y",5), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", changeTouchOKNG, "OK",touchMenu);
 
-var touchDelAll = new creatNewrightClickButton(rightClickButtonLocation("X",3), rightClickButtonLocation("Y",5), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", touchDelAllButton, "C",touchMenu);
+var inputStandardValueBotton = new creatNewrightClickButton(rightClickButtonLocation("X",2), rightClickButtonLocation("Y",5), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", inputStandardValueFun, "導入檢查資料",touchMenu);
+
+//切換模式
+var touchSwich = new creatNewrightClickButton(rightClickButtonLocation("X",1), rightClickButtonLocation("Y",6), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", switchTouchMod, "S",touchMenu);
+//退回一格數字
+var touchback = new creatNewrightClickButton(rightClickButtonLocation("X",2), rightClickButtonLocation("Y",6), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", changeTouchNumberBack, "b",touchMenu);
+//刪除touchinput的數字
+var touchDelAll = new creatNewrightClickButton(rightClickButtonLocation("X",3), rightClickButtonLocation("Y",6), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", touchDelAllButton, "C",touchMenu);
 
 //下一個泡泡圖
-var touchbackbubble = new creatNewrightClickButton(rightClickButtonLocation("X",3), rightClickButtonLocation("Y",6), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", Nextbubble, "->",touchMenu);
+var touchbackbubble = new creatNewrightClickButton(rightClickButtonLocation("X",3), rightClickButtonLocation("Y",7), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", Nextbubble, "->",touchMenu);
 
 //隱藏小鍵盤
-var touchhidebubble = new creatNewrightClickButton(rightClickButtonLocation("X",2), rightClickButtonLocation("Y",6), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", hideNum, "X",touchMenu);
+var touchhidebubble = new creatNewrightClickButton(rightClickButtonLocation("X",2), rightClickButtonLocation("Y",7), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", OutputDataAndhideNum, "X",touchMenu);
 
 //下一個泡泡圖
-var touchNextbubble2 = new creatNewrightClickButton(rightClickButtonLocation("X",1), rightClickButtonLocation("Y",6), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", backbubble, "<-",touchMenu);
+var touchNextbubble2 = new creatNewrightClickButton(rightClickButtonLocation("X",1), rightClickButtonLocation("Y",7), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", backbubble, "<-",touchMenu);
 
 
 //因為方塊無法正確移動，所以創建一個新的方塊，隱藏，按下X時再調出
@@ -197,7 +205,7 @@ touchCoverground.graphics
 		.drawRect(rightClickButtonLocation("X",1), rightClickButtonLocation("Y",1), rightcheckBabblesWidth*3+rightcheckGap*2, rightcheckBabblesHeight*5+rightcheckGap*4);
 touchMenu.addChild(touchCoverground);
 
-var touchinputSaveData = new creatNewrightClickButton(rightClickButtonLocation("X",1), rightClickButtonLocation("Y",1), rightcheckBabblesWidth*3+rightcheckGap*2, rightcheckBabblesHeight*6+rightcheckGap*5, "#000000", "Lightyellow", touchDelAllButton, "上傳資料",touchMenu);
+var touchinputSaveData = new creatNewrightClickButton(rightClickButtonLocation("X",1), rightClickButtonLocation("Y",1), rightcheckBabblesWidth*3+rightcheckGap*2, rightcheckBabblesHeight*7+rightcheckGap*6, "#000000", "Lightyellow", touchDelAllButton, "上傳資料",touchMenu);
 
 
 
@@ -216,7 +224,7 @@ uploadTXTLable3.scaleY = 1;
 
 // 計算並設定目標寬高（以 touchMenu 內的按鈕區域為基準）
 var targetWidth  = rightcheckBabblesWidth * 3 + rightcheckGap * 2;   // 想要的寬度
-var targetHeight = rightcheckBabblesHeight * 6 + rightcheckGap * 5;  // 想要的高度
+var targetHeight = rightcheckBabblesHeight * 7 + rightcheckGap * 6;  // 想要的高度
 
 // 根據 HTML 元素原本的大小計算合理的 scale
 // 先取得元素原始尺寸（較安全）
@@ -238,6 +246,10 @@ stage.update();
 ///////////////////////////////////////////
 var bubblemode = true; //泡泡圖點選模式(默認開啟)
 var bubbleShowMode = true;
+var touchMode = "findBubble";
+var touchModeNowBubble = 1;//觸控模式下現在的泡泡圖
+var inputCheckdata=[];//儲存檢查資料
+var inputcheckStandardValue=[];//儲存導入的資料
 var bubbleX = []; //儲存滑鼠X座標之陣列
 var bubbleY = []; //儲存滑鼠X座標之陣列
 var bubbleID = []; //儲存泡泡圖數字座標之陣列
@@ -329,36 +341,110 @@ function rightClickButtonLocation(rowType,row){
 //在觸控小鍵盤模式下更新輸入數字
 
 function changeTouchNumberTO1(){
-	
+  if(touchMode == "firstInput"){
+     touchinput.text.text="";
+	 touchMode="inputCheckData";
+  }
   touchinput.text.text = String(touchinput.text.text)+"1";
 }
 function changeTouchNumberTO2(){
+	if(touchMode == "firstInput"){
+     touchinput.text.text="";
+	 touchMode="inputCheckData";
+  }
   touchinput.text.text = String(touchinput.text.text)+"2";
 }
 function changeTouchNumberTO3(){
+	if(touchMode == "firstInput"){
+     touchinput.text.text="";
+	 touchMode="inputCheckData";
+  }
   touchinput.text.text = String(touchinput.text.text)+"3";
 }
 function changeTouchNumberTO4(){
+	if(touchMode == "firstInput"){
+     touchinput.text.text="";
+	 touchMode="inputCheckData";
+  }
   touchinput.text.text = String(touchinput.text.text)+"4";
 }
 function changeTouchNumberTO5(){
+	if(touchMode == "firstInput"){
+     touchinput.text.text="";
+	 touchMode="inputCheckData";
+  }
   touchinput.text.text = String(touchinput.text.text)+"5";
 }
 function changeTouchNumberTO6(){
+	if(touchMode == "firstInput"){
+     touchinput.text.text="";
+	 touchMode="inputCheckData";
+  }
   touchinput.text.text = String(touchinput.text.text)+"6";
 }
 function changeTouchNumberTO7(){
+	if(touchMode == "firstInput"){
+     touchinput.text.text="";
+	 touchMode="inputCheckData";
+  }
   touchinput.text.text = String(touchinput.text.text)+"7";
 }
 function changeTouchNumberTO8(){
+	if(touchMode == "firstInput"){
+     touchinput.text.text="";
+	 touchMode="inputCheckData";
+  }
   touchinput.text.text = String(touchinput.text.text)+"8";
 }
 function changeTouchNumberTO9(){
+	if(touchMode == "firstInput"){
+     touchinput.text.text="";
+	 touchMode="inputCheckData";
+  }
   touchinput.text.text = String(touchinput.text.text)+"9";
 }
 function changeTouchNumberTO0(){
+	if(touchMode == "firstInput"){
+     touchinput.text.text="";
+	 touchMode="inputCheckData";
+  }
   touchinput.text.text = String(touchinput.text.text)+"0";
 }
+function changeTouchNumberDot(){
+	if(touchMode == "firstInput"){
+     touchinput.text.text="";
+	 touchMode="inputCheckData";
+  }
+  touchinput.text.text = String(touchinput.text.text)+".";
+}
+function changeTouchOKNG(){
+if(touchMode == "firstInput"){
+     touchinput.text.text="";
+	 touchMode="inputCheckData";
+  }
+  if(touchOKNG.text.text=="OK"){
+
+	console.log("OK");
+
+	touchinput.text.text = "";
+	touchinput.text.text = "OK";
+
+	touchOKNG.text.text="NG"
+
+  }else{
+
+	console.log("NG");
+	touchinput.text.text = "";
+	touchinput.text.text = "NG";
+
+	touchOKNG.text.text="OK";
+
+  }
+//touchOKNG
+}
+
+
+
 function changeTouchNumberBack(){
   var s
   s =  String(touchinput.text.text);
@@ -560,9 +646,20 @@ async function inputSaveData(file) {
     touchinputSaveData.text.visible = false;
     uploadTXTLable3.visible = false;
 
+	touchOKNG.Shape.visible = false;
+        touchOKNG.text.visible = false;
+		touchdot.Shape.visible = false;
+        touchdot.text.visible = false;
+
 	//定位小鍵盤至下方
-    touchMenu.regY = rightcheckBabblesHeight*6+rightcheckGap*7;
+    touchMenu.regY = rightcheckBabblesHeight*7+rightcheckGap*8;
     touchMenu.y = windowHeight;
+
+	//如果是觸控模式，匯入檔案時先找泡泡球1
+	if (detectmob() == true) {
+		findbubble2();
+	}
+	
 
 	stage.update();
 }
@@ -872,9 +969,9 @@ if (detectmob() == true) {
 				//rightClickMenu.x = 10;
 				//rightClickMenu.y = 10;
 				//rightClickMenu.visible = true;
-        touchMenu.x = 10;
-				touchMenu.y = 10;
-        touchMenu.visible = true;
+                //touchMenu.x = 10;
+				//touchMenu.y = 10;
+                touchMenu.visible = true;
 				bubblemode = false;
 				stage.update();
 
@@ -1348,12 +1445,33 @@ function findbubble2() {
 		//方便inputbubbleTextdata(儲存泡泡球數字大小的變數)調用
 		var tempTextSizeData, tempCorrectNumber, tt;
 		var textTemp = document.getElementById("textbox2");
+		
         var findNumber;
   
+		//在觸控模式下，電腦版用的textbox2是恆定的空值。用來區分找泡泡圖的模式
     if(textTemp.value == ""){
-      findNumber = touchinput.text.text;
+	  console.log("觸控泡泡求尋找");
+      
+
+	  if(touchMode == "findBubble"){
+			findNumber = touchinput.text.text;
+			console.log("findNumber"+findNumber);
+
+		}
+
+		if(touchMode == "inputCheckData" | touchMode =="firstInput"){
+			
+			findNumber = touchModeNowBubble;
+			console.log("findNumber"+findNumber);
+
+		}
+
+
     }else{
-      findNumber = textTemp.value;
+		findNumber = textTemp.value;
+		console.log("電腦模式泡泡求尋找");
+		
+
     }
 
 		for (var i = 0; i < inputbubblenumber.length; i++) {
@@ -1381,94 +1499,163 @@ function findbubble2() {
   
 }
 function Nextbubble(){
+if(touchMode == "findBubble"){
 
 	var inputToint = parseInt(touchinput.text.text, 10);
 	inputToint = inputToint + 1;
+	touchModeNowBubble = touchModeNowBubble+1;
 	touchinput.text.text = inputToint;
 	console.log("下一個泡泡圖"+touchinput.text.text);
 
 	findbubble2();
 
 }
+if(touchMode == "inputCheckData"){
+
+	inputCheckdata[touchModeNowBubble]=touchinput.text.text;
+	touchModeNowBubble = parseInt(touchModeNowBubble)+1;
+	console.log(touchModeNowBubble);
+
+	touchinput.text.text = "檢點:"+touchModeNowBubble+":"+inputcheckStandardValue[touchModeNowBubble];
+
+    // === 新增：將「有輸入資料」的泡泡圖文字變成綠色 ===
+        for (var i = 0; i < pic.numChildren; i++) {
+            var child = pic.getChildAt(i);
+            
+            // 只處理泡泡圖的文字物件（排除跟隨滑鼠的 textAtMouse）
+            if (child instanceof createjs.Text && child !== textAtMouse) {
+                var bubbleNum = Number(child.text);
+                
+                // 如果這個泡泡圖編號已經有輸入檢查資料，就把文字顏色改成綠色
+                if (!isNaN(bubbleNum) && inputCheckdata[bubbleNum] !== undefined && 
+                    inputCheckdata[bubbleNum] !== "" && inputCheckdata[bubbleNum] !== null) {
+                    
+                    child.color = "#0aa660";   // 綠色（與您程式中常用的綠色一致）
+                } else {
+                    child.color = "#080808";   // 恢復預設黑色（可自行調整）
+                }
+            }
+        }
+
+	findbubble2();
+    touchOKNG.text.text="OK";
+	touchMode = "firstInput";
+
+}
+	
+
+}
+
+
+
+
 function backbubble(){
+	if(touchMode == "findBubble"){
 
 	var inputToint = parseInt(touchinput.text.text, 10);
 	inputToint = inputToint - 1;
+	touchModeNowBubble = touchModeNowBubble+1;
 	touchinput.text.text = inputToint;
 	console.log("下一個泡泡圖"+touchinput.text.text);
 
 	findbubble2();
 
+	}
+	if(touchMode == "inputCheckData" | touchMode =="firstInput"){
+
+		touchModeNowBubble = parseInt(touchModeNowBubble)-1;
+		touchinput.text.text = parseInt(touchModeNowBubble);
+	    console.log(touchModeNowBubble);
+
+	    touchinput.text.text = "檢點:"+touchModeNowBubble+":"+inputcheckStandardValue[touchModeNowBubble];
+
+	    findbubble2();
+        touchOKNG.text.text="OK";
+		touchMode = "firstInput";
+
+
+	}
+
+
+	
+
 }
 
 
 
-function hideNum(){
-	console.log("隱藏小鍵盤");
+function OutputDataAndhideNum(){
+console.log("執行隱藏小鍵盤與資料匯出，當前模式: " + touchMode);
 
-	touchMenuBackground.width =rightcheckBabblesWidth*3+rightcheckGap*4;
-    touchMenuBackground.height =rightcheckBabblesHeight*2+rightcheckGap*3;
+    // ====================== CSV 匯出功能 ======================
+    if (touchMode === "firstInput" || touchMode === "inputCheckData") {
+        
+        if (inputCheckdata.length === 0) {
+            alert("目前沒有檢查資料可匯出！");
+            return;
+        }
 
-    
- 
-	touch0.text.visible = false;
- 	touch0.Shape.visible = false;
+        // 產生 CSV 內容
+        let csvContent = "bubbleNumber,checkdata\n";   // 標頭
 
-	touch1.text.visible = false;
- 	touch1.Shape.visible = false;
+        for (var i = 1; i < inputCheckdata.length; i++) {
+            if (inputCheckdata[i] !== undefined && inputCheckdata[i] !== "") {
+                csvContent += i + "," + inputCheckdata[i] + "\n";
+            }
+        }
 
-	touch2.text.visible = false;
- 	touch2.Shape.visible = false;
+        // 建立 Blob 並觸發下載
+        var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        var link = document.createElement("a");
+        
+        var url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", "泡泡圖檢查資料_" + new Date().toISOString().slice(0,10) + ".csv");
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        console.log("已匯出 inputCheckdata 為 CSV 檔案");
+    }
+
+    // ====================== 原有隱藏小鍵盤邏輯 ======================
+    if (touchMode === "findBubble") {
+        console.log("隱藏小鍵盤（尋找模式）");
+
+        touchMenuBackground.width = rightcheckBabblesWidth * 3 + rightcheckGap * 4;
+        touchMenuBackground.height = rightcheckBabblesHeight * 2 + rightcheckGap * 3;
+
+        // 隱藏數字鍵盤
+        var numButtons = [touch0, touch1, touch2, touch3, touch4, touch5, touch6, touch7, touch8, touch9, touchback, touchDelAll];
+        numButtons.forEach(function(btn) {
+            if (btn && btn.Shape) btn.Shape.visible = false;
+            if (btn && btn.text)  btn.text.visible = false;
+        });
+
+        // 顯示下方三個功能按鈕
+        touchbackbubble2.Shape.visible = true;
+        touchbackbubble2.text.visible = true;
+
+        touchhidebubble2.Shape.visible = true;
+        touchhidebubble2.text.visible = true;
+
+        touchNextbubble2.Shape.visible = true;
+        touchNextbubble2.text.visible = true;
+
+        touchMenu.regY = rightcheckBabblesHeight * 2 + rightcheckGap * 3;
+        touchMenu.y = windowHeight;
+    }
+
+    stage.update();
+
 	
-	touch3.text.visible = false;
- 	touch3.Shape.visible = false;
-	
-	touch4.text.visible = false;
- 	touch4.Shape.visible = false;
-	
-	touch5.text.visible = false;
- 	touch5.Shape.visible = false;
-	
-	touch6.text.visible = false;
- 	touch6.Shape.visible = false;
-	
-	touch7.text.visible = false;
- 	touch7.Shape.visible = false;
-	
-	touch8.text.visible = false;
- 	touch8.Shape.visible = false;
-	
-	touch9.text.visible = false;
- 	touch9.Shape.visible = false;
-
-	touchback.text.visible = false;
- 	touchback.Shape.visible = false;
-
-	touchDelAll.text.visible = false;
- 	touchDelAll.Shape.visible = false;
-
-    touchbackbubble2.Shape.visible=true;
-    touchbackbubble2.text.visible=true;
-
-    touchhidebubble2.Shape.visible=true;
-    touchhidebubble2.text.visible=true;
-
-    touchNextbubble2.Shape.visible=true;
-    touchNextbubble2.text.visible=true;
- 
-
-	touchMenu.regY = rightcheckBabblesHeight*2+rightcheckGap*3;
-    touchMenu.y = windowHeight;
-
-
-	stage.update();
 }
 
 function showNum(){
 	console.log("顯示小鍵盤");
 
 	touchMenuBackground.width =rightcheckBabblesWidth*3+rightcheckGap*4;
-    touchMenuBackground.height =rightcheckBabblesHeight*6+rightcheckGap*7;
+    touchMenuBackground.height =rightcheckBabblesHeight*7+rightcheckGap*8;
 
     
  
@@ -1518,7 +1705,7 @@ function showNum(){
     touchNextbubble2.text.visible=false;
  
 
-	touchMenu.regY = rightcheckBabblesHeight*6+rightcheckGap*7;
+	touchMenu.regY = rightcheckBabblesHeight*7+rightcheckGap*8;
     touchMenu.y = windowHeight;
 
 
@@ -1610,4 +1797,132 @@ function FBubblePush(){
     stage.update();
 
 	
+}
+
+function switchTouchMod(){
+
+console.log("切換 touchMenu 背景顏色");
+
+    touchMenuBackground.graphics.clear();
+
+    if (touchMenuBackground.currentColor === "#0aa660") {
+        // 切回原本的藍色
+        touchMenuBackground.graphics
+            .setStrokeStyle(2)
+            .beginStroke("#000000")
+            .beginFill("DeepSkyBlue")
+            .drawRect(0, 0, rightcheckBabblesWidth*3 + rightcheckGap*4, rightcheckBabblesHeight*7 + rightcheckGap*8);
+        
+        touchMenuBackground.currentColor = "DeepSkyBlue";
+        console.log("已切換為藍色背景");
+
+		//設定輸入模式
+		touchMode = "findBubble";
+		touchinput.text.text = "";
+		touchinput.text.text = parseInt(touchModeNowBubble);
+		touchhidebubble.text.text = "X";
+
+		touchOKNG.Shape.visible = false;
+        touchOKNG.text.visible = false;
+		touchdot.Shape.visible = false;
+        touchdot.text.visible = false;
+		inputStandardValueBotton.Shape.visible = true;
+		inputStandardValueBotton.text.visible = true;
+
+
+    } else {
+		touchModeNowBubble = touchinput.text.text;
+        // 切換為綠色
+        touchMenuBackground.graphics
+            .setStrokeStyle(2)
+            .beginStroke("#000000")
+            .beginFill("#0aa660")
+            .drawRect(0, 0, rightcheckBabblesWidth*3 + rightcheckGap*4, rightcheckBabblesHeight*7 + rightcheckGap*8);
+        
+        touchMenuBackground.currentColor = "#0aa660";
+        console.log("已切換為綠色背景");
+
+		//設定輸入模式
+		touchMode = "inputCheckData";
+
+		//變更對話框
+		touchinput.text.text = "";
+		touchinput.text.text = "檢點:"+touchModeNowBubble+":"+inputcheckStandardValue[touchModeNowBubble];
+		touchMode = "firstInput";
+
+		//變更隱藏小鍵盤的功能
+		touchhidebubble.text.text = "匯出data";
+
+		
+		touchOKNG.Shape.visible = true;
+        touchOKNG.text.visible = true;
+		touchdot.Shape.visible = true;
+        touchdot.text.visible = true;
+		inputStandardValueBotton.Shape.visible = false;
+		inputStandardValueBotton.text.visible = false;
+
+    }
+
+    touchMenuBackground.alpha = 0.85;
+    stage.update();
+
+}
+
+// 處理按鈕點擊 → 觸發檔案選擇
+function inputStandardValueFun() {
+    console.log("點擊「導入檢查資料」按鈕");
+    document.getElementById("standardCSVInput").click();   // 觸發隱藏的 input
+}
+
+// 實際解析 CSV 的函式（已修正中文亂碼 + 陣列從1開始儲存）
+async function handleStandardCSVUpload(file) {
+    if (!file) {
+        alert("未選擇任何檔案！");
+        return;
+    }
+
+    try {
+        // 明確指定 UTF-8 編碼，解決中文亂碼
+        const text = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(reader.error);
+            reader.readAsText(file, 'UTF-8');
+        });
+
+        const lines = text.trim().split(/\r?\n/);
+
+        // 清空原有陣列
+        inputcheckStandardValue.length = 0;
+        
+        // 強制讓陣列從索引 1 開始儲存（索引 0 保留不用）
+        inputcheckStandardValue[0] = null;   // 占位，確保從1開始
+
+        let count = 0;
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (line === "") continue;
+
+            const columns = line.split(',');
+            if (columns.length > 0) {
+                const value = columns[0].trim();
+                if (value !== "") {
+                    // 重要：從索引 1 開始儲存
+                    inputcheckStandardValue[i + 1] = value;
+                    count++;
+                }
+            }
+        }
+
+        console.log(`CSV 匯入成功！共匯入 ${count} 筆標準值（陣列從索引1開始）`);
+        console.log("inputcheckStandardValue =", inputcheckStandardValue);
+
+        alert(`檢查標準值匯入成功！\n共匯入 ${count} 筆資料（已從第1筆開始儲存）。`);
+
+        stage.update();
+
+    } catch (error) {
+        console.error("CSV 讀取失敗：", error);
+        alert("讀取 CSV 檔案失敗，請確認檔案格式正確且儲存為 UTF-8 編碼。");
+    }
 }
