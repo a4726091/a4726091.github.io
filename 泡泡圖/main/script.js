@@ -975,6 +975,21 @@ if (detectmob() == true) {
 				bubblemode = false;
 				stage.update();
 
+				// === 新增：長按時顯示操作說明 ===
+          alert("觸控模式操作說明：\n\n" +
+          "• 長按畫面 → 開啟功能選單\n" +
+          "• 雙指捏合（Pinch）→ 放大 / 縮小圖片\n" +
+          "• 單指拖曳 → 移動圖片\n\n" +
+          "選單功能：\n" +
+          "• S → 切換模式（尋找 / 輸入檢查資料）\n" +
+          "• 數字鍵 → 輸入泡泡圖編號或檢查值\n" +
+          "• . → 輸入小數點\n" +
+          "• ← → 退格\n" +
+          "• C → 清空輸入\n" +
+          "• X → 隱藏小鍵盤並匯出資料\n" +
+          "• 導入檢查資料 → 上傳 CSV（第一欄標準值、第二欄檢查資料）\n\n" +
+          "綠色文字 = 已輸入檢查資料");
+
 		})
 
 		hammer.on("panstart", (e) => {
@@ -1874,7 +1889,9 @@ function inputStandardValueFun() {
     document.getElementById("standardCSVInput").click();   // 觸發隱藏的 input
 }
 
-// 實際解析 CSV 的函式（已修正中文亂碼 + 陣列從1開始儲存）
+// 上傳 CSV 並同時處理第一欄與第二欄資料
+// 第一欄 → inputCheckStandardValue（從索引 1 開始）
+// 第二欄 → inputCheckdata（從索引 1 開始）
 async function handleStandardCSVUpload(file) {
     if (!file) {
         alert("未選擇任何檔案！");
@@ -1882,7 +1899,7 @@ async function handleStandardCSVUpload(file) {
     }
 
     try {
-        // 明確指定 UTF-8 編碼，解決中文亂碼
+        // 明確指定 UTF-8 編碼，解決中文亂碼問題
         const text = await new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = () => resolve(reader.result);
@@ -1892,32 +1909,46 @@ async function handleStandardCSVUpload(file) {
 
         const lines = text.trim().split(/\r?\n/);
 
-        // 清空原有陣列
+        // 清空兩個陣列
         inputcheckStandardValue.length = 0;
-        
-        // 強制讓陣列從索引 1 開始儲存（索引 0 保留不用）
-        inputcheckStandardValue[0] = null;   // 占位，確保從1開始
+        inputCheckdata.length = 0;
+
+        // 保留索引 0 不使用，讓陣列從 1 開始
+        inputcheckStandardValue[0] = null;
+        inputCheckdata[0] = null;
 
         let count = 0;
+
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i].trim();
             if (line === "") continue;
 
             const columns = line.split(',');
+
             if (columns.length > 0) {
-                const value = columns[0].trim();
-                if (value !== "") {
-                    // 重要：從索引 1 開始儲存
-                    inputcheckStandardValue[i + 1] = value;
-                    count++;
+                // 第一欄 → 標準值 (inputCheckStandardValue)
+                const standardValue = columns[0] ? columns[0].trim() : "";
+                if (standardValue !== "") {
+                    inputcheckStandardValue[i + 1] = standardValue;
                 }
+
+                // 第二欄 → 檢查資料 (inputCheckdata)
+                if (columns.length >= 2) {
+                    const checkValue = columns[1] ? columns[1].trim() : "";
+                    if (checkValue !== "") {
+                        inputCheckdata[i + 1] = checkValue;
+                    }
+                }
+
+                count++;
             }
         }
 
-        console.log(`CSV 匯入成功！共匯入 ${count} 筆標準值（陣列從索引1開始）`);
-        console.log("inputcheckStandardValue =", inputcheckStandardValue);
+        console.log(`CSV 匯入成功！共處理 ${count} 筆資料`);
+        console.log("inputCheckStandardValue（第一欄）=", inputcheckStandardValue);
+        console.log("inputCheckdata（第二欄）=", inputCheckdata);
 
-        alert(`檢查標準值匯入成功！\n共匯入 ${count} 筆資料（已從第1筆開始儲存）。`);
+        alert(`檢查資料匯入成功！\n共處理 ${count} 筆資料\n（第一欄存入標準值，第二欄存入檢查資料）`);
 
         stage.update();
 
@@ -1925,4 +1956,38 @@ async function handleStandardCSVUpload(file) {
         console.error("CSV 讀取失敗：", error);
         alert("讀取 CSV 檔案失敗，請確認檔案格式正確且儲存為 UTF-8 編碼。");
     }
+
+	// ====================== 新增功能：將有資料的泡泡圖文字變成綠色 ======================
+        let coloredCount = 0;
+
+        for (let i = 0; i < pic.numChildren; i++) {
+            const child = pic.getChildAt(i);
+
+            // 只處理泡泡圖的文字物件（排除跟隨滑鼠的 textAtMouse）
+            if (child instanceof createjs.Text && child !== textAtMouse) {
+                const bubbleNum = Number(child.text);
+
+                if (!isNaN(bubbleNum) && inputCheckdata[bubbleNum] !== undefined && 
+                    inputCheckdata[bubbleNum] !== null && inputCheckdata[bubbleNum] !== "") {
+                    
+                    child.color = "#0aa660";   // 綠色（與您程式中常用的綠色一致）
+                    coloredCount++;
+                } else {
+                    child.color = "#080808";   // 沒有資料則恢復預設黑色
+                }
+            }
+        }
+
+		touchinput.text.text = parseInt(coloredCount+1);
+		touchModeNowBubble = parseInt(coloredCount+1);
+		findbubble2();
+
+        // ====================== 完成訊息 ======================
+        console.log(`已將 ${coloredCount} 個有檢查資料的泡泡圖文字變成綠色`);
+
+        //alert(`檢查資料匯入成功！\n共處理 ${count} 筆資料\n已將 ${coloredCount} 個泡泡圖文字變成綠色。`);
+
+        stage.update();
+
+
 }
