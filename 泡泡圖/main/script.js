@@ -1015,6 +1015,9 @@ if (detectmob() == true) {
                 pic.regX = childCh.x;
                 pic.regY = childCh.y;
 
+				pic.x = stage.mouseX;
+                pic.y = stage.mouseY;
+
 
 		})
 
