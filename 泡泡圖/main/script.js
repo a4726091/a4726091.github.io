@@ -250,6 +250,9 @@ var touchMode = "findBubble";
 var touchModeNowBubble = 1;//觸控模式下現在的泡泡圖
 var inputCheckdata=[];//儲存檢查資料
 var inputcheckStandardValue=[];//儲存導入的資料
+var hasShownTouchHelp = false;//用來鎖定觸控模式長按下的說明
+var isTouchDragging = false;        // 是否正在拖動
+var touchPressJustStarted = false;  // 剛長按或按下，還沒開始拖動
 var bubbleX = []; //儲存滑鼠X座標之陣列
 var bubbleY = []; //儲存滑鼠X座標之陣列
 var bubbleID = []; //儲存泡泡圖數字座標之陣列
@@ -959,12 +962,16 @@ if (detectmob() == true) {
 		})
 
 		hammer.on("tap", (e) => {
-				document.getElementById("consoleLog").textContent = "tap";
+				//document.getElementById("consoleLog").textContent = "tap";
+
+				console.log("tap");
 				touchType = "tap";
+				//touchPressJustStarted = true;     // 標記剛按下
 		})
 
 		hammer.on("press", (e) => {
-				document.getElementById("consoleLog").textContent = "press,長按";
+				//document.getElementById("consoleLog").textContent = "press,長按";
+				console.log("press,長按");
 				touchType = "press";
 				//rightClickMenu.x = 10;
 				//rightClickMenu.y = 10;
@@ -976,42 +983,58 @@ if (detectmob() == true) {
 				stage.update();
 
 				// === 新增：長按時顯示操作說明 ===
-          alert("觸控模式操作說明：\n\n" +
-          "• 長按畫面 → 開啟功能選單\n" +
-          "• 雙指捏合（Pinch）→ 放大 / 縮小圖片\n" +
-          "• 單指拖曳 → 移動圖片\n\n" +
-          "選單功能：\n" +
-          "• S → 切換模式（尋找 / 輸入檢查資料）\n" +
-          "• 數字鍵 → 輸入泡泡圖編號或檢查值\n" +
-          "• . → 輸入小數點\n" +
-          "• ← → 退格\n" +
-          "• C → 清空輸入\n" +
-          "• X → 隱藏小鍵盤並匯出資料\n" +
-          "• 導入檢查資料 → 上傳 CSV（第一欄標準值、第二欄檢查資料）\n\n" +
-          "綠色文字 = 已輸入檢查資料");
+          if (!hasShownTouchHelp) {
+        alert("泡泡圖觸控模式操作說明：\n\n" +
+              "• 長按畫面 → 開啟功能選單\n" +
+              "• 雙指捏合 → 放大 / 縮小圖片\n" +
+              "• 單指拖曳 → 移動圖片\n\n" +
+              "選單功能說明：\n" +
+              "• S → 切換 尋找模式 / 輸入檢查模式\n" +
+              "• 數字鍵 → 輸入泡泡圖編號或檢查值\n" +
+              "• . → 輸入小數點\n" +
+              "• ← → 退格\n" +
+              "• C → 清空\n" +
+              "• X → 隱藏鍵盤並匯出 CSV\n" +
+              "• 導入檢查資料 → 上傳 CSV（第2欄為檢查值）\n\n" +
+              "綠色文字 = 已輸入檢查資料");
+        hasShownTouchHelp = true;
+        }
 
 		})
 
 		hammer.on("panstart", (e) => {
-				document.getElementById("consoleLog").textContent = "panstart";
+				//document.getElementById("consoleLog").textContent = "panstart";
+				console.log("panstart");
 				//longTouchMode = true;
 				touchType = "panstart";
+				touchPressJustStarted = true;     // 標記剛按下
 				initDrag = false;
+
+                childCh = pic.globalToLocal(stage.mouseX, stage.mouseY);
+			    console.log("定位中心");
+                pic.regX = childCh.x;
+                pic.regY = childCh.y;
+
+
 		})
 
 
 		hammer.on("panmove", (e) => {
-				document.getElementById("consoleLog").textContent = "panmove,移動";
+				//document.getElementById("consoleLog").textContent = "panmove,移動";
 				touchType = "panmove";
 				initDrag = true;
+				isTouchDragging = true;
+                touchPressJustStarted = false;   // 開始拖動後，取消剛按下狀態
 				console.log("panmove");
 		})
 
 		hammer.on("panend", (e) => {
-						document.getElementById("consoleLog").textContent = "panend,結束";
+						//document.getElementById("consoleLog").textContent = "panend,結束";
+						console.log("panend");
 						touchType = "panend";
 						initDrag = false;
-						console.log("panmove");
+						isTouchDragging = false;
+						
 				})
 				/*
 				pinchstart: 多点触控开始
@@ -1192,6 +1215,7 @@ function changeNumber() {
 function tick(event) {
 		//滑鼠座標轉圖面座標
 		childCh = pic.globalToLocal(stage.mouseX, stage.mouseY);
+		
 		///////////////////////////////////////////////////////////
 		//圖面拖曳效果 -> 滑鼠
 		if (initDrag == false && dragType == "mouse") {
@@ -1211,7 +1235,7 @@ function tick(event) {
 				console.log("X:" + pic.x);
 				console.log("Y:" + pic.y);
 		}
-
+/*
 		//圖面拖曳效果 -> 觸控
 		if (initDrag == false && dragType == "touch") {
 				if (touchType == "panstart" || touchType == "panend") {
@@ -1229,6 +1253,34 @@ function tick(event) {
 				pic.x = stage.mouseX;
 				pic.y = stage.mouseY;
 		}
+				*/
+		// ==================== 觸控拖曳邏輯優化 ====================
+		
+    if (dragType === "touch") {
+        if (touchPressJustStarted) {
+            // 剛按下時：只定位中心，但不跟隨手指移動（避免突然跳動）
+			//childCh = pic.globalToLocal(stage.mouseX, stage.mouseY);
+			/*
+			 console.log("定位中心");
+            pic.regX = childCh.x;
+            pic.regY = childCh.y;
+			*/
+            // 不更新 pic.x / pic.y，讓畫布保持穩定
+        } 
+        else if (isTouchDragging) {
+            // 開始拖動後，才跟隨手指移動
+			console.log("移動");
+            pic.x = stage.mouseX;
+            pic.y = stage.mouseY;
+        }
+        else if (!isTouchDragging) {
+            // 沒有拖動時，維持 regX/regY 對齊（讓縮放更自然）
+            //pic.regX = childCh.x;
+            //pic.regY = childCh.y;
+        }
+    }
+	//console.log("pic.x:"+pic.x+"pic.y:"+pic.y)		
+		
 		///////////////////////////////////////////////////
 		//泡泡球位置對齊滑鼠
 		circleAtMouse.x = childCh.x;
@@ -1500,14 +1552,18 @@ function findbubble2() {
 
 		if (tempCorrectNumber > 0) {
 				var childByPic = pic.getChildAt(tt);
+
 				childByPic.alpha = 0.7;
 				childByPic.color = "red";
 				childByPic.font = inputbubbleTextdata[tempTextSizeData] + "px Impact";
+                
 				var pt = pic.localToGlobal(childByPic.x, childByPic.y);
 				pic.regX = childByPic.x;
 				pic.regY = childByPic.y;
 				pic.x = windowWidth / 2;
 				pic.y = windowHeight / 2;
+                
+
 		} else {
 				alert("資料輸入有誤");
 		}
@@ -1610,14 +1666,22 @@ console.log("執行隱藏小鍵盤與資料匯出，當前模式: " + touchMode)
         }
 
         // 產生 CSV 內容
-        let csvContent = "bubbleNumber,checkdata\n";   // 標頭
+        //let csvContent = "bubbleNumber,checkdata\n";   // 標頭
+		let csvContent = "";
 
+		/*
         for (var i = 1; i < inputCheckdata.length; i++) {
             if (inputCheckdata[i] !== undefined && inputCheckdata[i] !== "") {
                 csvContent += i + "," + inputCheckdata[i] + "\n";
             }
         }
-
+        */
+	   for (var i = 1; i < Math.max(inputCheckdata.length, inputcheckStandardValue.length); i++) {
+          const standard = inputcheckStandardValue[i] || "";
+          const check = inputCheckdata[i] || "";
+          //csvContent += i + "," + standard + "," + check + "\n";
+		  csvContent += standard + "," + check + "\n";
+        }
         // 建立 Blob 並觸發下載
         var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         var link = document.createElement("a");
