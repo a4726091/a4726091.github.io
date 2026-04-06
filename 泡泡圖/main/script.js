@@ -982,6 +982,10 @@ if (detectmob() == true) {
 				bubblemode = false;
 				stage.update();
 
+				if(hasShownTouchHelp){
+				// 只顯示清單視窗（不再顯示 touchMenu）
+                showStandardAndCheckList();
+			}
 				// === 新增：長按時顯示操作說明 ===
           if (!hasShownTouchHelp) {
         alert("泡泡圖觸控模式操作說明：\n\n" +
@@ -998,8 +1002,9 @@ if (detectmob() == true) {
               "• 導入檢查資料 → 上傳 CSV（第2欄為檢查值）\n\n" +
               "綠色文字 = 已輸入檢查資料");
         hasShownTouchHelp = true;
-        }
-
+            }
+			
+		  
 		})
 
 		hammer.on("panstart", (e) => {
@@ -1014,7 +1019,6 @@ if (detectmob() == true) {
 			    console.log("定位中心");
                 pic.regX = childCh.x;
                 pic.regY = childCh.y;
-
 				pic.x = stage.mouseX;
                 pic.y = stage.mouseY;
 
@@ -1260,27 +1264,15 @@ function tick(event) {
 		// ==================== 觸控拖曳邏輯優化 ====================
 		
     if (dragType === "touch") {
-        if (touchPressJustStarted) {
-            // 剛按下時：只定位中心，但不跟隨手指移動（避免突然跳動）
-			//childCh = pic.globalToLocal(stage.mouseX, stage.mouseY);
-			/*
-			 console.log("定位中心");
-            pic.regX = childCh.x;
-            pic.regY = childCh.y;
-			*/
-            // 不更新 pic.x / pic.y，讓畫布保持穩定
-        } 
-        else if (isTouchDragging) {
+        if (isTouchDragging) {
             // 開始拖動後，才跟隨手指移動
 			console.log("移動");
+			
+
             pic.x = stage.mouseX;
             pic.y = stage.mouseY;
         }
-        else if (!isTouchDragging) {
-            // 沒有拖動時，維持 regX/regY 對齊（讓縮放更自然）
-            //pic.regX = childCh.x;
-            //pic.regY = childCh.y;
-        }
+        
     }
 	//console.log("pic.x:"+pic.x+"pic.y:"+pic.y)		
 		
@@ -2058,3 +2050,83 @@ async function handleStandardCSVUpload(file) {
 
 
 }
+
+// 顯示檢查資料清單視窗（長按觸發）
+function showStandardAndCheckList() {
+    const modal = document.getElementById("dataListModal");
+    const tbody = document.getElementById("dataListBody");
+    
+    tbody.innerHTML = "";  // 清空舊內容
+
+    let hasData = false;
+
+    for (let i = 1; i < Math.max(inputcheckStandardValue.length, inputCheckdata.length); i++) {
+        const standard = inputcheckStandardValue[i] || "";
+        const check = inputCheckdata[i] || "";
+        
+        if (standard === "" && check === "") continue;  // 完全無資料則跳過
+
+        hasData = true;
+
+        const row = document.createElement("tr");
+        row.style.cursor = "pointer";
+        row.style.borderBottom = "1px solid #ddd";
+        
+        // 已量測則整列綠色背景
+        if (check !== "") {
+            row.style.backgroundColor = "#e6f7e6";
+        }
+
+        row.innerHTML = `
+            <td style="padding:12px; text-align:center; border:1px solid #ddd;">${i}</td>
+            <td style="padding:12px; text-align:center; border:1px solid #ddd;">${standard}</td>
+            <td style="padding:12px; text-align:center; border:1px solid #ddd;">${check}</td>
+        `;
+
+        // 點擊列 → 跳轉到該泡泡圖
+        row.addEventListener("click", () => {
+            jumpToBubble(i);
+        });
+
+        tbody.appendChild(row);
+    }
+
+    if (!hasData) {
+        tbody.innerHTML = `<tr><td colspan="3" style="padding:30px; text-align:center; color:#888;">目前尚無任何檢查資料</td></tr>`;
+    }
+
+    modal.style.display = "flex";
+}
+
+// 跳轉到指定泡泡圖並關閉視窗
+function jumpToBubble(num) {
+    hideStandardAndCheckList();
+    
+    // 設定輸入框
+    touchinput.text.text = num.toString();
+    touchModeNowBubble = num;
+    
+    // 執行定位
+    findbubble2();
+}
+
+// 關閉視窗
+function hideStandardAndCheckList() {
+    const modal = document.getElementById("dataListModal");
+    modal.style.display = "none";
+}
+
+// 關閉視窗事件
+document.addEventListener("DOMContentLoaded", function() {
+    const modal = document.getElementById("dataListModal");
+    const closeBtn = document.getElementById("modalCloseBtn");
+
+    closeBtn.addEventListener("click", hideStandardAndCheckList);
+    
+    // 點擊遮罩關閉
+    modal.addEventListener("click", function(e) {
+        if (e.target === modal) {
+            hideStandardAndCheckList();
+        }
+    });
+});
