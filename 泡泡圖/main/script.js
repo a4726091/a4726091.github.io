@@ -1677,8 +1677,16 @@ console.log("執行隱藏小鍵盤與資料匯出，當前模式: " + touchMode)
           //csvContent += i + "," + standard + "," + check + "\n";
 		  csvContent += standard + "," + check + "\n";
         }
+
+		// === 關鍵修改：加入 UTF-8 BOM ===
+        const bom = "\uFEFF";                    // UTF-8 BOM 字元
+        const csvWithBOM = bom + csvContent;
+
+
+
+
         // 建立 Blob 並觸發下載
-        var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        var blob = new Blob([csvWithBOM], { type: 'text/csv;charset=utf-8;' });
         var link = document.createElement("a");
         
         var url = URL.createObjectURL(blob);
