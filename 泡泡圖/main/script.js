@@ -1575,6 +1575,8 @@ function Nextbubble(){
 	    touchinput.text.text = inputToint;
 	    console.log("下一個泡泡圖"+touchinput.text.text);
 
+		touchMode = "findBubble";
+
 	    findbubble2();
 
     } else if (checkMode === "sequential" && touchMode == "inputCheckData") {
@@ -1593,7 +1595,7 @@ function Nextbubble(){
     } else if (checkMode === "smart" && touchMode == "inputCheckData") {
         // ==================== 智慧跳轉模式 ====================
         inputCheckdata[touchModeNowBubble] = touchinput.text.text;
-        
+        touchMode = "firstInput";
         // 尋找下一個尚未量測的泡泡
         var nextNum = findNextUnmeasuredBubble(touchModeNowBubble);
         
@@ -1617,7 +1619,7 @@ function Nextbubble(){
     }
     //touchMode = "firstInput";
     touchOKNG.text.text = "OK";
-    touchMode = "firstInput";
+    //touchMode = "firstInput";
 
 }
 
@@ -1968,7 +1970,8 @@ function switchTouchMod(){
         
         checkMode = "findBubble";
         touchMode = "findBubble";
-        touchinput.text.text = touchModeNowBubble.toString();
+        //touchinput.text.text = touchModeNowBubble.toString();
+		touchinput.text.text = parseInt(touchModeNowBubble);
         touchhidebubble.text.text = "X";
 
         console.log("已切換至【尋找模式】- 藍色背景");
