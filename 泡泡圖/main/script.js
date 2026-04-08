@@ -251,6 +251,7 @@ var touchModeNowBubble = 1;//觸控模式下現在的泡泡圖
 var inputCheckdata=[];//儲存檢查資料
 var inputcheckStandardValue=[];//儲存導入的資料
 var hasShownTouchHelp = false;//用來鎖定觸控模式長按下的說明
+var checkMode = "findBubble";   // 三種模式： "findBubble" / "sequential" / "smart"
 var isTouchDragging = false;        // 是否正在拖動
 var touchPressJustStarted = false;  // 剛長按或按下，還沒開始拖動
 var bubbleX = []; //儲存滑鼠X座標之陣列
@@ -1565,50 +1566,58 @@ function findbubble2() {
   
 }
 function Nextbubble(){
-if(touchMode == "findBubble"){
 
-	var inputToint = parseInt(touchinput.text.text, 10);
-	inputToint = inputToint + 1;
-	touchModeNowBubble = touchModeNowBubble+1;
-	touchinput.text.text = inputToint;
-	console.log("下一個泡泡圖"+touchinput.text.text);
+	if (checkMode === "findBubble") {
+        // ==================== 尋找模式 ====================
+        var inputToint = parseInt(touchinput.text.text, 10);
+	    inputToint = inputToint + 1;
+	    touchModeNowBubble = touchModeNowBubble+1;
+	    touchinput.text.text = inputToint;
+	    console.log("下一個泡泡圖"+touchinput.text.text);
 
-	findbubble2();
+	    findbubble2();
 
-}
-if(touchMode == "inputCheckData"){
+    } else if (checkMode === "sequential" && touchMode == "inputCheckData") {
+        // ==================== 順序檢查模式 ====================
+        inputCheckdata[touchModeNowBubble] = touchinput.text.text;
+        touchModeNowBubble = parseInt(touchModeNowBubble) + 1;
+        
+        touchinput.text.text = "檢點:" + touchModeNowBubble + ":" + (inputcheckStandardValue[touchModeNowBubble] || "");
+        
+		touchMode = "firstInput";
 
-	inputCheckdata[touchModeNowBubble]=touchinput.text.text;
-	touchModeNowBubble = parseInt(touchModeNowBubble)+1;
-	console.log(touchModeNowBubble);
+        // 更新綠色顯示
+        refreshBubbleColors();
+        findbubble2();
 
-	touchinput.text.text = "檢點:"+touchModeNowBubble+":"+inputcheckStandardValue[touchModeNowBubble];
-
-    // === 新增：將「有輸入資料」的泡泡圖文字變成綠色 ===
-        for (var i = 0; i < pic.numChildren; i++) {
-            var child = pic.getChildAt(i);
-            
-            // 只處理泡泡圖的文字物件（排除跟隨滑鼠的 textAtMouse）
-            if (child instanceof createjs.Text && child !== textAtMouse) {
-                var bubbleNum = Number(child.text);
-                
-                // 如果這個泡泡圖編號已經有輸入檢查資料，就把文字顏色改成綠色
-                if (!isNaN(bubbleNum) && inputCheckdata[bubbleNum] !== undefined && 
-                    inputCheckdata[bubbleNum] !== "" && inputCheckdata[bubbleNum] !== null) {
-                    
-                    child.color = "#0aa660";   // 綠色（與您程式中常用的綠色一致）
-                } else {
-                    child.color = "#080808";   // 恢復預設黑色（可自行調整）
-                }
+    } else if (checkMode === "smart" && touchMode == "inputCheckData") {
+        // ==================== 智慧跳轉模式 ====================
+        inputCheckdata[touchModeNowBubble] = touchinput.text.text;
+        
+        // 尋找下一個尚未量測的泡泡
+        var nextNum = findNextUnmeasuredBubble(touchModeNowBubble);
+        
+        if (nextNum !== -1) {
+            touchModeNowBubble = nextNum;
+            touchinput.text.text = "跳至:" + touchModeNowBubble + ":" + (inputcheckStandardValue[touchModeNowBubble] || "");
+            refreshBubbleColors();
+            findbubble2();
+        } else {
+            // 全部都已完成
+            alert("全部檢查完成！");
+            // 循環跳回第一個未完成的泡泡
+            var firstUnmeasured = findNextUnmeasuredBubble(1);
+            if (firstUnmeasured !== -1) {
+                touchModeNowBubble = firstUnmeasured;
+                touchinput.text.text = "跳至:" + touchModeNowBubble + ":" + (inputcheckStandardValue[touchModeNowBubble] || "");
+                refreshBubbleColors();
+                findbubble2();
             }
         }
-
-	findbubble2();
-    touchOKNG.text.text="OK";
-	touchMode = "firstInput";
-
-}
-	
+    }
+    //touchMode = "firstInput";
+    touchOKNG.text.text = "OK";
+    touchMode = "firstInput";
 
 }
 
@@ -1883,59 +1892,50 @@ function FBubblePush(){
 
 function switchTouchMod(){
 
-console.log("切換 touchMenu 背景顏色");
+    console.log("切換檢查模式，目前模式: " + checkMode);
 
     touchMenuBackground.graphics.clear();
 
-    if (touchMenuBackground.currentColor === "#0aa660") {
-        // 切回原本的藍色
+    if (checkMode === "findBubble") {
+        // 切換到 順序檢查模式 → 綠色
         touchMenuBackground.graphics
             .setStrokeStyle(2)
             .beginStroke("#000000")
-            .beginFill("DeepSkyBlue")
+            .beginFill("#0aa660")          // 綠色
             .drawRect(0, 0, rightcheckBabblesWidth*3 + rightcheckGap*4, rightcheckBabblesHeight*7 + rightcheckGap*8);
         
-        touchMenuBackground.currentColor = "DeepSkyBlue";
-        console.log("已切換為藍色背景");
+        checkMode = "sequential";
+        touchMode = "inputCheckData";
+        touchinput.text.text = "檢點:" + touchModeNowBubble + ":" + (inputcheckStandardValue[touchModeNowBubble] || "");
+        touchhidebubble.text.text = "匯出data";
 
-		//設定輸入模式
-		touchMode = "findBubble";
-		touchinput.text.text = "";
-		touchinput.text.text = parseInt(touchModeNowBubble);
-		touchhidebubble.text.text = "X";
-
-		touchOKNG.Shape.visible = false;
-        touchOKNG.text.visible = false;
-		touchdot.Shape.visible = false;
-        touchdot.text.visible = false;
-		inputStandardValueBotton.Shape.visible = true;
-		inputStandardValueBotton.text.visible = true;
-
-
-    } else {
-		touchModeNowBubble = touchinput.text.text;
-        // 切換為綠色
-        touchMenuBackground.graphics
-            .setStrokeStyle(2)
-            .beginStroke("#000000")
-            .beginFill("#0aa660")
-            .drawRect(0, 0, rightcheckBabblesWidth*3 + rightcheckGap*4, rightcheckBabblesHeight*7 + rightcheckGap*8);
-        
-        touchMenuBackground.currentColor = "#0aa660";
-        console.log("已切換為綠色背景");
-
-		//設定輸入模式
-		touchMode = "inputCheckData";
-
-		//變更對話框
-		touchinput.text.text = "";
-		touchinput.text.text = "檢點:"+touchModeNowBubble+":"+inputcheckStandardValue[touchModeNowBubble];
+        //更新輸入模式，避免第一顆泡泡球可輸入
 		touchMode = "firstInput";
 
-		//變更隱藏小鍵盤的功能
-		touchhidebubble.text.text = "匯出data";
+		touchOKNG.Shape.visible = true;
+        touchOKNG.text.visible = true;
+		touchdot.Shape.visible = true;
+        touchdot.text.visible = true;
+		inputStandardValueBotton.Shape.visible = false;
+		inputStandardValueBotton.text.visible = false;
+		console.log("已切換至【順序檢查模式】- 綠色背景");
 
-		
+    } else if (checkMode === "sequential") {
+        // 切換到 智慧跳轉模式 → 紅色
+        touchMenuBackground.graphics
+            .setStrokeStyle(2)
+            .beginStroke("#000000")
+            .beginFill("#ff4444")          // 紅色（可微調色碼）
+            .drawRect(0, 0, rightcheckBabblesWidth*3 + rightcheckGap*4, rightcheckBabblesHeight*7 + rightcheckGap*8);
+        
+        checkMode = "smart";
+        touchMode = "inputCheckData";
+        touchinput.text.text = "跳至:" + touchModeNowBubble + ":" + (inputcheckStandardValue[touchModeNowBubble] || "");
+        touchhidebubble.text.text = "匯出data";
+
+		//更新輸入模式，避免第一顆泡泡球可輸入
+		touchMode = "firstInput";
+
 		touchOKNG.Shape.visible = true;
         touchOKNG.text.visible = true;
 		touchdot.Shape.visible = true;
@@ -1943,6 +1943,43 @@ console.log("切換 touchMenu 背景顏色");
 		inputStandardValueBotton.Shape.visible = false;
 		inputStandardValueBotton.text.visible = false;
 
+        // === 新增：切換到紅色模式時，自動跳到最前面尚未檢查的泡泡圖 ===
+        var firstUnmeasured = findNextUnmeasuredBubble(1);
+        if (firstUnmeasured !== -1) {
+            touchModeNowBubble = firstUnmeasured;
+            touchinput.text.text = "跳至未檢:" + touchModeNowBubble + ":" + (inputcheckStandardValue[touchModeNowBubble] || "");
+            refreshBubbleColors();
+            findbubble2();                    // 執行定位
+            console.log("已自動跳轉到第一個未檢查泡泡圖 #" + firstUnmeasured);
+        } else {
+            console.log("目前沒有未檢查的泡泡圖");
+			alert("目前沒有未檢查的泡泡圖");
+        }
+
+		console.log("已切換至【智慧跳轉模式】- 紅色背景");
+
+    } else {
+        // 切換回 尋找模式 → 藍色
+        touchMenuBackground.graphics
+            .setStrokeStyle(2)
+            .beginStroke("#000000")
+            .beginFill("DeepSkyBlue")      // 藍色（原本尋找模式）
+            .drawRect(0, 0, rightcheckBabblesWidth*3 + rightcheckGap*4, rightcheckBabblesHeight*7 + rightcheckGap*8);
+        
+        checkMode = "findBubble";
+        touchMode = "findBubble";
+        touchinput.text.text = touchModeNowBubble.toString();
+        touchhidebubble.text.text = "X";
+
+        console.log("已切換至【尋找模式】- 藍色背景");
+
+        // 隱藏 OK / . 按鈕
+        touchOKNG.Shape.visible = false;
+        touchOKNG.text.visible = false;
+        touchdot.Shape.visible = false;
+        touchdot.text.visible = false;
+        inputStandardValueBotton.Shape.visible = true;
+        inputStandardValueBotton.text.visible = true;
     }
 
     touchMenuBackground.alpha = 0.85;
@@ -2044,9 +2081,11 @@ async function handleStandardCSVUpload(file) {
                 }
             }
         }
+ 
+		//匯入資料時尋找泡泡圖
+		touchinput.text.text = parseInt(1);
+		touchModeNowBubble = parseInt(1);
 
-		touchinput.text.text = parseInt(coloredCount+1);
-		touchModeNowBubble = parseInt(coloredCount+1);
 		findbubble2();
 
         // ====================== 完成訊息 ======================
@@ -2138,3 +2177,48 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     });
 });
+
+// 更新所有泡泡圖的顏色（綠色 = 已量測）
+function refreshBubbleColors() {
+    for (var i = 0; i < pic.numChildren; i++) {
+        var child = pic.getChildAt(i);
+        if (child instanceof createjs.Text && child !== textAtMouse) {
+            var bubbleNum = Number(child.text);
+            if (!isNaN(bubbleNum) && inputCheckdata[bubbleNum] && inputCheckdata[bubbleNum] !== "") {
+                child.color = "#0aa660";   // 綠色
+            } else {
+                child.color = "#080808";   // 預設黑色
+            }
+        }
+    }
+    stage.update();
+}
+
+// 從 startNum 開始找下一個尚未量測的泡泡（支援循環）
+function findNextUnmeasuredBubble(startNum) {
+    var maxNum = Math.max(100, inputbubblenumber.length || 200);  // 防止無限迴圈
+
+    for (var i = startNum; i <= maxNum; i++) {
+        if (inputCheckdata[i] === undefined || inputCheckdata[i] === "" || inputCheckdata[i] === null) {
+            // 確認這個編號是否存在泡泡圖
+            for (var j = 0; j < inputbubblenumber.length; j++) {
+                if (inputbubblenumber[j] == i) {
+                    return i;
+                }
+            }
+        }
+    }
+
+    // 若後面都完成了，從頭開始找
+    for (var i = 1; i < startNum; i++) {
+        if (inputCheckdata[i] === undefined || inputCheckdata[i] === "" || inputCheckdata[i] === null) {
+            for (var j = 0; j < inputbubblenumber.length; j++) {
+                if (inputbubblenumber[j] == i) {
+                    return i;
+                }
+            }
+        }
+    }
+
+    return -1;  // 全部完成
+}
