@@ -699,6 +699,51 @@
                 input.click();
             };
 
+            // ===== 新增：匯出 Excel 功能 =====
+const handleExportToExcel = () => {
+    if (project.parts.length === 0) {
+        alert("目前沒有資料可匯出");
+        return;
+    }
+
+    // 準備要匯出的資料
+    const exportData = project.parts.map((p, index) => ({
+        "序列": index + 1,
+        "廠商": p.vendor || "",
+        "件號": p.no || "",
+        "件名": p.name || "",
+        "是否以暫定工法": p.provisionalMethod || "",
+        "送樣時間": p.date || "",
+        "狀態": p.status || "",
+        "檢查日": p.checkDate || "",
+        "結果": p.result || "",
+        "備註": p.remarks || ""
+    }));
+
+    // 建立工作簿
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    
+    // 調整欄位寬度（可選）
+    ws['!cols'] = [
+        { wch: 6 },   // 序列
+        { wch: 15 },  // 廠商
+        { wch: 15 },  // 件號
+        { wch: 30 },  // 件名
+        { wch: 12 },
+        { wch: 12 },
+        { wch: 12 },
+        { wch: 12 },
+        { wch: 10 },
+        { wch: 40 }   // 備註
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "部品送樣清單");
+
+    // 下載檔案
+    const fileName = `${project.info.model || '專案'}_部品送樣清單_${new Date().toISOString().slice(0,10)}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+};
             // 當編輯項目改變時，同步更新圖片預覽
             useEffect(() => {
                 if (editItem) {
@@ -806,6 +851,12 @@
                     <div className="p-4 bg-gray-50 border-b flex justify-between items-center">
                         <h3 className="font-bold text-gray-700">1. 部品送樣清單</h3>
                         <div className="flex gap-2">
+                            <button
+            onClick={handleExportToExcel}
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm pdf-hide flex items-center gap-1"
+        >
+            <i className="fas fa-file-export"></i> 匯出 Excel
+        </button>
                             <button
                                 onClick={handleImportParts}
                                 className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md text-sm pdf-hide"
