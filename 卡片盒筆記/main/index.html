@@ -148,24 +148,30 @@
     }
   </style>
 </head>
-<body class="bg-tech-bg text-slate-200 font-sans h-screen overflow-hidden flex flex-col md:flex-row">
+<!-- 新增 landscape:flex-row 支援橫向模式 -->
+<body class="bg-tech-bg text-slate-200 font-sans h-screen overflow-hidden flex flex-col md:flex-row landscape:flex-row">
 
   <!-- Notification Toast Area -->
   <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
   <!-- SIDEBAR (Navigation & List) -->
-  <aside id="sidebar-left" class="panel-transition w-full md:w-80 flex flex-col border-r border-tech-border bg-tech-panel h-[35vh] md:h-full shrink-0">
+  <!-- 調整為 h-[40vh] 並支援橫向模式的高度與寬度 -->
+  <aside id="sidebar-left" class="panel-transition w-full md:w-80 landscape:w-80 flex flex-col border-r border-tech-border bg-tech-panel h-[40vh] md:h-full landscape:h-full shrink-0">
     <!-- App Header -->
     <div class="p-4 border-b border-tech-border flex items-center justify-between shrink-0">
       <div class="flex items-center gap-2 text-tech-accent animate-pulse">
         <i class="fa-solid fa-microchip text-xl"></i>
         <h1 class="font-mono text-lg font-bold tracking-wider">ZETTEL_AI</h1>
       </div>
-      <div class="flex gap-2">
+      <div class="flex items-center gap-3">
+        <!-- 手機版快捷新增按鈕 (避免下方按鈕被切掉時無法新增) -->
+        <button onclick="createNewNote()" title="新增資料卡" class="text-tech-accent hover:text-white transition md:hidden landscape:hidden">
+          <i class="fa-solid fa-square-plus text-lg"></i>
+        </button>
         <button onclick="saveNotes()" title="匯出/保存 (JSON)" class="text-slate-400 hover:text-tech-accent transition">
           <i class="fa-solid fa-floppy-disk"></i>
         </button>
-        <label for="import-notes" title="導入 (JSON)" class="text-slate-400 hover:text-tech-accent transition cursor-pointer">
+        <label for="import-notes" title="導入 (JSON)" class="text-slate-400 hover:text-tech-accent transition cursor-pointer mb-0 flex items-center">
           <i class="fa-solid fa-file-import"></i>
         </label>
         <input type="file" id="import-notes" accept=".json" class="hidden" onchange="importNotes()" />
@@ -199,7 +205,7 @@
   </aside>
 
   <!-- MAIN AREA (Editor) -->
-  <main class="flex-1 flex flex-col h-[65vh] md:h-full relative bg-tech-bg bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiLz48L3N2Zz4=')]">
+  <main class="flex-1 flex flex-col h-[60vh] md:h-full landscape:h-full relative bg-tech-bg bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiLz48L3N2Zz4=')]">
     
     <!-- Editor Header / Toolbar -->
     <header class="h-16 border-b border-tech-border glass-panel flex items-center justify-between px-4 md:px-6 shrink-0 z-10">
@@ -220,7 +226,7 @@
         </button>
         
         <!-- Toggle Right Sidebar Button -->
-        <div class="h-6 w-px bg-slate-700 mx-2 hidden md:block"></div>
+        <div class="h-6 w-px bg-slate-700 mx-2 hidden sm:block"></div>
         <button onclick="togglePanel('right')" class="text-slate-400 hover:text-tech-secondary transition p-2 rounded hover:bg-slate-700/50" title="切換資訊欄">
             <i class="fa-solid fa-columns"></i>
         </button>
@@ -252,7 +258,7 @@
     </div>
 
     <!-- Content Area -->
-    <div class="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+    <div class="flex-1 flex flex-col md:flex-row landscape:flex-row overflow-hidden relative">
       
       <!-- Editor Body -->
       <div class="flex-1 overflow-y-auto p-6 relative">
@@ -261,7 +267,8 @@
       </div>
 
       <!-- Right Panel: Metadata (Tags & Links) -->
-      <aside id="sidebar-right" class="panel-transition w-full md:w-72 border-t md:border-t-0 md:border-l border-tech-border bg-slate-900/50 p-4 overflow-y-auto shrink-0 h-[35vh] md:h-full">
+      <!-- 支援 landscape 橫向模式排版與邊框 -->
+      <aside id="sidebar-right" class="panel-transition w-full md:w-72 landscape:w-72 border-t border-l-0 md:border-t-0 landscape:border-t-0 md:border-l landscape:border-l border-tech-border bg-slate-900/50 p-4 overflow-y-auto shrink-0 h-[40vh] md:h-full landscape:h-full">
         
         <!-- Gemini AI Section -->
         <div class="mb-6 p-3 rounded-lg border border-tech-secondary/30 bg-slate-800/30">
@@ -501,8 +508,6 @@
             const continuation = await callGemini(prompt);
             
             // Append to editor
-            // We use a clean way to append text to avoid messing up HTML too much, 
-            // but for a simple editor appending HTML/Text is okay.
             const span = document.createElement('span');
             span.innerHTML = continuation;
             span.classList.add('fade-in'); // animate it
@@ -661,23 +666,20 @@
     // --- UI Layout Management ---
 
     function togglePanel(side) {
-        const isMobile = window.innerWidth < 768;
+        // 加入橫向(Landscape)判斷，如果寬度大於 768px 或正處於橫向模式，就是左右佈局
+        const isRowLayout = window.innerWidth >= 768 || window.matchMedia("(orientation: landscape)").matches;
         
         if (side === 'left') {
-            if (isMobile) {
-                // Mobile: Toggle height or display
-                els.sidebarLeft.classList.toggle('panel-closed-height');
-            } else {
-                // Desktop: Toggle width
+            if (isRowLayout) {
                 els.sidebarLeft.classList.toggle('panel-closed-width');
+            } else {
+                els.sidebarLeft.classList.toggle('panel-closed-height');
             }
         } else if (side === 'right') {
-            // Right panel is usually inside flex-col on mobile, but at bottom
-            // logic is same: hide width on desktop, hide height on mobile
-             if (isMobile) {
-                els.sidebarRight.classList.toggle('panel-closed-height');
-            } else {
+            if (isRowLayout) {
                 els.sidebarRight.classList.toggle('panel-closed-width');
+            } else {
+                els.sidebarRight.classList.toggle('panel-closed-height');
             }
         }
     }
