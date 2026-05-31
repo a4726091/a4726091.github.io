@@ -334,6 +334,56 @@
     let notes = [];
     let currentNoteId = null; // null implies "New Note" mode
 
+    // --- IndexedDB Configuration ---
+    const DB_NAME = 'ZettelAIDB';
+    const STORE_NAME = 'notes_store';
+
+    // 初始化並開啟 IndexedDB
+    function initDB() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(DB_NAME, 1);
+            request.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains(STORE_NAME)) {
+                    db.createObjectStore(STORE_NAME);
+                }
+            };
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    // 從 IndexedDB 讀取所有筆記
+    async function loadFromStorage() {
+        try {
+            const db = await initDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_NAME, 'readonly');
+                const store = tx.objectStore(STORE_NAME);
+                const request = store.get('all_notes');
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        } catch (err) {
+            console.error('讀取 IndexedDB 失敗', err);
+            return null;
+        }
+    }
+
+    // 將所有筆記儲存至 IndexedDB
+    async function saveToStorage() {
+        try {
+            const db = await initDB();
+            const tx = db.transaction(STORE_NAME, 'readwrite');
+            const store = tx.objectStore(STORE_NAME);
+            // 直接儲存整個 Array 物件，無需 JSON.stringify
+            store.put(notes, 'all_notes');
+        } catch (err) {
+            console.error('儲存至 IndexedDB 失敗', err);
+            showToast('儲存資料庫失敗', 'error');
+        }
+    }
+
     // --- Gemini API Configuration ---
     const apiKey = ""; // API Key will be injected by the environment
     
@@ -359,20 +409,33 @@
     };
 
     // --- Initialization ---
-    window.onload = function() {
-      // Load from local storage or mock
-      const stored = localStorage.getItem('zettelkasten_notes');
-      if (stored) {
-        notes = JSON.parse(stored);
+    window.onload = async function() {
+      // 嘗試從 IndexedDB 載入資料
+      const stored = await loadFromStorage();
+      
+      if (stored && Array.isArray(stored) && stored.length > 0) {
+        notes = stored;
       } else {
-        // Initial onboarding note
-        notes = [{
-          id: '1',
-          title: '歡迎使用 ZETTEL_AI',
-          content: '<b>開始你的數位大腦旅程。</b><br><br>這是一個結合科技風格、卡片盒筆記法與 Gemini AI 的系統。<br><br><b>✨ 新功能：</b>在右側面板，你可以找到三個 AI 按鈕：<br>1. <b>智能標記</b>：自動分析內容並加上標籤。<br>2. <b>重點摘要</b>：幫你總結長篇大論。<br>3. <b>靈感續寫</b>：當你靈感枯竭時，讓 AI 幫你寫下去。<br><br>點擊上方工具列的按鈕可以開合左右面板，讓寫作更專注。',
-          tags: ['System', 'Help', 'AI'],
-          linkedNotes: []
-        }];
+        // 退回機制：檢查 localStorage 中是否有舊資料並進行遷移
+        const oldLocal = localStorage.getItem('zettelkasten_notes');
+        if (oldLocal) {
+            try {
+                notes = JSON.parse(oldLocal);
+                await saveToStorage(); // 遷移到 IndexedDB
+                console.log('已從 localStorage 成功遷移資料至 IndexedDB');
+            } catch (err) {
+                console.error('遷移資料失敗', err);
+            }
+        } else {
+            // Initial onboarding note
+            notes = [{
+              id: '1',
+              title: '歡迎使用 ZETTEL_AI',
+              content: '<b>開始你的數位大腦旅程。</b><br><br>這是一個結合科技風格、卡片盒筆記法與 Gemini AI 的系統。<br><br><b>✨ 新功能：</b>在右側面板，你可以找到三個 AI 按鈕：<br>1. <b>智能標記</b>：自動分析內容並加上標籤。<br>2. <b>重點摘要</b>：幫你總結長篇大論。<br>3. <b>靈感續寫</b>：當你靈感枯竭時，讓 AI 幫你寫下去。<br><br>點擊上方工具列的按鈕可以開合左右面板，讓寫作更專注。<br><br><i>🚀 系統已升級至 IndexedDB，突破瀏覽器儲存限制，現在您可以盡情插入大量圖片了！</i>',
+              tags: ['System', 'Help', 'AI'],
+              linkedNotes: []
+            }];
+        }
       }
       renderNoteList();
       updateTagHistory();
@@ -649,10 +712,6 @@
       renderLinkSuggestions();
       createNewNote();
       showToast('資料已刪除', 'info');
-    }
-
-    function saveToStorage() {
-      localStorage.setItem('zettelkasten_notes', JSON.stringify(notes));
     }
 
     // --- UI Layout Management ---
