@@ -14,6 +14,7 @@
   <!-- FontAwesome for Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -86,6 +87,31 @@
       box-shadow: 0 0 0 2px #06b6d4;
     }
     
+    /* Elegant tech style for tables pasted */
+    .editor-content table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 15px;
+      border: 1px solid #334155;
+    }
+    .editor-content th {
+      background-color: #1e293b;
+      color: #06b6d4;
+      font-weight: 600;
+      padding: 8px 12px;
+      border: 1px solid #334155;
+      text-align: left;
+    }
+    .editor-content td {
+      padding: 8px 12px;
+      border: 1px solid #334155;
+      color: #cbd5e1;
+    }
+    .editor-content tr:nth-child(even) {
+      background-color: rgba(255, 255, 255, 0.02);
+    }
+    
     /* Animation classes */
     .fade-in {
       animation: fadeIn 0.3s ease-in-out;
@@ -148,14 +174,12 @@
     }
   </style>
 </head>
-<!-- 新增 landscape:flex-row 支援橫向模式 -->
 <body class="bg-tech-bg text-slate-200 font-sans h-screen overflow-hidden flex flex-col md:flex-row landscape:flex-row">
 
   <!-- Notification Toast Area -->
   <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
   <!-- SIDEBAR (Navigation & List) -->
-  <!-- 調整為 h-[40vh] 並支援橫向模式的高度與寬度 -->
   <aside id="sidebar-left" class="panel-transition w-full md:w-80 landscape:w-80 flex flex-col border-r border-tech-border bg-tech-panel h-[40vh] md:h-full landscape:h-full shrink-0">
     <!-- App Header -->
     <div class="p-4 border-b border-tech-border flex items-center justify-between shrink-0">
@@ -175,6 +199,14 @@
           <i class="fa-solid fa-file-import"></i>
         </label>
         <input type="file" id="import-notes" accept=".json" class="hidden" onchange="importNotes()" />
+
+        <button
+  onclick="toggleAIPanel()"
+  id="btn-ai-toggle"
+  title="顯示/隱藏 AI 功能"
+  class="text-slate-400 hover:text-yellow-400 transition">
+  <i class="fa-solid fa-robot"></i>
+</button>
       </div>
     </div>
 
@@ -259,14 +291,25 @@
       </div>
 
       <!-- Right Panel: Metadata (Tags & Links) -->
-      <!-- 支援 landscape 橫向模式排版與邊框 -->
       <aside id="sidebar-right" class="panel-transition w-full md:w-72 landscape:w-72 border-t border-l-0 md:border-t-0 landscape:border-t-0 md:border-l landscape:border-l border-tech-border bg-slate-900/50 p-4 overflow-y-auto shrink-0 h-[40vh] md:h-full landscape:h-full">
         
         <!-- Gemini AI Section -->
-        <div class="mb-6 p-3 rounded-lg border border-tech-secondary/30 bg-slate-800/30">
+        <div id="ai-panel" class="hidden mb-6 p-3 rounded-lg border border-tech-secondary/30 bg-slate-800/30">
           <h3 class="text-xs font-mono text-white mb-3 uppercase tracking-wider flex items-center">
             <i class="fa-solid fa-sparkles text-yellow-400 mr-2 animate-pulse"></i> Gemini AI 運算核心
           </h3>
+          
+          <!-- 智慧網頁剪藏功能區塊 -->
+          <div class="mb-3 p-2 bg-slate-900/80 rounded border border-slate-700/50">
+            <label class="block text-[10px] font-mono text-slate-400 mb-1 uppercase">🌐 智慧網頁剪藏</label>
+            <div class="flex gap-1.5">
+              <input type="text" id="clipper-url" placeholder="輸入網址進行剪藏..." class="flex-1 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs focus:border-tech-accent outline-none text-slate-200">
+              <button onclick="aiClipper()" id="btn-ai-clipper" class="bg-tech-accent/20 border border-tech-accent/50 text-tech-accent hover:bg-tech-accent hover:text-slate-900 px-2.5 rounded text-xs transition shrink-0" title="開始剪藏">
+                <i class="fa-solid fa-cloud-download"></i>
+              </button>
+            </div>
+          </div>
+
           <div class="grid grid-cols-1 gap-2">
             <button onclick="aiAutoTag()" id="btn-ai-tag" class="text-left px-3 py-2 bg-slate-900 border border-slate-700 rounded hover:border-yellow-400 hover:text-yellow-400 transition text-sm flex items-center group">
               <i class="fa-solid fa-tags w-6 text-slate-500 group-hover:text-yellow-400"></i>
@@ -276,9 +319,9 @@
               <i class="fa-solid fa-file-lines w-6 text-slate-500 group-hover:text-yellow-400"></i>
               <span>✨ 重點摘要</span>
             </button>
-            <button onclick="aiContinue()" id="btn-ai-continue" class="text-left px-3 py-2 bg-slate-900 border border-slate-700 rounded hover:border-yellow-400 hover:text-yellow-400 transition text-sm flex items-center group">
-              <i class="fa-solid fa-pen-nib w-6 text-slate-500 group-hover:text-yellow-400"></i>
-              <span>✨ 靈感續寫</span>
+            <button onclick="aiAutoLink()" id="btn-ai-link" class="text-left px-3 py-2 bg-slate-900 border border-slate-700 rounded hover:border-yellow-400 hover:text-yellow-400 transition text-sm flex items-center group">
+              <i class="fa-solid fa-project-diagram w-6 text-slate-500 group-hover:text-yellow-400"></i>
+              <span>✨ 智能關聯</span>
             </button>
           </div>
         </div>
@@ -431,7 +474,7 @@
             notes = [{
               id: '1',
               title: '歡迎使用 ZETTEL_AI',
-              content: '<b>開始你的數位大腦旅程。</b><br><br>這是一個結合科技風格、卡片盒筆記法與 Gemini AI 的系統。<br><br><b>✨ 新功能：</b>在右側面板，你可以找到三個 AI 按鈕：<br>1. <b>智能標記</b>：自動分析內容並加上標籤。<br>2. <b>重點摘要</b>：幫你總結長篇大論。<br>3. <b>靈感續寫</b>：當你靈感枯竭時，讓 AI 幫你寫下去。<br><br>點擊上方工具列的按鈕可以開合左右面板，讓寫作更專注。<br><br><i>🚀 系統已升級至 IndexedDB，突破瀏覽器儲存限制，現在您可以盡情插入大量圖片了！</i>',
+              content: '<b>開始你的數位大腦旅程。</b><br><br>這是一個結合科技風格、卡片盒筆記法與 Gemini AI 的系統。<br><br><b>✨ 核心功能：</b>在右側面板，你可以找到多個 AI 工具：<br>1. <b>智能標記</b>：自動分析內容並加上標籤。<br>2. <b>重點摘要</b>：幫你總結長篇大論。<br>3. <b>智能關聯</b>：自動分析所有筆記，建立知識網絡。<br>4. <b>智慧網頁剪藏</b>：輸入任何網址，AI 自動為您完整抓取網頁內容、分類標籤，並跟系統內現有卡片建立連結！<br><br>點擊上方工具列的按鈕可以開合左右面板，讓寫作更專注。<br><br><i>🚀 系統已升級至 IndexedDB，突破瀏覽器儲存限制，現在您可以盡情插入大量圖片了！</i>',
               tags: ['System', 'Help', 'AI'],
               linkedNotes: []
             }];
@@ -441,21 +484,135 @@
       updateTagHistory();
       renderLinkSuggestions();
       createNewNote(); // Start in create mode
+      
+      // 註冊安全貼上監聽器
+      els.content.addEventListener('paste', handlePaste);
     };
+
+    // --- Elegant Smart Paste Handler ---
+    function handlePaste(e) {
+        e.preventDefault();
+        
+        // 取得剪貼簿資料
+        const text = e.clipboardData.getData('text/plain');
+        const html = e.clipboardData.getData('text/html');
+        
+        if (html) {
+            // 安全清洗並取得 HTML 內容
+            const cleanedHtml = cleanPastedHTML(html);
+            document.execCommand('insertHTML', false, cleanedHtml);
+            
+            // 延遲重新綁定新加入圖片的縮放事件
+            setTimeout(() => {
+                document.querySelectorAll('#editor-content img').forEach(makeImageResizable);
+            }, 100);
+            showToast('已智慧過濾網頁格式與廣告樣式', 'success');
+        } else if (text) {
+            // 沒有 HTML 時，僅插入乾淨的純文字
+            document.execCommand('insertText', false, text);
+        }
+    }
+
+    // 手動安全過濾器 (Unwrap 機制，取代 DOMPurify 防禦廣告與垃圾 HTML)
+    function cleanPastedHTML(htmlString) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(htmlString, 'text/html');
+        
+        // 允許保留的安全語意與排版標籤 (排除所有 div, span, section 及其自訂外觀)
+        const allowedTags = [
+            'P', 'BR', 'B', 'STRONG', 'I', 'EM', 'U', 
+            'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 
+            'UL', 'OL', 'LI', 'BLOCKQUOTE',
+            'TABLE', 'THEAD', 'TBODY', 'TR', 'TH', 'TD', 
+            'IMG', 'A'
+        ];
+        
+        function sanitizeNode(node) {
+            // 文字節點：直接原樣複製
+            if (node.nodeType === Node.TEXT_NODE) {
+                return node.cloneNode(true);
+            }
+            
+            // 元素節點：檢查白名單
+            if (node.nodeType === Node.ELEMENT_NODE) {
+                const tagName = node.tagName.toUpperCase();
+                
+                if (allowedTags.includes(tagName)) {
+                    const newNode = doc.createElement(tagName);
+                    
+                    // 針對特定的安全標籤處理屬性，移除 class 與 style 等垃圾屬性
+                    if (tagName === 'IMG') {
+                        const src = node.getAttribute('src');
+                        if (src) {
+                            newNode.setAttribute('src', src);
+                            newNode.className = 'resizable';
+                            newNode.style.width = '200px';
+                            newNode.style.height = 'auto';
+                        }
+                    } else if (tagName === 'A') {
+                        const href = node.getAttribute('href');
+                        if (href && (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('#'))) {
+                            newNode.setAttribute('href', href);
+                            newNode.setAttribute('target', '_blank');
+                            newNode.className = 'text-tech-accent underline hover:text-white transition';
+                        }
+                    }
+                    
+                    // 遞迴複製處理子節點
+                    node.childNodes.forEach(child => {
+                        const sanitizedChild = sanitizeNode(child);
+                        if (sanitizedChild) {
+                            newNode.appendChild(sanitizedChild);
+                        }
+                    });
+                    
+                    return newNode;
+                } else {
+                    // 如果是不合法的標籤 (如 div, span, section)，進行 Unwrap 展開
+                    // 只保留其底下的安全字元與安全格式
+                    const fragment = doc.createDocumentFragment();
+                    node.childNodes.forEach(child => {
+                        const sanitizedChild = sanitizeNode(child);
+                        if (sanitizedChild) {
+                            fragment.appendChild(sanitizedChild);
+                        }
+                    });
+                    return fragment;
+                }
+            }
+            return null;
+        }
+        
+        // 處理整個文件 body
+        const rootFragment = doc.createDocumentFragment();
+        doc.body.childNodes.forEach(child => {
+            const sanitized = sanitizeNode(child);
+            if (sanitized) {
+                rootFragment.appendChild(sanitized);
+            }
+        });
+        
+        const tempDiv = doc.createElement('div');
+        tempDiv.appendChild(rootFragment);
+        return tempDiv.innerHTML;
+    }
 
     // --- Gemini AI Functions ---
 
-    async function callGemini(prompt, systemInstruction = "") {
+    async function callGemini(prompt, systemInstruction = "", useSearch = false) {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
         const payload = {
             contents: [{ parts: [{ text: prompt }] }],
             generationConfig: {
-                maxOutputTokens: 1000,
-                temperature: 0.7
+                maxOutputTokens: 2000,
+                temperature: 0.4
             }
         };
         if (systemInstruction) {
             payload.systemInstruction = { parts: [{ text: systemInstruction }] };
+        }
+        if (useSearch) {
+            payload.tools = [{ "google_search": {} }];
         }
 
         const delays = [1000, 2000, 4000, 8000, 16000];
@@ -475,6 +632,136 @@
                  if (i === 5) throw e;
                  await new Promise(r => setTimeout(r, delays[i]));
             }
+        }
+    }
+
+    async function aiClipper() {
+        const urlInput = document.getElementById('clipper-url');
+        const url = urlInput.value.trim();
+        if (!url) {
+            showToast("請輸入有效的網址", "error");
+            return;
+        }
+        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+            showToast("請輸入以 http:// 或 https:// 開頭的網址", "error");
+            return;
+        }
+
+        const btn = document.getElementById('btn-ai-clipper');
+        setLoading(btn, true);
+        showToast("AI 正在連線上網讀取並分析網頁...", "info");
+
+        try {
+            const prompt = `請使用 Google Search 讀取並分析此網址的內容：${url}。請提取網頁的主要文章內容，並生成：
+1. 適合的筆記標題 (title)
+2. 詳細的文章正文內容 (content)，請轉換成乾淨的 HTML 格式（只使用 <p>、<b>、<ul>、<li> 等標籤，不要夾帶網頁側欄、頁首頁尾、導航或廣告）
+3. 完整的網頁文章正文內容，請完整將網頁的主要文章段落與文字全部填入，切勿進行過度壓縮、刪減或省略 (summary)
+4. 3 到 5 個適合這篇內容的關鍵字標籤 (tags)
+5. 建議關聯的主題關鍵字清單 (relatedKeywords)，用來與我們現有的其他筆記標題進行模糊比對。
+
+請務必使用繁體中文（台灣繁體）回答。`;
+
+            const systemInstruction = "你是一個專業的知識管理與網頁剪藏助手。請精準閱讀網頁核心內容，並輸出乾淨的結構化資料。不要輸出任何 Markdown 標記，直接輸出符合 Schema 的 JSON。";
+
+            // 使用 Structured JSON
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                systemInstruction: { parts: [{ text: systemInstruction }] },
+                tools: [{ "google_search": {} }],
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            title: { type: "STRING" },
+                            content: { type: "STRING" },
+                            summary: { type: "STRING" },
+                            tags: { type: "ARRAY", items: { type: "STRING" } },
+                            relatedKeywords: { type: "ARRAY", items: { type: "STRING" } }
+                        },
+                        required: ["title", "content", "summary", "tags", "relatedKeywords"]
+                    }
+                }
+            };
+
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            
+            let resultText = "";
+            const delays = [1000, 2000, 4000, 8000, 16000];
+            for (let i = 0; i <= 5; i++) {
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    const data = await response.json();
+                    resultText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                    break;
+                } catch (e) {
+                     if (i === 5) throw e;
+                     await new Promise(r => setTimeout(r, delays[i]));
+                }
+            }
+
+            if (!resultText) {
+                throw new Error("Gemini 無回傳內容");
+            }
+
+            const parsed = JSON.parse(resultText);
+            
+            // 建立新資料卡 ID
+            const newId = genId();
+            
+            // 格式化內文：將 AI 完整剪藏正文放最前面，後面放轉換後的部分
+            const summaryHTML = `<blockquote style="border-left: 3px solid #f59e0b; padding-left: 10px; color: #cbd5e1; margin: 10px 0; background: rgba(245, 158, 11, 0.1); padding: 8px; border-radius: 4px;"><strong>✨ AI 完整剪藏內容：</strong>${parsed.summary}</blockquote><p><br></p>`;
+            const finalContent = summaryHTML + parsed.content;
+
+            // 尋找現有相關筆記建立雙向連結
+            const suggestedLinks = [];
+            notes.forEach(note => {
+                // 如果現有筆記的標題包含 AI 建議的任何關鍵字，或者目前的標題包含現有筆記關鍵字
+                const matchKeyword = parsed.relatedKeywords.some(kw => 
+                    note.title.toLowerCase().includes(kw.toLowerCase()) || 
+                    kw.toLowerCase().includes(note.title.toLowerCase())
+                );
+                if (matchKeyword && note.id !== newId) {
+                    suggestedLinks.push(note.id);
+                    // 建立雙向連結
+                    if (!note.linkedNotes) note.linkedNotes = [];
+                    if (!note.linkedNotes.includes(newId)) {
+                        note.linkedNotes.push(newId);
+                    }
+                }
+            });
+
+            const newNote = {
+                id: newId,
+                title: parsed.title,
+                content: finalContent,
+                tags: parsed.tags || [],
+                linkedNotes: suggestedLinks
+            };
+
+            notes.push(newNote);
+            await saveToStorage();
+            
+            // 重新渲染與讀取新剪藏的筆記
+            renderNoteList();
+            updateTagHistory();
+            renderLinkSuggestions();
+            loadNote(newId);
+
+            // 清空網址輸入框
+            urlInput.value = '';
+            showToast(`✨ 成功剪藏《${parsed.title}》！已自動填入完整內容、生成標籤並建立關聯連結！`, "success");
+
+        } catch (error) {
+            console.error(error);
+            showToast("智慧剪藏失敗，請確認網路連線或 API Key 設定", "error");
+        } finally {
+            setLoading(btn, false);
         }
     }
 
@@ -546,40 +833,64 @@
         }
     }
 
-    async function aiContinue() {
+    async function aiAutoLink() {
         const text = els.content.innerText.trim();
-        if (text.length < 10) {
-            showToast("請先輸入一些內容讓 AI 參考", "info");
+        const title = els.title.value.trim();
+
+        if (text.length < 10 && title.length < 2) {
+            showToast("內容太少，無法分析關聯", "error");
             return;
         }
 
-        const btn = document.getElementById('btn-ai-continue');
+        const availableNotes = notes.filter(n => n.id !== currentNoteId);
+        if (availableNotes.length === 0) {
+            showToast("系統中沒有其他筆記可供關聯", "info");
+            return;
+        }
+
+        const btn = document.getElementById('btn-ai-link');
         setLoading(btn, true);
 
         try {
-            // Take the last 1000 characters for context to save tokens and keep relevance
-            const context = text.slice(-1000);
-            const prompt = `請接續以下文字繼續撰寫，保持風格一致，長度約 50-100 字。不要重複結尾，直接接續。內容：\n${context}`;
-            const continuation = await callGemini(prompt);
+            // 將可用筆記組合成 "ID::標題" 的清單格式供 AI 分析
+            const availableNotesText = availableNotes.map(n => `${n.id}::${n.title}`).join('\n');
+            const prompt = `你是一個知識網狀關聯助手。請閱讀[目前筆記]，並從[可用筆記清單]中，挑選出 1 到 5 個最相關的筆記。\n請「只」回傳筆記的 ID，並用半形逗號分隔（例如：id1,id2），不要包含任何其他文字或符號。\n\n[目前筆記標題]\n${title}\n\n[目前筆記內容]\n${text}\n\n[可用筆記清單 (ID::標題)]\n${availableNotesText}`;
             
-            // Append to editor
-            const span = document.createElement('span');
-            span.innerHTML = continuation;
-            span.classList.add('fade-in'); // animate it
-            els.content.appendChild(span);
+            const result = await callGemini(prompt);
             
-            // Scroll to bottom
-            els.content.scrollTop = els.content.scrollHeight;
-            showToast("AI 已完成續寫", "success");
+            // 清理可能出現的 markdown 格式或換行符號
+            const cleanedResult = result.replace(/```/g, '').replace(/`/g, '').replace(/\n/g, '');
+            const suggestedIds = cleanedResult.split(',').map(id => id.trim()).filter(id => id);
+            
+            // 取得當前 UI 上已經存在的關聯
+            const existingLinks = Array.from(els.linkedList.querySelectorAll('.link-card')).map(d => d.dataset.id);
+            const newLinks = [...existingLinks];
+            let addedCount = 0;
+
+            suggestedIds.forEach(id => {
+                // 確認 ID 真的存在於其他筆記中，且尚未被加入
+                if (availableNotes.some(n => n.id === id) && !newLinks.includes(id)) {
+                    newLinks.push(id);
+                    addedCount++;
+                }
+            });
+
+            if (addedCount > 0) {
+                renderLinkedUI(newLinks); // 更新 UI
+                showToast(`已自動關聯 ${addedCount} 則相關筆記`, "success");
+            } else {
+                showToast("未發現高度相關的其他筆記", "info");
+            }
 
         } catch (error) {
             console.error(error);
-            showToast("AI 續寫失敗", "error");
+            showToast("AI 關聯分析失敗，請稍後再試", "error");
         } finally {
             setLoading(btn, false);
         }
     }
 
+    // --- Loading State Manager ---
     function setLoading(btn, isLoading) {
         if (isLoading) {
             btn.classList.add('ai-loading', 'pointer-events-none');
@@ -713,6 +1024,21 @@
       createNewNote();
       showToast('資料已刪除', 'info');
     }
+
+function toggleAIPanel() {
+    const panel = document.getElementById('ai-panel');
+    const btn = document.getElementById('btn-ai-toggle');
+
+    panel.classList.toggle('hidden');
+
+    if (panel.classList.contains('hidden')) {
+        btn.classList.remove('text-yellow-400');
+        btn.classList.add('text-slate-400');
+    } else {
+        btn.classList.remove('text-slate-400');
+        btn.classList.add('text-yellow-400');
+    }
+}
 
     // --- UI Layout Management ---
 
@@ -920,18 +1246,16 @@
       els.content.focus();
     }
 
+    // 插入圖片 (本機上傳)
     function insertImage(input) {
       const file = input.files[0];
       if (!file) return;
 
       const reader = new FileReader();
       reader.onload = function(e) {
-        // Insert placeholder logic, but simplified for single file
-        // We restore focus and insert
         els.content.focus();
         document.execCommand('insertImage', false, e.target.result);
         
-        // Find the image just inserted (it will be the last one usually, or we can add resize logic to all)
         setTimeout(() => {
           document.querySelectorAll('#editor-content img').forEach(makeImageResizable);
         }, 100);
@@ -946,13 +1270,11 @@
         
         img.addEventListener('click', function(e) {
             e.stopPropagation();
-            // Deselect others
             document.querySelectorAll('img').forEach(i => i.classList.remove('resizable'));
             img.classList.add('resizable');
         });
     }
 
-    // Click outside to deselect images
     document.addEventListener('click', function(e) {
         if (!e.target.closest('img')) {
             document.querySelectorAll('img').forEach(i => i.classList.remove('resizable'));
@@ -985,7 +1307,6 @@
                 const imported = JSON.parse(e.target.result);
                 if (!Array.isArray(imported)) throw new Error("Format");
                 
-                // Merge logic: append distinct IDs
                 const existingIds = new Set(notes.map(n => n.id));
                 let count = 0;
                 
@@ -1034,6 +1355,7 @@
         setTimeout(() => toast.remove(), 300);
       }, 3000);
     }
+    
 
   </script>
 </body>
