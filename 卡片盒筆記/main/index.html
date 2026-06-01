@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ZETTL // 卡片盒核心系統 + Gemini AI</title>
   
+  
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   
@@ -13,7 +14,6 @@
   
   <!-- FontAwesome for Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
 
   <script>
     tailwind.config = {
@@ -53,228 +53,204 @@
 
   <style>
     /* Custom Scrollbar for Webkit */
-    ::-webkit-scrollbar {
-      width: 8px;
-      height: 8px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #0f172a; 
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #334155; 
-      border-radius: 4px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #475569; 
-    }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
 
     /* Content Editable Placeholder */
-    [contenteditable]:empty:before {
-      content: attr(placeholder);
-      color: #64748b;
-      cursor: text;
-    }
+    [contenteditable]:empty:before { content: attr(placeholder); color: #64748b; cursor: text; }
 
     /* Editor Specific Styles */
-    .editor-content img {
-      max-width: 100%;
-      border-radius: 4px;
-      border: 1px solid #334155;
-      margin: 10px 0;
-      transition: all 0.2s;
-    }
-    .editor-content img.resizable {
-      box-shadow: 0 0 0 2px #06b6d4;
-    }
+    .editor-content img { max-width: 100%; border-radius: 4px; border: 1px solid #334155; margin: 10px 0; transition: all 0.2s; cursor: pointer; }
+    .editor-content img.resizable { box-shadow: 0 0 0 2px #06b6d4; }
     
-    /* Elegant tech style for tables pasted */
-    .editor-content table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 16px 0;
-      font-size: 15px;
-      border: 1px solid #334155;
-    }
-    .editor-content th {
-      background-color: #1e293b;
-      color: #06b6d4;
-      font-weight: 600;
-      padding: 8px 12px;
-      border: 1px solid #334155;
-      text-align: left;
-    }
-    .editor-content td {
-      padding: 8px 12px;
-      border: 1px solid #334155;
-      color: #cbd5e1;
-    }
-    .editor-content tr:nth-child(even) {
-      background-color: rgba(255, 255, 255, 0.02);
-    }
+    .editor-content table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 15px; border: 1px solid #334155; }
+    .editor-content th { background-color: #1e293b; color: #06b6d4; font-weight: 600; padding: 8px 12px; border: 1px solid #334155; text-align: left; }
+    .editor-content td { padding: 8px 12px; border: 1px solid #334155; color: #cbd5e1; }
+    .editor-content tr:nth-child(even) { background-color: rgba(255, 255, 255, 0.02); }
     
     /* Animation classes */
-    .fade-in {
-      animation: fadeIn 0.3s ease-in-out;
-    }
+    .fade-in { animation: fadeIn 0.3s ease-in-out; }
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(5px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
     /* Glassmorphism utility */
-    .glass-panel {
-      background: rgba(30, 41, 59, 0.7);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
+    .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
 
-    /* Transition utilities for collapsing panels */
-    .panel-transition {
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      overflow: hidden; /* Important for hiding content during collapse */
-    }
-    
-    .panel-closed-width {
-      width: 0 !important;
-      padding-left: 0 !important;
-      padding-right: 0 !important;
-      border-right: none !important;
-      border-left: none !important;
-      opacity: 0;
-    }
+    /* Transition utilities */
+    .panel-transition { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); overflow: hidden; }
+    .panel-closed-width { width: 0 !important; padding-left: 0 !important; padding-right: 0 !important; border: none !important; opacity: 0; }
+    .panel-closed-height { height: 0 !important; padding-top: 0 !important; padding-bottom: 0 !important; border: none !important; opacity: 0; }
 
-    .panel-closed-height {
-      height: 0 !important;
-      padding-top: 0 !important;
-      padding-bottom: 0 !important;
-      border-top: none !important;
-      border-bottom: none !important;
-      opacity: 0;
-    }
+    /* Drawer specific transition */
+    .drawer-open { transform: translateX(0); }
+    .drawer-closed { transform: translateX(100%); }
 
     /* AI Loading State */
-    .ai-loading {
-      position: relative;
-      overflow: hidden;
-    }
-    .ai-loading::after {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(6, 182, 212, 0.2), transparent);
-      transform: translateX(-100%);
-      animation: shimmer 1.5s infinite;
-    }
-    @keyframes shimmer {
-      100% { transform: translateX(100%); }
-    }
+    .ai-loading { position: relative; overflow: hidden; }
+    .ai-loading::after { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(6, 182, 212, 0.2), transparent); transform: translateX(-100%); animation: shimmer 1.5s infinite; }
+    @keyframes shimmer { 100% { transform: translateX(100%); } }
   </style>
 </head>
-<body class="bg-tech-bg text-slate-200 font-sans h-screen overflow-hidden flex flex-col md:flex-row landscape:flex-row">
+<body class="bg-tech-bg text-slate-200 font-sans h-screen overflow-hidden flex flex-col md:flex-row landscape:flex-row relative">
 
-  <!-- Notification Toast Area -->
-  <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+  <!-- 🔲 Notification Toast Area -->
+  <div id="toast-container" class="fixed top-5 right-5 z-[100] flex flex-col gap-2 pointer-events-none"></div>
 
-  <!-- SIDEBAR (Navigation & List) -->
+  <!-- 🔲 Shared Overlay Backdrop for Floating Panels -->
+  <div id="ui-overlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 hidden transition-opacity duration-300 opacity-0" onclick="closeAllPanels()"></div>
+
+  <!-- 🔲 Side Drawer (Right Slide-in) for Tag Explorer & Faceted Filter -->
+  <div id="side-drawer" class="fixed top-0 right-0 w-80 md:w-96 h-full bg-tech-panel border-l border-tech-border z-50 drawer-closed transition-transform duration-300 ease-in-out shadow-2xl flex flex-col">
+      <div class="h-16 flex items-center justify-between px-4 border-b border-tech-border bg-slate-900/50 shrink-0">
+          <h2 id="drawer-title" class="font-mono font-bold text-tech-accent tracking-wider"></h2>
+          <button onclick="closeAllPanels()" class="text-slate-400 hover:text-white transition p-2 rounded"><i class="fa-solid fa-times"></i></button>
+      </div>
+      
+      <!-- Content Area -->
+      <div class="flex-1 overflow-y-auto p-4 custom-scrollbar">
+          
+          <!-- View 1: Tag Explorer -->
+          <div id="drawer-view-tag" class="hidden flex-col h-full">
+              <input type="text" id="tag-tree-search" placeholder="模糊搜尋標籤..." class="w-full bg-slate-800 border border-slate-700 rounded text-sm px-3 py-2 mb-4 focus:outline-none focus:border-tech-secondary text-slate-200 transition">
+              <div id="tag-explorer" class="flex-1 overflow-y-auto text-sm space-y-1"></div>
+          </div>
+          
+          <!-- View 2: Faceted Filter Active Conditions -->
+          <div id="drawer-view-filter" class="hidden flex-col h-full">
+              <div id="active-filters-container" class="flex flex-col gap-4">
+                  <div class="flex items-center justify-between">
+                      <span class="text-sm font-mono text-slate-400 uppercase tracking-wider">目前多維度篩選</span>
+                      <button onclick="clearAllFilters()" class="text-sm text-red-400 hover:underline"><i class="fa-solid fa-trash-can mr-1"></i>清除全部</button>
+                  </div>
+                  <div id="active-filters-list" class="flex flex-wrap gap-2"></div>
+                  <div id="no-filters-msg" class="text-sm text-slate-500 py-6 text-center hidden">尚未設定任何篩選條件。<br>請至「標籤樹」點擊標籤以加入篩選。</div>
+              </div>
+          </div>
+
+      </div>
+  </div>
+
+  <!-- 🔲 Center Modal for AI Tools -->
+  <div id="center-modal" class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-11/12 max-w-md bg-tech-panel border border-tech-accent/50 rounded-xl z-50 hidden shadow-neon flex-col overflow-hidden">
+      <div class="px-4 py-3 border-b border-tech-border bg-slate-900/50 flex justify-between items-center">
+          <h3 class="font-mono text-white tracking-wider flex items-center">
+              <i class="fa-solid fa-sparkles text-yellow-400 mr-2 animate-pulse"></i> Gemini AI 運算核心
+          </h3>
+          <button onclick="closeAllPanels()" class="text-slate-400 hover:text-white transition p-1"><i class="fa-solid fa-times"></i></button>
+      </div>
+      <div class="p-4 space-y-4 max-h-[80vh] overflow-y-auto custom-scrollbar">
+          <!-- 智慧網頁剪藏 -->
+          <div class="p-3 bg-slate-900/80 rounded-lg border border-slate-700/50">
+            <label class="block text-xs font-mono text-slate-400 mb-2 uppercase">🌐 智慧網頁剪藏</label>
+            <div class="flex gap-2">
+              <input type="text" id="clipper-url" placeholder="輸入網址進行剪藏..." class="flex-1 bg-slate-800 border border-slate-700 rounded px-3 py-1.5 text-sm focus:border-tech-accent outline-none text-slate-200">
+              <button onclick="aiClipper()" id="btn-ai-clipper" class="bg-tech-accent/20 border border-tech-accent/50 text-tech-accent hover:bg-tech-accent hover:text-slate-900 px-3 rounded transition shrink-0" title="開始剪藏">
+                <i class="fa-solid fa-cloud-download"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- 功能按鈕 -->
+          <div class="grid grid-cols-1 gap-2">
+            <button onclick="aiAutoTag()" id="btn-ai-tag" class="text-left px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg hover:border-yellow-400 hover:text-yellow-400 transition text-sm flex items-center group">
+              <i class="fa-solid fa-tags w-6 text-slate-500 group-hover:text-yellow-400"></i>
+              <span>✨ 智能標記 (依當前內容自動打標)</span>
+            </button>
+            <button onclick="aiSummarize()" id="btn-ai-summary" class="text-left px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg hover:border-yellow-400 hover:text-yellow-400 transition text-sm flex items-center group">
+              <i class="fa-solid fa-file-lines w-6 text-slate-500 group-hover:text-yellow-400"></i>
+              <span>✨ 重點摘要 (產生內容短摘要)</span>
+            </button>
+            <button onclick="aiAutoLink()" id="btn-ai-link" class="text-left px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg hover:border-yellow-400 hover:text-yellow-400 transition text-sm flex items-center group">
+              <i class="fa-solid fa-project-diagram w-6 text-slate-500 group-hover:text-yellow-400"></i>
+              <span>✨ 智能關聯 (自動搜尋系統網格)</span>
+            </button>
+          </div>
+      </div>
+  </div>
+
+
+  <!-- 🟦 SIDEBAR (Navigation & List) 精簡版 -->
   <aside id="sidebar-left" class="panel-transition w-full md:w-80 landscape:w-80 flex flex-col border-r border-tech-border bg-tech-panel h-[40vh] md:h-full landscape:h-full shrink-0">
-    <!-- App Header -->
     <div class="p-4 border-b border-tech-border flex items-center justify-between shrink-0">
       <div class="flex items-center gap-2 text-tech-accent animate-pulse">
         <i class="fa-solid fa-microchip text-xl"></i>
         <h1 class="font-mono text-lg font-bold tracking-wider">ZETTEL_AI</h1>
       </div>
       <div class="flex items-center gap-3">
-        <!-- 快捷新增按鈕 (隨時顯示) -->
-        <button onclick="createNewNote()" title="新增資料卡" class="text-tech-accent hover:text-white transition">
-          <i class="fa-solid fa-square-plus text-lg"></i>
-        </button>
-        <button onclick="saveNotes()" title="匯出/保存 (JSON)" class="text-slate-400 hover:text-tech-accent transition">
-          <i class="fa-solid fa-floppy-disk"></i>
-        </button>
-        <label for="import-notes" title="導入 (JSON)" class="text-slate-400 hover:text-tech-accent transition cursor-pointer mb-0 flex items-center">
-          <i class="fa-solid fa-file-import"></i>
-        </label>
+        <button onclick="createNewNote()" title="新增資料卡" class="text-tech-accent hover:text-white transition"><i class="fa-solid fa-square-plus text-lg"></i></button>
+        <button onclick="saveNotes()" title="匯出/保存 (JSON)" class="text-slate-400 hover:text-tech-accent transition"><i class="fa-solid fa-floppy-disk"></i></button>
+        <label for="import-notes" title="導入 (JSON)" class="text-slate-400 hover:text-tech-accent transition cursor-pointer mb-0 flex items-center"><i class="fa-solid fa-file-import"></i></label>
         <input type="file" id="import-notes" accept=".json" class="hidden" onchange="importNotes()" />
-
-        <button
-  onclick="toggleAIPanel()"
-  id="btn-ai-toggle"
-  title="顯示/隱藏 AI 功能"
-  class="text-slate-400 hover:text-yellow-400 transition">
-  <i class="fa-solid fa-robot"></i>
-</button>
       </div>
     </div>
 
-    <!-- Search & Filter -->
+    <!-- Search Input Only -->
     <div class="p-3 border-b border-tech-border bg-slate-800/50 shrink-0">
-      <div class="relative mb-2">
+      <div class="relative">
         <i class="fa-solid fa-search absolute left-3 top-3 text-slate-500 text-xs"></i>
-        <input type="text" id="search-input" placeholder="搜尋標題或內容..." 
-               class="w-full bg-slate-900 border border-slate-700 rounded text-sm px-8 py-2 focus:outline-none focus:border-tech-accent focus:shadow-neon transition text-slate-200 placeholder-slate-600">
+        <input type="text" id="search-input" placeholder="搜尋標題或內容..." class="w-full bg-slate-900 border border-slate-700 rounded text-sm px-8 py-2 focus:outline-none focus:border-tech-accent focus:shadow-neon transition text-slate-200 placeholder-slate-600">
       </div>
-      <select id="tag-filter" onchange="filterNotes()" class="w-full bg-slate-900 border border-slate-700 rounded text-sm px-2 py-1.5 text-slate-300 focus:outline-none focus:border-tech-accent">
-        <option value="">所有標籤</option>
-      </select>
     </div>
 
     <!-- Note List -->
-    <div id="note-list" class="flex-1 overflow-y-auto p-2 space-y-2">
-      <!-- Items generated by JS -->
-    </div>
+    <div id="note-list" class="flex-1 overflow-y-auto p-2 space-y-2 custom-scrollbar"></div>
   </aside>
 
-  <!-- MAIN AREA (Editor) -->
+  <!-- 🟩 MAIN AREA (Editor) -->
   <main class="flex-1 flex flex-col h-[60vh] md:h-full landscape:h-full relative bg-tech-bg bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiLz48L3N2Zz4=')]">
     
-    <!-- Editor Header / Toolbar -->
+    <!-- Editor Header / Toolbar (加入浮動面板觸發器) -->
     <header class="h-16 border-b border-tech-border glass-panel flex items-center justify-between px-4 md:px-6 shrink-0 z-10">
       <div class="flex items-center gap-4 w-full overflow-hidden">
-        <!-- Toggle Left Sidebar Button -->
         <button onclick="togglePanel('left')" class="text-slate-400 hover:text-white transition p-2 rounded hover:bg-slate-700/50 shrink-0" title="切換導航欄">
             <i class="fa-solid fa-bars"></i>
         </button>
 
-        <input type="text" id="note-title" placeholder="輸入資料卡標題..." 
-               class="bg-transparent border-none text-lg md:text-2xl font-bold text-white placeholder-slate-600 focus:outline-none w-full font-mono tracking-wide min-w-0" />
+        <input type="text" id="note-title" placeholder="輸入資料卡標題..." class="bg-transparent border-none text-lg md:text-2xl font-bold text-white placeholder-slate-600 focus:outline-none w-full font-mono tracking-wide min-w-0" />
       </div>
       
-      <div class="flex items-center gap-2 shrink-0 ml-2">
+      <div class="flex items-center gap-1 md:gap-2 shrink-0 ml-2">
+        <!-- Floating Panels Triggers -->
+        <button onclick="toggleFloatingPanel('tag')" class="text-slate-400 hover:text-tech-accent hover:bg-slate-800 transition p-2 rounded relative" title="標籤樹狀瀏覽">
+            <i class="fa-solid fa-tags"></i>
+        </button>
+        <button onclick="toggleFloatingPanel('filter')" class="text-slate-400 hover:text-tech-secondary hover:bg-slate-800 transition p-2 rounded relative" title="多維度篩選">
+            <i class="fa-solid fa-filter"></i>
+            <span id="filter-badge" class="absolute top-0 right-0 -mt-1 -mr-1 bg-tech-secondary text-white text-[8px] font-bold px-1 rounded-full hidden">0</span>
+        </button>
+        <button onclick="toggleFloatingPanel('ai')" class="text-slate-400 hover:text-yellow-400 hover:bg-slate-800 transition p-2 rounded" title="AI 運算核心">
+            <i class="fa-solid fa-robot"></i>
+        </button>
+        
+        <div class="h-6 w-px bg-slate-700 mx-1 hidden sm:block"></div>
+        
         <span id="save-status" class="text-xs text-slate-500 font-mono hidden lg:block">已同步</span>
         <button onclick="deleteCurrentNote()" id="btn-delete" class="hidden text-red-500 hover:bg-red-500/10 p-2 rounded transition border border-transparent hover:border-red-500/50" title="刪除此卡片">
           <i class="fa-solid fa-trash-can"></i>
         </button>
-        
-        <!-- Toggle Right Sidebar Button -->
-        <div class="h-6 w-px bg-slate-700 mx-2 hidden sm:block"></div>
-        <button onclick="togglePanel('right')" class="text-slate-400 hover:text-tech-secondary transition p-2 rounded hover:bg-slate-700/50" title="切換資訊欄">
+        <button onclick="togglePanel('right')" class="text-slate-400 hover:text-tech-secondary transition p-2 rounded hover:bg-slate-700/50 hidden md:block" title="切換右側資訊欄">
             <i class="fa-solid fa-columns"></i>
         </button>
       </div>
     </header>
 
-    <!-- Toolbar -->
     <div class="px-6 py-2 border-b border-tech-border bg-slate-800/30 flex flex-wrap items-center gap-2 overflow-x-auto shrink-0">
       <div class="flex bg-slate-900 rounded border border-slate-700 p-0.5">
         <button onclick="formatText('bold')" class="p-1.5 px-3 hover:bg-slate-700 rounded text-slate-300 transition" title="粗體"><i class="fa-solid fa-bold"></i></button>
         <button onclick="formatText('italic')" class="p-1.5 px-3 hover:bg-slate-700 rounded text-slate-300 transition" title="斜體"><i class="fa-solid fa-italic"></i></button>
         <button onclick="formatText('underline')" class="p-1.5 px-3 hover:bg-slate-700 rounded text-slate-300 transition" title="底線"><i class="fa-solid fa-underline"></i></button>
       </div>
-      
       <div class="h-6 w-px bg-slate-700 mx-1"></div>
-
       <select id="fontSizeSelect" onchange="changeFontSize(this.value)" class="bg-slate-900 border border-slate-700 text-slate-300 text-xs rounded p-1.5 outline-none">
         <option value="3">一般</option>
         <option value="4">標題 M</option>
         <option value="6">標題 L</option>
       </select>
-
       <div class="h-6 w-px bg-slate-700 mx-1"></div>
-
       <label class="cursor-pointer bg-slate-900 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs rounded p-1.5 px-3 transition flex items-center gap-2">
         <i class="fa-solid fa-image"></i> 插入圖片
         <input type="file" id="imageUpload" accept="image/*" onchange="insertImage(this)" class="hidden">
@@ -283,91 +259,44 @@
 
     <!-- Content Area -->
     <div class="flex-1 flex flex-col md:flex-row landscape:flex-row overflow-hidden relative">
-      
-      <!-- Editor Body -->
-      <div class="flex-1 overflow-y-auto p-6 relative">
-        <div id="editor-content" class="editor-content w-full h-full min-h-[300px] outline-none text-slate-300 leading-relaxed text-lg" 
-             contenteditable="true" placeholder="在此輸入系統資料..."></div>
+      <div class="flex-1 overflow-y-auto p-6 relative custom-scrollbar">
+        <div id="editor-content" class="editor-content w-full h-full min-h-[300px] outline-none text-slate-300 leading-relaxed text-lg" contenteditable="true" placeholder="在此輸入系統資料..."></div>
       </div>
 
-      <!-- Right Panel: Metadata (Tags & Links) -->
-      <aside id="sidebar-right" class="panel-transition w-full md:w-72 landscape:w-72 border-t border-l-0 md:border-t-0 landscape:border-t-0 md:border-l landscape:border-l border-tech-border bg-slate-900/50 p-4 overflow-y-auto shrink-0 h-[40vh] md:h-full landscape:h-full">
-        
-        <!-- Gemini AI Section -->
-        <div id="ai-panel" class="hidden mb-6 p-3 rounded-lg border border-tech-secondary/30 bg-slate-800/30">
-          <h3 class="text-xs font-mono text-white mb-3 uppercase tracking-wider flex items-center">
-            <i class="fa-solid fa-sparkles text-yellow-400 mr-2 animate-pulse"></i> Gemini AI 運算核心
-          </h3>
-          
-          <!-- 智慧網頁剪藏功能區塊 -->
-          <div class="mb-3 p-2 bg-slate-900/80 rounded border border-slate-700/50">
-            <label class="block text-[10px] font-mono text-slate-400 mb-1 uppercase">🌐 智慧網頁剪藏</label>
-            <div class="flex gap-1.5">
-              <input type="text" id="clipper-url" placeholder="輸入網址進行剪藏..." class="flex-1 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs focus:border-tech-accent outline-none text-slate-200">
-              <button onclick="aiClipper()" id="btn-ai-clipper" class="bg-tech-accent/20 border border-tech-accent/50 text-tech-accent hover:bg-tech-accent hover:text-slate-900 px-2.5 rounded text-xs transition shrink-0" title="開始剪藏">
-                <i class="fa-solid fa-cloud-download"></i>
-              </button>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 gap-2">
-            <button onclick="aiAutoTag()" id="btn-ai-tag" class="text-left px-3 py-2 bg-slate-900 border border-slate-700 rounded hover:border-yellow-400 hover:text-yellow-400 transition text-sm flex items-center group">
-              <i class="fa-solid fa-tags w-6 text-slate-500 group-hover:text-yellow-400"></i>
-              <span>✨ 智能標記</span>
-            </button>
-            <button onclick="aiSummarize()" id="btn-ai-summary" class="text-left px-3 py-2 bg-slate-900 border border-slate-700 rounded hover:border-yellow-400 hover:text-yellow-400 transition text-sm flex items-center group">
-              <i class="fa-solid fa-file-lines w-6 text-slate-500 group-hover:text-yellow-400"></i>
-              <span>✨ 重點摘要</span>
-            </button>
-            <button onclick="aiAutoLink()" id="btn-ai-link" class="text-left px-3 py-2 bg-slate-900 border border-slate-700 rounded hover:border-yellow-400 hover:text-yellow-400 transition text-sm flex items-center group">
-              <i class="fa-solid fa-project-diagram w-6 text-slate-500 group-hover:text-yellow-400"></i>
-              <span>✨ 智能關聯</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Tags Section -->
+      <!-- 🟨 RIGHT SIDEBAR (Metadata) 精簡版 -->
+      <aside id="sidebar-right" class="panel-transition w-full md:w-72 landscape:w-72 border-t border-l-0 md:border-t-0 landscape:border-t-0 md:border-l landscape:border-l border-tech-border bg-slate-900/50 p-4 overflow-y-auto shrink-0 h-[40vh] md:h-full landscape:h-full custom-scrollbar">
+        <!-- Tags Input Section -->
         <div class="mb-6">
-          <h3 class="text-xs font-mono text-tech-accent mb-2 uppercase tracking-wider border-b border-slate-700 pb-1">
-            <i class="fa-solid fa-tags mr-1"></i> 資料標籤
-          </h3>
+          <h3 class="text-xs font-mono text-tech-accent mb-2 uppercase tracking-wider border-b border-slate-700 pb-1"><i class="fa-solid fa-tags mr-1"></i> 資料標籤</h3>
           <div class="flex gap-2 mb-2">
-            <input type="text" id="tag-input" placeholder="輸入新標籤..." class="flex-1 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-sm focus:border-tech-accent outline-none">
+            <input type="text" id="tag-input" placeholder="類型/值 (例如: 狀態/草稿)" class="flex-1 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-sm focus:border-tech-accent outline-none">
             <button onclick="addTag()" class="bg-slate-700 hover:bg-tech-accent hover:text-slate-900 px-3 rounded text-sm transition"><i class="fa-solid fa-plus"></i></button>
           </div>
-          <div class="mb-2">
-             <select id="tag-history" onchange="addTagFromHistory(this)" class="w-full bg-slate-800 border-none text-xs text-slate-400 p-1">
+          <div class="mb-3">
+             <select id="tag-history" onchange="addTagFromHistory(this)" class="w-full bg-slate-800 border-none text-xs text-slate-400 p-1 rounded">
                <option value="">+ 從歷史標籤選擇</option>
              </select>
           </div>
-          <div id="active-tags" class="flex flex-wrap gap-2">
-            <!-- Tags go here -->
-          </div>
+          <div id="active-tags" class="flex flex-wrap gap-2"></div>
         </div>
 
         <!-- Linked Notes Section -->
         <div>
-          <h3 class="text-xs font-mono text-tech-secondary mb-2 uppercase tracking-wider border-b border-slate-700 pb-1">
-            <i class="fa-solid fa-link mr-1"></i> 連結網絡
-          </h3>
+          <h3 class="text-xs font-mono text-tech-secondary mb-2 uppercase tracking-wider border-b border-slate-700 pb-1"><i class="fa-solid fa-link mr-1"></i> 連結網絡</h3>
           <div class="relative mb-2">
-             <input list="link-suggestions" id="link-input" placeholder="搜尋筆記以連結..." 
-                    class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-sm focus:border-tech-secondary outline-none">
+             <input list="link-suggestions" id="link-input" placeholder="搜尋筆記以連結..." class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-sm focus:border-tech-secondary outline-none">
              <datalist id="link-suggestions"></datalist>
              <button onclick="addLinkedNote()" class="absolute right-1 top-1 text-tech-secondary hover:text-white"><i class="fa-solid fa-plus-circle"></i></button>
           </div>
-          <div id="linked-notes-list" class="space-y-2">
-            <!-- Linked Cards go here -->
-          </div>
+          <div id="linked-notes-list" class="space-y-2"></div>
         </div>
 
-        <!-- Action Button (Save) -->
+        <!-- Action Button -->
         <div class="mt-8">
-            <button onclick="updateCurrentNote()" id="btn-save-update" class="w-full bg-tech-success/10 border border-tech-success text-tech-success hover:bg-tech-success hover:text-slate-900 py-2 rounded font-mono text-sm transition shadow-neon-green">
-                <i class="fa-regular fa-floppy-disk mr-1"></i> 保存變更
+            <button onclick="updateCurrentNote()" id="btn-save-update" class="w-full bg-tech-success/10 border border-tech-success text-tech-success hover:bg-tech-success hover:text-slate-900 py-3 rounded font-mono text-sm transition shadow-neon-green">
+                <i class="fa-regular fa-floppy-disk mr-1"></i> 儲存所有變更
             </button>
         </div>
-
       </aside>
     </div>
   </main>
@@ -375,28 +304,27 @@
   <script>
     // --- State Management ---
     let notes = [];
-    let currentNoteId = null; // null implies "New Note" mode
+    let currentNoteId = null; 
+    let activeFilters = {}; // Faceted Search 狀態
+    let expandedTagPaths = new Set(["init_done"]); // 標籤樹展開記憶
+    let activeFloatingPanel = null; // 浮動面板狀態控制 ('tag', 'filter', 'ai', null)
 
     // --- IndexedDB Configuration ---
     const DB_NAME = 'ZettelAIDB';
     const STORE_NAME = 'notes_store';
 
-    // 初始化並開啟 IndexedDB
     function initDB() {
         return new Promise((resolve, reject) => {
             const request = indexedDB.open(DB_NAME, 1);
             request.onupgradeneeded = (e) => {
                 const db = e.target.result;
-                if (!db.objectStoreNames.contains(STORE_NAME)) {
-                    db.createObjectStore(STORE_NAME);
-                }
+                if (!db.objectStoreNames.contains(STORE_NAME)) db.createObjectStore(STORE_NAME);
             };
             request.onsuccess = () => resolve(request.result);
             request.onerror = () => reject(request.error);
         });
     }
 
-    // 從 IndexedDB 讀取所有筆記
     async function loadFromStorage() {
         try {
             const db = await initDB();
@@ -413,22 +341,19 @@
         }
     }
 
-    // 將所有筆記儲存至 IndexedDB
     async function saveToStorage() {
         try {
             const db = await initDB();
             const tx = db.transaction(STORE_NAME, 'readwrite');
             const store = tx.objectStore(STORE_NAME);
-            // 直接儲存整個 Array 物件，無需 JSON.stringify
             store.put(notes, 'all_notes');
         } catch (err) {
-            console.error('儲存至 IndexedDB 失敗', err);
             showToast('儲存資料庫失敗', 'error');
         }
     }
 
     // --- Gemini API Configuration ---
-    const apiKey = ""; // API Key will be injected by the environment
+    const apiKey = ""; // API Key injected automatically by environment
     
     // --- DOM Elements ---
     const els = {
@@ -442,40 +367,65 @@
       linkSuggestions: document.getElementById('link-suggestions'),
       linkedList: document.getElementById('linked-notes-list'),
       searchInput: document.getElementById('search-input'),
-      tagFilter: document.getElementById('tag-filter'),
       btnDelete: document.getElementById('btn-delete'),
       btnSaveUpdate: document.getElementById('btn-save-update'),
       status: document.getElementById('save-status'),
       toastContainer: document.getElementById('toast-container'),
       sidebarLeft: document.getElementById('sidebar-left'),
-      sidebarRight: document.getElementById('sidebar-right')
+      sidebarRight: document.getElementById('sidebar-right'),
+      
+      // Floating Panel Elements
+      tagExplorer: document.getElementById('tag-explorer'), 
+      tagTreeSearch: document.getElementById('tag-tree-search'),
+      filtersList: document.getElementById('active-filters-list'),
+      noFiltersMsg: document.getElementById('no-filters-msg'),
+      filterBadge: document.getElementById('filter-badge')
     };
+
+    // --- Toast Notification ---
+    function showToast(message, type = 'info') {
+      const toast = document.createElement('div');
+      const colors = {
+        'success': 'bg-emerald-600 border-emerald-500',
+        'error': 'bg-red-600 border-red-500',
+        'info': 'bg-blue-600 border-blue-500'
+      };
+      const colorClass = colors[type] || colors['info'];
+      
+      toast.className = `${colorClass} text-white px-4 py-3 rounded shadow-lg flex items-center gap-2 min-w-[200px] animate-fade-in border z-[9999]`;
+      toast.innerHTML = `
+        <i class="fa-solid ${type === 'success' ? 'fa-check' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
+        <span class="text-sm font-mono">${message}</span>
+      `;
+      
+      els.toastContainer.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-10px)';
+        toast.style.transition = 'all 0.3s';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
 
     // --- Initialization ---
     window.onload = async function() {
-      // 嘗試從 IndexedDB 載入資料
       const stored = await loadFromStorage();
-      
       if (stored && Array.isArray(stored) && stored.length > 0) {
         notes = stored;
       } else {
-        // 退回機制：檢查 localStorage 中是否有舊資料並進行遷移
         const oldLocal = localStorage.getItem('zettelkasten_notes');
         if (oldLocal) {
             try {
                 notes = JSON.parse(oldLocal);
-                await saveToStorage(); // 遷移到 IndexedDB
-                console.log('已從 localStorage 成功遷移資料至 IndexedDB');
-            } catch (err) {
-                console.error('遷移資料失敗', err);
-            }
+                await saveToStorage();
+            } catch (err) {}
         } else {
-            // Initial onboarding note
             notes = [{
               id: '1',
-              title: '歡迎使用 ZETTEL_AI',
-              content: '<b>開始你的數位大腦旅程。</b><br><br>這是一個結合科技風格、卡片盒筆記法與 Gemini AI 的系統。<br><br><b>✨ 核心功能：</b>在右側面板，你可以找到多個 AI 工具：<br>1. <b>智能標記</b>：自動分析內容並加上標籤。<br>2. <b>重點摘要</b>：幫你總結長篇大論。<br>3. <b>智能關聯</b>：自動分析所有筆記，建立知識網絡。<br>4. <b>智慧網頁剪藏</b>：輸入任何網址，AI 自動為您完整抓取網頁內容、分類標籤，並跟系統內現有卡片建立連結！<br><br>點擊上方工具列的按鈕可以開合左右面板，讓寫作更專注。<br><br><i>🚀 系統已升級至 IndexedDB，突破瀏覽器儲存限制，現在您可以盡情插入大量圖片了！</i>',
-              tags: ['System', 'Help', 'AI'],
+              title: 'ZETTEL_AI 系統重整公告',
+              content: '<b>歡迎進入極簡化工作區。</b><br><br>我們已將介面全面重整：<br>1. <b>左側導航</b>：專注於筆記列表與搜尋。<br>2. <b>右側中控</b>：專注於標籤指派與網狀連結。<br>3. <b>上方浮動面板 (強大)</b>：<br>   - <code>[🔖 標籤]</code> 啟動動態標籤樹 Explorer。<br>   - <code>[🎯 篩選]</code> 管理您的多維度 Faceted Filter。<br>   - <code>[🤖 AI]</code> 呼叫包含智慧剪藏在內的 Gemini 工具盒。<br><br>祝您寫作愉快！',
+              tags: ['系統/教學', '狀態/重要'],
               linkedNotes: []
             }];
         }
@@ -483,154 +433,135 @@
       renderNoteList();
       updateTagHistory();
       renderLinkSuggestions();
-      createNewNote(); // Start in create mode
+      updateTagTree(); 
+      createNewNote(); 
       
-      // 註冊安全貼上監聽器
       els.content.addEventListener('paste', handlePaste);
+      els.tagTreeSearch.addEventListener('input', updateTagTree);
+
+      // ESC 鍵關閉所有浮動面板
+      document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && activeFloatingPanel) closeAllPanels();
+      });
     };
+
+    // ==========================================
+    // --- Floating Panels Controller ---
+    // ==========================================
+    function toggleFloatingPanel(panelName) {
+        // Toggle if same
+        if (activeFloatingPanel === panelName) {
+            closeAllPanels();
+            return;
+        }
+        
+        activeFloatingPanel = panelName;
+        
+        // Setup Overlay
+        const overlay = document.getElementById('ui-overlay');
+        overlay.classList.remove('hidden');
+        setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+
+        // Hide all initially
+        document.getElementById('side-drawer').classList.add('drawer-closed');
+        document.getElementById('center-modal').classList.add('hidden');
+        document.getElementById('center-modal').classList.remove('flex');
+        document.getElementById('drawer-view-tag').classList.add('hidden');
+        document.getElementById('drawer-view-tag').classList.remove('flex');
+        document.getElementById('drawer-view-filter').classList.add('hidden');
+        document.getElementById('drawer-view-filter').classList.remove('flex');
+
+        if (panelName === 'tag' || panelName === 'filter') {
+            const drawer = document.getElementById('side-drawer');
+            document.getElementById(`drawer-view-${panelName}`).classList.remove('hidden');
+            document.getElementById(`drawer-view-${panelName}`).classList.add('flex');
+            document.getElementById('drawer-title').innerHTML = panelName === 'tag' 
+                ? '<i class="fa-solid fa-folder-tree mr-2"></i>標籤樹狀瀏覽' 
+                : '<i class="fa-solid fa-filter mr-2"></i>多維度篩選';
+            drawer.classList.remove('drawer-closed');
+        } else if (panelName === 'ai') {
+            const modal = document.getElementById('center-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+    }
+
+    function closeAllPanels() {
+        activeFloatingPanel = null;
+        const overlay = document.getElementById('ui-overlay');
+        overlay.classList.add('opacity-0');
+        setTimeout(() => overlay.classList.add('hidden'), 300);
+        
+        document.getElementById('side-drawer').classList.add('drawer-closed');
+        document.getElementById('center-modal').classList.add('hidden');
+        document.getElementById('center-modal').classList.remove('flex');
+    }
 
     // --- Elegant Smart Paste Handler ---
     function handlePaste(e) {
         e.preventDefault();
-        
-        // 取得剪貼簿資料
         const text = e.clipboardData.getData('text/plain');
         const html = e.clipboardData.getData('text/html');
-        
         if (html) {
-            // 安全清洗並取得 HTML 內容
             const cleanedHtml = cleanPastedHTML(html);
             document.execCommand('insertHTML', false, cleanedHtml);
-            
-            // 延遲重新綁定新加入圖片的縮放事件
-            setTimeout(() => {
-                document.querySelectorAll('#editor-content img').forEach(makeImageResizable);
-            }, 100);
+            setTimeout(() => document.querySelectorAll('#editor-content img').forEach(makeImageResizable), 100);
             showToast('已智慧過濾網頁格式與廣告樣式', 'success');
         } else if (text) {
-            // 沒有 HTML 時，僅插入乾淨的純文字
             document.execCommand('insertText', false, text);
         }
     }
 
-    // 手動安全過濾器 (Unwrap 機制，取代 DOMPurify 防禦廣告與垃圾 HTML)
     function cleanPastedHTML(htmlString) {
         const parser = new DOMParser();
         const doc = parser.parseFromString(htmlString, 'text/html');
-        
-        // 允許保留的安全語意與排版標籤 (排除所有 div, span, section 及其自訂外觀)
-        const allowedTags = [
-            'P', 'BR', 'B', 'STRONG', 'I', 'EM', 'U', 
-            'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 
-            'UL', 'OL', 'LI', 'BLOCKQUOTE',
-            'TABLE', 'THEAD', 'TBODY', 'TR', 'TH', 'TD', 
-            'IMG', 'A'
-        ];
+        const allowedTags = ['P', 'BR', 'B', 'STRONG', 'I', 'EM', 'U', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'UL', 'OL', 'LI', 'BLOCKQUOTE', 'TABLE', 'THEAD', 'TBODY', 'TR', 'TH', 'TD', 'IMG', 'A'];
         
         function sanitizeNode(node) {
-            // 文字節點：直接原樣複製
-            if (node.nodeType === Node.TEXT_NODE) {
-                return node.cloneNode(true);
-            }
-            
-            // 元素節點：檢查白名單
+            if (node.nodeType === Node.TEXT_NODE) return node.cloneNode(true);
             if (node.nodeType === Node.ELEMENT_NODE) {
                 const tagName = node.tagName.toUpperCase();
-                
                 if (allowedTags.includes(tagName)) {
                     const newNode = doc.createElement(tagName);
-                    
-                    // 針對特定的安全標籤處理屬性，移除 class 與 style 等垃圾屬性
                     if (tagName === 'IMG') {
                         const src = node.getAttribute('src');
-                        if (src) {
-                            newNode.setAttribute('src', src);
-                            newNode.className = 'resizable';
-                            newNode.style.width = '200px';
-                            newNode.style.height = 'auto';
-                        }
+                        if (src) { newNode.setAttribute('src', src); newNode.className = 'resizable'; newNode.style.width = '200px'; newNode.style.height = 'auto'; }
                     } else if (tagName === 'A') {
                         const href = node.getAttribute('href');
-                        if (href && (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('#'))) {
-                            newNode.setAttribute('href', href);
-                            newNode.setAttribute('target', '_blank');
-                            newNode.className = 'text-tech-accent underline hover:text-white transition';
-                        }
+                        if (href && (href.startsWith('http') || href.startsWith('#'))) { newNode.setAttribute('href', href); newNode.setAttribute('target', '_blank'); newNode.className = 'text-tech-accent underline hover:text-white transition'; }
                     }
-                    
-                    // 遞迴複製處理子節點
-                    node.childNodes.forEach(child => {
-                        const sanitizedChild = sanitizeNode(child);
-                        if (sanitizedChild) {
-                            newNode.appendChild(sanitizedChild);
-                        }
-                    });
-                    
+                    node.childNodes.forEach(child => { const sanitizedChild = sanitizeNode(child); if (sanitizedChild) newNode.appendChild(sanitizedChild); });
                     return newNode;
                 } else {
-                    // 如果是不合法的標籤 (如 div, span, section)，進行 Unwrap 展開
-                    // 只保留其底下的安全字元與安全格式
                     const fragment = doc.createDocumentFragment();
-                    node.childNodes.forEach(child => {
-                        const sanitizedChild = sanitizeNode(child);
-                        if (sanitizedChild) {
-                            fragment.appendChild(sanitizedChild);
-                        }
-                    });
+                    node.childNodes.forEach(child => { const sanitizedChild = sanitizeNode(child); if (sanitizedChild) fragment.appendChild(sanitizedChild); });
                     return fragment;
                 }
             }
             return null;
         }
-        
-        // 處理整個文件 body
         const rootFragment = doc.createDocumentFragment();
-        doc.body.childNodes.forEach(child => {
-            const sanitized = sanitizeNode(child);
-            if (sanitized) {
-                rootFragment.appendChild(sanitized);
-            }
-        });
-        
-        const tempDiv = doc.createElement('div');
-        tempDiv.appendChild(rootFragment);
+        doc.body.childNodes.forEach(child => { const sanitized = sanitizeNode(child); if (sanitized) rootFragment.appendChild(sanitized); });
+        const tempDiv = doc.createElement('div'); tempDiv.appendChild(rootFragment);
         return tempDiv.innerHTML;
     }
 
     // --- Gemini AI Functions ---
-
     async function callGemini(prompt, systemInstruction = "", useSearch = false) {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-        const payload = {
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: {
-                maxOutputTokens: 2000,
-                temperature: 0.4
-            }
-        };
-        if (systemInstruction) {
-            payload.systemInstruction = { parts: [{ text: systemInstruction }] };
-        }
-        if (useSearch) {
-            payload.tools = [{ "google_search": {} }];
-        }
+        const payload = { contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 2000, temperature: 0.4 } };
+        if (systemInstruction) payload.systemInstruction = { parts: [{ text: systemInstruction }] };
+        if (useSearch) payload.tools = [{ "google_search": {} }];
 
-        const delays = [1000, 2000, 4000, 8000, 16000];
         for (let i = 0; i <= 5; i++) {
             try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
+                const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                
                 const data = await response.json();
                 return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
             } catch (e) {
                  if (i === 5) throw e;
-                 await new Promise(r => setTimeout(r, delays[i]));
+                 await new Promise(r => setTimeout(r, [1000, 2000, 4000, 8000, 16000][i]));
             }
         }
     }
@@ -638,292 +569,170 @@
     async function aiClipper() {
         const urlInput = document.getElementById('clipper-url');
         const url = urlInput.value.trim();
-        if (!url) {
-            showToast("請輸入有效的網址", "error");
-            return;
-        }
-        if (!url.startsWith('http://') && !url.startsWith('https://')) {
-            showToast("請輸入以 http:// 或 https:// 開頭的網址", "error");
-            return;
-        }
+        if (!url || (!url.startsWith('http://') && !url.startsWith('https://'))) return showToast("請輸入有效的網址", "error");
 
         const btn = document.getElementById('btn-ai-clipper');
         setLoading(btn, true);
-        showToast("AI 正在連線上網讀取並分析網頁...", "info");
+        showToast("AI 正在連線上網讀取並進行『分面打標』剪藏...", "info");
 
         try {
-            const prompt = `請使用 Google Search 讀取並分析此網址的內容：${url}。請提取網頁的主要文章內容，並生成：
-1. 適合的筆記標題 (title)
-2. 詳細的文章正文內容 (content)，請轉換成乾淨的 HTML 格式（只使用 <p>、<b>、<ul>、<li> 等標籤，不要夾帶網頁側欄、頁首頁尾、導航或廣告）
-3. 完整的網頁文章正文內容，請完整將網頁的主要文章段落與文字全部填入，切勿進行過度壓縮、刪減或省略 (summary)
-4. 3 到 5 個適合這篇內容的關鍵字標籤 (tags)
-5. 建議關聯的主題關鍵字清單 (relatedKeywords)，用來與我們現有的其他筆記標題進行模糊比對。
-
-請務必使用繁體中文（台灣繁體）回答。`;
-
-            const systemInstruction = "你是一個專業的知識管理與網頁剪藏助手。請精準閱讀網頁核心內容，並輸出乾淨的結構化資料。不要輸出任何 Markdown 標記，直接輸出符合 Schema 的 JSON。";
-
-            // 使用 Structured JSON
+            const prompt = `請使用 Google Search 分析此網址：${url}。生成：\n1. 筆記標題 (title)\n2. 文章正文 (content)，轉成 HTML（<p>, <b>, <ul>, <li>）不含廣告\n3. 網頁正文原樣 (summary)\n4. 分類標籤 (tags)，必須符合「類型/值」格式\n5. 主題關鍵字清單 (relatedKeywords)\n用台灣繁體回答。`;
+            const systemInstruction = "專業 Zettelkasten 助手。精準分類並打上『類型/值』標籤，直接輸出符合 Schema 的 JSON。";
             const payload = {
-                contents: [{ parts: [{ text: prompt }] }],
-                systemInstruction: { parts: [{ text: systemInstruction }] },
-                tools: [{ "google_search": {} }],
+                contents: [{ parts: [{ text: prompt }] }], systemInstruction: { parts: [{ text: systemInstruction }] }, tools: [{ "google_search": {} }],
                 generationConfig: {
                     responseMimeType: "application/json",
                     responseSchema: {
                         type: "OBJECT",
-                        properties: {
-                            title: { type: "STRING" },
-                            content: { type: "STRING" },
-                            summary: { type: "STRING" },
-                            tags: { type: "ARRAY", items: { type: "STRING" } },
-                            relatedKeywords: { type: "ARRAY", items: { type: "STRING" } }
-                        },
+                        properties: { title: { type: "STRING" }, content: { type: "STRING" }, summary: { type: "STRING" }, tags: { type: "ARRAY", items: { type: "STRING" } }, relatedKeywords: { type: "ARRAY", items: { type: "STRING" } } },
                         required: ["title", "content", "summary", "tags", "relatedKeywords"]
                     }
                 }
             };
 
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-            
             let resultText = "";
-            const delays = [1000, 2000, 4000, 8000, 16000];
             for (let i = 0; i <= 5; i++) {
                 try {
-                    const response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                    const data = await response.json();
-                    resultText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-                    break;
-                } catch (e) {
-                     if (i === 5) throw e;
-                     await new Promise(r => setTimeout(r, delays[i]));
-                }
+                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                    if (!res.ok) throw new Error("HTTP error");
+                    const data = await res.json();
+                    resultText = data.candidates?.[0]?.content?.parts?.[0]?.text || ""; break;
+                } catch (e) { if (i === 5) throw e; await new Promise(r => setTimeout(r, [1000, 2000, 4000, 8000, 16000][i])); }
             }
 
-            if (!resultText) {
-                throw new Error("Gemini 無回傳內容");
-            }
-
+            if (!resultText) throw new Error("無內容");
             const parsed = JSON.parse(resultText);
-            
-            // 建立新資料卡 ID
             const newId = genId();
             
-            // 格式化內文：將 AI 完整剪藏正文放最前面，後面放轉換後的部分
             const summaryHTML = `<blockquote style="border-left: 3px solid #f59e0b; padding-left: 10px; color: #cbd5e1; margin: 10px 0; background: rgba(245, 158, 11, 0.1); padding: 8px; border-radius: 4px;"><strong>✨ AI 完整剪藏內容：</strong>${parsed.summary}</blockquote><p><br></p>`;
-            const finalContent = summaryHTML + parsed.content;
-
-            // 尋找現有相關筆記建立雙向連結
+            
             const suggestedLinks = [];
             notes.forEach(note => {
-                // 如果現有筆記的標題包含 AI 建議的任何關鍵字，或者目前的標題包含現有筆記關鍵字
-                const matchKeyword = parsed.relatedKeywords.some(kw => 
-                    note.title.toLowerCase().includes(kw.toLowerCase()) || 
-                    kw.toLowerCase().includes(note.title.toLowerCase())
-                );
+                const matchKeyword = parsed.relatedKeywords.some(kw => note.title.toLowerCase().includes(kw.toLowerCase()) || kw.toLowerCase().includes(note.title.toLowerCase()));
                 if (matchKeyword && note.id !== newId) {
                     suggestedLinks.push(note.id);
-                    // 建立雙向連結
                     if (!note.linkedNotes) note.linkedNotes = [];
-                    if (!note.linkedNotes.includes(newId)) {
-                        note.linkedNotes.push(newId);
-                    }
+                    if (!note.linkedNotes.includes(newId)) note.linkedNotes.push(newId);
                 }
             });
 
-            const newNote = {
-                id: newId,
-                title: parsed.title,
-                content: finalContent,
-                tags: parsed.tags || [],
-                linkedNotes: suggestedLinks
-            };
-
-            notes.push(newNote);
+            notes.push({ id: newId, title: parsed.title, content: summaryHTML + parsed.content, tags: parsed.tags || [], linkedNotes: suggestedLinks });
             await saveToStorage();
             
-            // 重新渲染與讀取新剪藏的筆記
-            renderNoteList();
-            updateTagHistory();
-            renderLinkSuggestions();
-            loadNote(newId);
-
-            // 清空網址輸入框
-            urlInput.value = '';
-            showToast(`✨ 成功剪藏《${parsed.title}》！已自動填入完整內容、生成標籤並建立關聯連結！`, "success");
-
-        } catch (error) {
-            console.error(error);
-            showToast("智慧剪藏失敗，請確認網路連線或 API Key 設定", "error");
-        } finally {
-            setLoading(btn, false);
-        }
+            renderNoteList(); updateTagHistory(); renderLinkSuggestions(); updateTagTree(); loadNote(newId);
+            urlInput.value = ''; showToast(`✨ 成功剪藏《${parsed.title}》！`, "success");
+            closeAllPanels();
+        } catch (error) { showToast("智慧剪藏失敗", "error"); } finally { setLoading(btn, false); }
     }
 
     async function aiAutoTag() {
         const text = els.content.innerText.trim();
-        if (text.length < 10) {
-            showToast("內容太短，無法分析", "error");
-            return;
-        }
-        
-        const btn = document.getElementById('btn-ai-tag');
-        setLoading(btn, true);
+        if (text.length < 10) return showToast("內容太短", "error");
+        setLoading(document.getElementById('btn-ai-tag'), true);
 
         try {
-            const prompt = `分析以下文字，產生 3 到 5 個相關的關鍵字標籤。請只回傳標籤，並用半形逗號分隔，不要有其他文字。文字內容：\n${text}`;
+            const prompt = `請分析以下內容，並生成 4 到 8 個分類標籤。
+
+【標籤規則】
+每個標籤必須嚴格符合「類型/值」格式（不可例外，例如：領域/AI）。
+允許的類型包含：
+1. 領域（必選，至少 1 個）
+2. 用途（必選，至少 1 個）
+3. 類型（選填）
+4. 狀態（預設：狀態/待整理）
+5. 來源（若可判斷）
+6. 面向（若有）
+
+【可用詞彙（優先使用）】
+- 領域：AI、前端、後端、資料庫、架構、演算法、工程實務
+- 領域細分：領域/AI/模型、領域/AI/工具、領域/AI/應用、領域/前端/UI、領域/前端/效能、領域/後端/API
+- 用途：工作、學習、研究、開發、除錯、整理、靈感、決策、專案A
+- 類型：筆記、問題、解法、教學、工具、文件、想法
+- 狀態：待整理、進行中、完成
+- 來源：網頁、AI生成、書籍、文件、課程
+- 面向：效能、安全、可維護、可讀性
+
+【輸出規則】
+1. 總數：4～8 個標籤
+2. 不要重複
+3. 不要輸出任何說明文字，只能輸出標籤本身，並用半形逗號分隔（例如：領域/前端/UI,用途/工作,狀態/待整理）
+4. 除非無法定義或現有無適合類型，否則不可使用未定義類型
+5. 除非無法定義或現有無適合標籤，否則不可輸出未分類標籤
+6. 優先選擇上述已有結構的詞彙
+
+內容：\n${text}`;
             const result = await callGemini(prompt);
-            
             const tags = result.split(',').map(t => t.trim()).filter(t => t);
             
             let addedCount = 0;
             const currentTags = Array.from(els.activeTags.querySelectorAll('.tag-chip span')).map(s => s.textContent);
+            tags.forEach(tag => { if (!currentTags.includes(tag)) { addTagToUI(tag); addedCount++; } });
             
-            tags.forEach(tag => {
-                if (!currentTags.includes(tag)) {
-                    addTagToUI(tag);
-                    addedCount++;
-                }
-            });
-
-            if (addedCount > 0) {
-                showToast(`已新增 ${addedCount} 個 AI 標籤`, "success");
-            } else {
-                showToast("未發現新的標籤建議", "info");
-            }
-
-        } catch (error) {
-            console.error(error);
-            showToast("AI 分析失敗，請稍後再試", "error");
-        } finally {
-            setLoading(btn, false);
-        }
+            if (addedCount > 0) showToast(`已新增 ${addedCount} 個 AI 標籤`, "success");
+            else showToast("無新標籤建議", "info");
+        } catch (error) { showToast("AI 分析失敗", "error"); } finally { setLoading(document.getElementById('btn-ai-tag'), false); }
     }
 
     async function aiSummarize() {
         const text = els.content.innerText.trim();
-        if (text.length < 30) {
-            showToast("內容太短，無需摘要", "error");
-            return;
-        }
-
-        const btn = document.getElementById('btn-ai-summary');
-        setLoading(btn, true);
+        if (text.length < 30) return showToast("內容太短", "error");
+        setLoading(document.getElementById('btn-ai-summary'), true);
 
         try {
-            const prompt = `請為以下文章撰寫一段簡短的摘要（約 50-80 字），語氣專業且客觀。文章內容：\n${text}`;
-            const summary = await callGemini(prompt);
-            
-            const summaryHTML = `<blockquote style="border-left: 3px solid #f59e0b; padding-left: 10px; color: #cbd5e1; margin: 10px 0; background: rgba(245, 158, 11, 0.1); padding: 8px; border-radius: 4px;"><strong>✨ AI 摘要：</strong>${summary}</blockquote><p><br></p>`;
-            
-            // Insert at the beginning
-            els.content.innerHTML = summaryHTML + els.content.innerHTML;
+            const summary = await callGemini(`為以下文章寫段 50-80 字專業摘要：\n${text}`);
+            els.content.innerHTML = `<blockquote style="border-left: 3px solid #f59e0b; padding-left: 10px; color: #cbd5e1; margin: 10px 0; background: rgba(245, 158, 11, 0.1); padding: 8px; border-radius: 4px;"><strong>✨ AI 摘要：</strong>${summary}</blockquote><p><br></p>` + els.content.innerHTML;
             showToast("摘要已生成", "success");
-
-        } catch (error) {
-            console.error(error);
-            showToast("AI 摘要生成失敗", "error");
-        } finally {
-            setLoading(btn, false);
-        }
+        } catch (error) { showToast("摘要生成失敗", "error"); } finally { setLoading(document.getElementById('btn-ai-summary'), false); }
     }
 
     async function aiAutoLink() {
-        const text = els.content.innerText.trim();
-        const title = els.title.value.trim();
-
-        if (text.length < 10 && title.length < 2) {
-            showToast("內容太少，無法分析關聯", "error");
-            return;
-        }
-
+        const text = els.content.innerText.trim(); const title = els.title.value.trim();
+        if (text.length < 10 && title.length < 2) return showToast("內容太少", "error");
         const availableNotes = notes.filter(n => n.id !== currentNoteId);
-        if (availableNotes.length === 0) {
-            showToast("系統中沒有其他筆記可供關聯", "info");
-            return;
-        }
+        if (availableNotes.length === 0) return showToast("無其他卡片可供關聯", "info");
 
-        const btn = document.getElementById('btn-ai-link');
-        setLoading(btn, true);
+        setLoading(document.getElementById('btn-ai-link'), true);
 
         try {
-            // 將可用筆記組合成 "ID::標題" 的清單格式供 AI 分析
-            const availableNotesText = availableNotes.map(n => `${n.id}::${n.title}`).join('\n');
-            const prompt = `你是一個知識網狀關聯助手。請閱讀[目前筆記]，並從[可用筆記清單]中，挑選出 1 到 5 個最相關的筆記。\n請「只」回傳筆記的 ID，並用半形逗號分隔（例如：id1,id2），不要包含任何其他文字或符號。\n\n[目前筆記標題]\n${title}\n\n[目前筆記內容]\n${text}\n\n[可用筆記清單 (ID::標題)]\n${availableNotesText}`;
+            const listStr = availableNotes.map(n => `${n.id}::${n.title}`).join('\n');
+            const result = await callGemini(`閱讀[筆記]，從[清單]挑 1 到 5 個最相關筆記。只回傳ID用逗號分隔。\n\n[標題]\n${title}\n[內容]\n${text}\n[清單]\n${listStr}`);
+            const suggestedIds = result.replace(/```/g, '').replace(/`/g, '').replace(/\n/g, '').split(',').map(id => id.trim()).filter(id => id);
             
-            const result = await callGemini(prompt);
-            
-            // 清理可能出現的 markdown 格式或換行符號
-            const cleanedResult = result.replace(/```/g, '').replace(/`/g, '').replace(/\n/g, '');
-            const suggestedIds = cleanedResult.split(',').map(id => id.trim()).filter(id => id);
-            
-            // 取得當前 UI 上已經存在的關聯
             const existingLinks = Array.from(els.linkedList.querySelectorAll('.link-card')).map(d => d.dataset.id);
-            const newLinks = [...existingLinks];
             let addedCount = 0;
-
+            const newLinks = [...existingLinks];
+            
             suggestedIds.forEach(id => {
-                // 確認 ID 真的存在於其他筆記中，且尚未被加入
-                if (availableNotes.some(n => n.id === id) && !newLinks.includes(id)) {
-                    newLinks.push(id);
-                    addedCount++;
-                }
+                if (availableNotes.some(n => n.id === id) && !newLinks.includes(id)) { newLinks.push(id); addedCount++; }
             });
 
-            if (addedCount > 0) {
-                renderLinkedUI(newLinks); // 更新 UI
-                showToast(`已自動關聯 ${addedCount} 則相關筆記`, "success");
-            } else {
-                showToast("未發現高度相關的其他筆記", "info");
-            }
-
-        } catch (error) {
-            console.error(error);
-            showToast("AI 關聯分析失敗，請稍後再試", "error");
-        } finally {
-            setLoading(btn, false);
-        }
+            if (addedCount > 0) { renderLinkedUI(newLinks); showToast(`已關聯 ${addedCount} 則筆記`, "success"); } 
+            else showToast("未發現高度相關筆記", "info");
+        } catch (error) { showToast("關聯分析失敗", "error"); } finally { setLoading(document.getElementById('btn-ai-link'), false); }
     }
 
-    // --- Loading State Manager ---
     function setLoading(btn, isLoading) {
         if (isLoading) {
             btn.classList.add('ai-loading', 'pointer-events-none');
             const icon = btn.querySelector('i');
-            icon.dataset.originalClass = icon.className;
-            icon.className = 'fa-solid fa-circle-notch fa-spin w-6 text-yellow-400';
+            if (icon) { icon.dataset.originalClass = icon.className; icon.className = 'fa-solid fa-circle-notch fa-spin w-6 text-yellow-400'; }
         } else {
             btn.classList.remove('ai-loading', 'pointer-events-none');
             const icon = btn.querySelector('i');
-            if (icon.dataset.originalClass) {
-                icon.className = icon.dataset.originalClass;
-            }
+            if (icon && icon.dataset.originalClass) icon.className = icon.dataset.originalClass;
         }
     }
 
     // --- Core Operations ---
-
-    function genId() {
-      return Date.now().toString(36) + Math.random().toString(36).substr(2);
-    }
+    function genId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
 
     function createNewNote() {
       currentNoteId = null;
-      els.title.value = '';
-      els.content.innerHTML = '';
+      els.title.value = ''; els.content.innerHTML = '';
       els.btnDelete.classList.add('hidden');
       els.btnSaveUpdate.innerHTML = '<i class="fa-solid fa-plus mr-1"></i> 建立新筆記';
       els.status.textContent = '新資料卡模式';
-      
-      renderTagsUI([]);
-      renderLinkedUI([]);
-      
-      // Highlight selection in sidebar (remove all)
+      renderTagsUI([]); renderLinkedUI([]);
       document.querySelectorAll('.note-item').forEach(el => el.classList.remove('border-tech-accent', 'bg-slate-800'));
       els.title.focus();
     }
@@ -931,166 +740,105 @@
     function loadNote(id) {
       const note = notes.find(n => n.id === id);
       if (!note) return;
-
-      currentNoteId = note.id;
-      els.title.value = note.title;
-      els.content.innerHTML = note.content;
-      
-      // Setup UI for edit mode
+      currentNoteId = note.id; els.title.value = note.title; els.content.innerHTML = note.content;
       els.btnDelete.classList.remove('hidden');
-      els.btnSaveUpdate.innerHTML = '<i class="fa-regular fa-floppy-disk mr-1"></i> 更新筆記';
+      els.btnSaveUpdate.innerHTML = '<i class="fa-regular fa-floppy-disk mr-1"></i> 儲存所有變更';
       els.status.textContent = `ID: ${note.id.substring(0,6)}...`;
-
-      renderTagsUI(note.tags || []);
-      renderLinkedUI(note.linkedNotes || []);
+      renderTagsUI(note.tags || []); renderLinkedUI(note.linkedNotes || []);
       
-      // Highlight sidebar
       document.querySelectorAll('.note-item').forEach(el => {
         el.classList.remove('border-tech-accent', 'bg-slate-800');
-        if(el.dataset.id === id) el.classList.add('border-tech-accent', 'bg-slate-800');
+        if(el.dataset.id === id) el.className += ' border-tech-accent bg-slate-800';
       });
-
-      // Re-attach image listeners
       document.querySelectorAll('#editor-content img').forEach(makeImageResizable);
+      
+      if (window.innerWidth < 768) togglePanel('left'); // Mobile: Auto close list on select
     }
 
-    function updateCurrentNote() {
+    async function updateCurrentNote() {
       const title = els.title.value.trim();
       const content = els.content.innerHTML;
+      if (!title) return showToast('錯誤：標題不能為空', 'error');
 
-      if (!title) {
-        showToast('錯誤：標題不能為空', 'error');
-        return;
-      }
-
-      // Get current UI state for tags and links
       const currentTags = Array.from(els.activeTags.querySelectorAll('.tag-chip span')).map(s => s.textContent);
       const currentLinks = Array.from(els.linkedList.querySelectorAll('.link-card')).map(d => d.dataset.id);
 
       if (currentNoteId) {
-        // Update existing
         const index = notes.findIndex(n => n.id === currentNoteId);
-        if (index !== -1) {
-          notes[index] = { ...notes[index], title, content, tags: currentTags, linkedNotes: currentLinks };
-          showToast('資料已更新', 'success');
-        }
+        if (index !== -1) { notes[index] = { ...notes[index], title, content, tags: currentTags, linkedNotes: currentLinks }; showToast('資料已更新', 'success'); }
       } else {
-        // Create new
         const newId = genId();
-        const newNote = {
-          id: newId,
-          title,
-          content,
-          tags: currentTags,
-          linkedNotes: currentLinks
-        };
-        notes.push(newNote);
+        notes.push({ id: newId, title, content, tags: currentTags, linkedNotes: currentLinks });
         currentNoteId = newId;
-        
-        // Handle bidirectional linking
-        currentLinks.forEach(targetId => {
-          const target = notes.find(n => n.id === targetId);
-          if (target && !target.linkedNotes.includes(newId)) {
-            target.linkedNotes.push(newId);
-          }
-        });
-        
+        currentLinks.forEach(targetId => { const target = notes.find(n => n.id === targetId); if (target && !target.linkedNotes.includes(newId)) target.linkedNotes.push(newId); });
         showToast('新資料卡已建立', 'success');
         els.btnDelete.classList.remove('hidden');
-        els.btnSaveUpdate.innerHTML = '<i class="fa-regular fa-floppy-disk mr-1"></i> 更新筆記';
+        els.btnSaveUpdate.innerHTML = '<i class="fa-regular fa-floppy-disk mr-1"></i> 儲存所有變更';
       }
-
-      saveToStorage();
-      renderNoteList();
-      updateTagHistory();
-      renderLinkSuggestions();
+      await saveToStorage();
+      renderNoteList(); updateTagHistory(); renderLinkSuggestions(); updateTagTree();
     }
 
-    function deleteCurrentNote() {
-      if (!currentNoteId) return;
-      if (!confirm('確認刪除此資料卡？此操作無法復原。')) return;
-
-      // Remove backlinks
-      notes.forEach(n => {
-        if (n.linkedNotes) {
-          n.linkedNotes = n.linkedNotes.filter(id => id !== currentNoteId);
-        }
-      });
-
+    async function deleteCurrentNote() {
+      if (!currentNoteId || !confirm('確認刪除此資料卡？')) return;
+      notes.forEach(n => { if (n.linkedNotes) n.linkedNotes = n.linkedNotes.filter(id => id !== currentNoteId); });
       notes = notes.filter(n => n.id !== currentNoteId);
-      saveToStorage();
-      renderNoteList();
-      renderLinkSuggestions();
-      createNewNote();
+      await saveToStorage();
+      renderNoteList(); renderLinkSuggestions(); updateTagTree(); createNewNote();
       showToast('資料已刪除', 'info');
     }
 
-function toggleAIPanel() {
-    const panel = document.getElementById('ai-panel');
-    const btn = document.getElementById('btn-ai-toggle');
-
-    panel.classList.toggle('hidden');
-
-    if (panel.classList.contains('hidden')) {
-        btn.classList.remove('text-yellow-400');
-        btn.classList.add('text-slate-400');
-    } else {
-        btn.classList.remove('text-slate-400');
-        btn.classList.add('text-yellow-400');
-    }
-}
-
-    // --- UI Layout Management ---
-
+    // --- Layout Management ---
     function togglePanel(side) {
-        // 加入橫向(Landscape)判斷，如果寬度大於 768px 或正處於橫向模式，就是左右佈局
         const isRowLayout = window.innerWidth >= 768 || window.matchMedia("(orientation: landscape)").matches;
-        
         if (side === 'left') {
-            if (isRowLayout) {
-                els.sidebarLeft.classList.toggle('panel-closed-width');
-            } else {
-                els.sidebarLeft.classList.toggle('panel-closed-height');
-            }
+            if (isRowLayout) els.sidebarLeft.classList.toggle('panel-closed-width');
+            else els.sidebarLeft.classList.toggle('panel-closed-height');
         } else if (side === 'right') {
-            if (isRowLayout) {
-                els.sidebarRight.classList.toggle('panel-closed-width');
-            } else {
-                els.sidebarRight.classList.toggle('panel-closed-height');
-            }
+            if (isRowLayout) els.sidebarRight.classList.toggle('panel-closed-width');
+            else els.sidebarRight.classList.toggle('panel-closed-height');
         }
     }
 
-    // --- UI Rendering ---
+    // --- Filters & Tree Core ---
+    function applyFacetedFilters(notesList, filters) {
+        const filterTypes = Object.keys(filters).filter(type => filters[type].length > 0);
+        if (filterTypes.length === 0) return notesList;
+        return notesList.filter(note => {
+            return filterTypes.every(type => {
+                const allowedValues = filters[type];
+                return (note.tags || []).some(tag => {
+                    const parts = tag.split('/');
+                    if (parts[0] !== type) return false;
+                    const valuePath = parts.slice(1).join('/');
+                    return allowedValues.some(val => valuePath === val || valuePath.startsWith(val + '/'));
+                });
+            });
+        });
+    }
 
     function renderNoteList() {
       const filterText = els.searchInput.value.toLowerCase();
-      const filterTag = els.tagFilter.value;
+      let listData = notes.filter(n => (n.title.toLowerCase().includes(filterText) || n.content.toLowerCase().includes(filterText)));
+      listData = applyFacetedFilters(listData, activeFilters);
+      
+      updateFilterBadge();
 
       els.list.innerHTML = '';
-
-      const filtered = notes.filter(n => {
-        const matchText = n.title.toLowerCase().includes(filterText) || n.content.toLowerCase().includes(filterText);
-        const matchTag = filterTag ? (n.tags || []).includes(filterTag) : true;
-        return matchText && matchTag;
-      });
-
-      filtered.forEach(note => {
+      listData.forEach(note => {
         const div = document.createElement('div');
-        div.className = 'note-item p-3 border-l-2 border-transparent hover:bg-slate-800 cursor-pointer transition-colors duration-200 group';
+        div.className = 'note-item p-3 border-l-2 border-transparent hover:bg-slate-800 cursor-pointer transition-colors duration-200 group rounded';
         div.dataset.id = note.id;
-        if (note.id === currentNoteId) div.classList.add('border-tech-accent', 'bg-slate-800');
+        if (note.id === currentNoteId) div.className += ' border-tech-accent bg-slate-800';
 
-        // Extract clean text for preview
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = note.content;
-        const previewText = tempDiv.textContent.substring(0, 50) + (tempDiv.textContent.length > 50 ? '...' : '');
+        const tempDiv = document.createElement('div'); tempDiv.innerHTML = note.content;
+        const previewText = tempDiv.textContent.substring(0, 45) + (tempDiv.textContent.length > 45 ? '...' : '');
 
         div.innerHTML = `
           <div class="font-bold text-slate-200 mb-1 group-hover:text-tech-accent transition-colors">${note.title}</div>
-          <div class="text-xs text-slate-500 font-mono mb-2 line-clamp-1">${previewText || '無內容'}</div>
+          <div class="text-[11px] text-slate-500 font-mono mb-2 line-clamp-1">${previewText || '無內容'}</div>
           <div class="flex flex-wrap gap-1">
-            ${(note.tags || []).slice(0, 3).map(t => `<span class="text-[10px] bg-slate-700 text-slate-300 px-1.5 rounded-sm">#${t}</span>`).join('')}
+            ${(note.tags || []).slice(0, 3).map(t => `<span class="text-[9px] bg-slate-700 text-slate-300 px-1.5 rounded-sm">${t}</span>`).join('')}
           </div>
         `;
         div.onclick = () => loadNote(note.id);
@@ -1098,18 +846,22 @@ function toggleAIPanel() {
       });
     }
 
-    function renderTagsUI(tags) {
-      els.activeTags.innerHTML = '';
-      tags.forEach(tag => addTagToUI(tag));
+    function updateFilterBadge() {
+        let count = 0;
+        Object.keys(activeFilters).forEach(k => count += activeFilters[k].length);
+        if (count > 0) {
+            els.filterBadge.textContent = count;
+            els.filterBadge.classList.remove('hidden');
+        } else {
+            els.filterBadge.classList.add('hidden');
+        }
     }
-    
+
+    function renderTagsUI(tags) { els.activeTags.innerHTML = ''; tags.forEach(tag => addTagToUI(tag)); }
     function addTagToUI(tag) {
         const chip = document.createElement('div');
         chip.className = 'tag-chip bg-tech-accent/20 border border-tech-accent/50 text-tech-accent px-2 py-1 rounded text-xs flex items-center gap-2 animate-fade-in';
-        chip.innerHTML = `
-          <span>${tag}</span>
-          <button onclick="removeTag(this)" class="hover:text-white"><i class="fa-solid fa-times"></i></button>
-        `;
+        chip.innerHTML = `<span>${tag}</span><button onclick="removeTag(this)" class="hover:text-white"><i class="fa-solid fa-times"></i></button>`;
         els.activeTags.appendChild(chip);
     }
 
@@ -1122,9 +874,7 @@ function toggleAIPanel() {
           card.className = 'link-card bg-slate-800 border border-slate-700 p-2 rounded flex justify-between items-center group hover:border-tech-secondary transition cursor-pointer';
           card.dataset.id = id;
           card.innerHTML = `
-            <div onclick="loadNote('${id}')" class="flex-1 overflow-hidden">
-               <div class="text-sm font-bold text-slate-300 group-hover:text-tech-secondary truncate"><i class="fa-solid fa-link text-[10px] mr-1"></i> ${note.title}</div>
-            </div>
+            <div onclick="loadNote('${id}')" class="flex-1 overflow-hidden"><div class="text-sm font-bold text-slate-300 group-hover:text-tech-secondary truncate"><i class="fa-solid fa-link text-[10px] mr-1"></i> ${note.title}</div></div>
             <button onclick="removeLink(this)" class="text-slate-500 hover:text-red-400 ml-2 px-1"><i class="fa-solid fa-times"></i></button>
           `;
           els.linkedList.appendChild(card);
@@ -1135,227 +885,225 @@ function toggleAIPanel() {
     function renderLinkSuggestions() {
       els.linkSuggestions.innerHTML = '';
       notes.forEach(note => {
-        const opt = document.createElement('option');
-        opt.value = note.title;
-        opt.dataset.id = note.id; // Datalist doesn't standardly support hidden IDs, handled in logic
+        const opt = document.createElement('option'); opt.value = note.title; opt.dataset.id = note.id;
         els.linkSuggestions.appendChild(opt);
       });
     }
 
     function updateTagHistory() {
-      // Collect unique tags
       const allTags = new Set();
       notes.forEach(n => (n.tags || []).forEach(t => allTags.add(t)));
-      
-      // Update Filter
-      const currentFilter = els.tagFilter.value;
-      els.tagFilter.innerHTML = '<option value="">所有標籤</option>';
-      allTags.forEach(tag => {
-        const opt = document.createElement('option');
-        opt.value = tag;
-        opt.textContent = tag;
-        els.tagFilter.appendChild(opt);
-      });
-      els.tagFilter.value = currentFilter;
-
-      // Update Editor History Select
       els.tagHistory.innerHTML = '<option value="">+ 從歷史標籤選擇</option>';
       allTags.forEach(tag => {
-        const opt = document.createElement('option');
-        opt.value = tag;
-        opt.textContent = tag;
+        const opt = document.createElement('option'); opt.value = tag; opt.textContent = tag;
         els.tagHistory.appendChild(opt);
       });
     }
 
-    // --- Event Handlers & Helpers ---
-
-    // Search Filter
     els.searchInput.addEventListener('input', renderNoteList);
-    
-    function filterNotes() {
-      renderNoteList();
-    }
 
-    // Tag Management
     function addTag() {
       const tag = els.tagInput.value.trim();
       if (!tag) return;
-      
-      // Check duplicate in current UI
       const currentTags = Array.from(els.activeTags.querySelectorAll('.tag-chip span')).map(s => s.textContent);
       if (currentTags.includes(tag)) return;
-
-      addTagToUI(tag);
-      els.tagInput.value = '';
+      addTagToUI(tag); els.tagInput.value = '';
     }
-
     function addTagFromHistory(select) {
-      const tag = select.value;
-      if (!tag) return;
-      
-      els.tagInput.value = tag;
-      addTag();
-      select.value = '';
+      if (!select.value) return;
+      els.tagInput.value = select.value; addTag(); select.value = '';
     }
+    function removeTag(btn) { btn.parentElement.remove(); }
 
-    function removeTag(btn) {
-      btn.parentElement.remove();
-    }
-
-    // Link Management
     function addLinkedNote() {
-      const title = els.linkInput.value;
-      if (!title) return;
-
+      const title = els.linkInput.value; if (!title) return;
       const targetNote = notes.find(n => n.title === title);
-      
-      if (!targetNote) {
-        showToast('找不到該標題的筆記', 'error');
-        return;
-      }
-      
-      if (targetNote.id === currentNoteId) {
-        showToast('無法連結自己', 'error');
-        return;
-      }
-
-      // Check duplicate in UI
+      if (!targetNote) return showToast('找不到該標題的筆記', 'error');
+      if (targetNote.id === currentNoteId) return showToast('無法連結自己', 'error');
       const existing = Array.from(els.linkedList.querySelectorAll('.link-card')).map(d => d.dataset.id);
-      if (existing.includes(targetNote.id)) {
-        showToast('已連結此筆記', 'info');
-        return;
-      }
-
-      renderLinkedUI([...existing, targetNote.id]);
-      els.linkInput.value = '';
+      if (existing.includes(targetNote.id)) return showToast('已連結', 'info');
+      renderLinkedUI([...existing, targetNote.id]); els.linkInput.value = '';
     }
+    function removeLink(btn) { btn.parentElement.remove(); }
 
-    function removeLink(btn) {
-      btn.parentElement.remove();
-    }
-
-    // Editor Formatting
-    function formatText(command) {
-      document.execCommand(command, false, null);
-      els.content.focus();
-    }
-
-    function changeFontSize(val) {
-      document.execCommand('fontSize', false, val);
-      els.content.focus();
-    }
-
-    // 插入圖片 (本機上傳)
+    function formatText(cmd) { document.execCommand(cmd, false, null); els.content.focus(); }
+    function changeFontSize(val) { document.execCommand('fontSize', false, val); els.content.focus(); }
+    
     function insertImage(input) {
-      const file = input.files[0];
-      if (!file) return;
-
+      const file = input.files[0]; if (!file) return;
       const reader = new FileReader();
-      reader.onload = function(e) {
-        els.content.focus();
-        document.execCommand('insertImage', false, e.target.result);
-        
-        setTimeout(() => {
-          document.querySelectorAll('#editor-content img').forEach(makeImageResizable);
-        }, 100);
+      reader.onload = function(e) { 
+        els.content.focus(); 
+        document.execCommand('insertImage', false, e.target.result); 
+        setTimeout(() => document.querySelectorAll('.editor-content img').forEach(makeImageResizable), 100); 
       };
-      reader.readAsDataURL(file);
-      input.value = '';
+      reader.readAsDataURL(file); input.value = '';
     }
 
     function makeImageResizable(img) {
         if(img.dataset.resizable) return;
         img.dataset.resizable = "true";
-        
         img.addEventListener('click', function(e) {
             e.stopPropagation();
-            document.querySelectorAll('img').forEach(i => i.classList.remove('resizable'));
+            document.querySelectorAll('.editor-content img').forEach(i => i.classList.remove('resizable'));
             img.classList.add('resizable');
         });
     }
 
     document.addEventListener('click', function(e) {
-        if (!e.target.closest('img')) {
-            document.querySelectorAll('img').forEach(i => i.classList.remove('resizable'));
+        if (!e.target.closest('.editor-content img')) {
+            document.querySelectorAll('.editor-content img').forEach(i => i.classList.remove('resizable'));
         }
     });
 
-    // Import / Export
     function saveNotes() {
-      const dataStr = JSON.stringify(notes, null, 2);
-      const blob = new Blob([dataStr], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `zettelkasten_backup_${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      showToast('備份檔案已下載', 'success');
+      if (notes.length === 0) return showToast('目前沒有任何筆記', 'error');
+      const blob = new Blob([JSON.stringify(notes, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `zettelkasten_backup_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(a.href); showToast('已下載', 'success');
     }
 
     function importNotes() {
-        const fileInput = document.getElementById('import-notes');
-        const file = fileInput.files[0];
-        if (!file) return;
-
+        const file = document.getElementById('import-notes').files[0]; if (!file) return;
         const reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = async function(e) {
             try {
                 const imported = JSON.parse(e.target.result);
                 if (!Array.isArray(imported)) throw new Error("Format");
-                
                 const existingIds = new Set(notes.map(n => n.id));
                 let count = 0;
-                
-                imported.forEach(n => {
-                    if(!n.id) n.id = genId();
-                    if(!existingIds.has(n.id)) {
-                        notes.push(n);
-                        existingIds.add(n.id);
-                        count++;
-                    }
-                });
-
-                saveToStorage();
-                renderNoteList();
-                updateTagHistory();
-                renderLinkSuggestions();
-                showToast(`成功導入 ${count} 則筆記`, 'success');
-            } catch (err) {
-                showToast('檔案格式錯誤', 'error');
-            }
-            fileInput.value = '';
+                imported.forEach(n => { if(!n.id) n.id = genId(); if(!existingIds.has(n.id)) { notes.push(n); existingIds.add(n.id); count++; } });
+                await saveToStorage(); renderNoteList(); updateTagHistory(); renderLinkSuggestions(); updateTagTree();
+                showToast(`導入 ${count} 則筆記`, 'success');
+            } catch (err) { showToast('格式錯誤', 'error'); }
+            document.getElementById('import-notes').value = '';
         };
         reader.readAsText(file);
     }
 
-    // Toast Notification
-    function showToast(message, type = 'info') {
-      const toast = document.createElement('div');
-      const colors = {
-        'success': 'border-tech-success text-tech-success bg-slate-900',
-        'error': 'border-tech-danger text-tech-danger bg-slate-900',
-        'info': 'border-tech-accent text-tech-accent bg-slate-900'
-      };
-      
-      toast.className = `p-3 rounded border shadow-lg flex items-center gap-2 min-w-[200px] animate-fade-in ${colors[type]}`;
-      toast.innerHTML = `
-        <i class="fa-solid ${type === 'success' ? 'fa-check' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
-        <span class="text-sm font-mono">${message}</span>
-      `;
-      
-      els.toastContainer.appendChild(toast);
-      
-      setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateY(-10px)';
-        setTimeout(() => toast.remove(), 300);
-      }, 3000);
+    // --- Tag Explorer & Filters Core ---
+    function buildTagTree(notesList) {
+        const tree = {};
+        notesList.forEach(note => {
+            const processedPaths = new Set();
+            (note.tags || []).forEach(tag => {
+                const parts = tag.split('/'); if (parts.length < 2) return;
+                const type = parts[0]; const valuePath = parts.slice(1);
+                let currentPath = type; processedPaths.add(currentPath);
+                valuePath.forEach(val => { currentPath += '/' + val; processedPaths.add(currentPath); });
+            });
+            processedPaths.forEach(path => {
+                const parts = path.split('/'); const type = parts[0]; const values = parts.slice(1);
+                if (!tree[type]) tree[type] = { count: 0, children: {} };
+                if (values.length === 0) tree[type].count++;
+                else {
+                    let currentLevel = tree[type].children;
+                    values.forEach((val, idx) => {
+                        if (!currentLevel[val]) currentLevel[val] = { count: 0, children: {} };
+                        if (idx === values.length - 1) currentLevel[val].count++;
+                        currentLevel = currentLevel[val].children;
+                    });
+                }
+            });
+        });
+        return tree;
     }
-    
+
+    function updateTagTree() {
+        const searchText = els.tagTreeSearch.value.trim().toLowerCase();
+        const tree = buildTagTree(notes);
+        els.tagExplorer.innerHTML = '';
+        const hasMatch = renderTagExplorer(tree, els.tagExplorer, [], searchText);
+        if (!hasMatch && searchText) els.tagExplorer.innerHTML = '<div class="text-xs text-slate-500 text-center py-2">無符合標籤</div>';
+        renderActiveFiltersPanel(); // 更新 Filter 面板
+    }
+
+    function renderTagExplorer(tree, parentEl, pathParts = [], filterText = "") {
+        const keys = Object.keys(tree).sort(); let hasAnyMatch = false;
+        keys.forEach(key => {
+            const node = tree[key]; const currentParts = [...pathParts, key]; const currentPath = currentParts.join('/'); const depth = pathParts.length;
+            const matchesFilter = key.toLowerCase().includes(filterText);
+            const hasChildren = node.children && Object.keys(node.children).length > 0;
+
+            const childContainer = document.createElement('div'); let childMatches = false;
+            if (hasChildren) childMatches = renderTagExplorer(node.children, childContainer, currentParts, filterText);
+            if (filterText && !matchesFilter && !childMatches) return;
+            hasAnyMatch = true;
+
+            const itemDiv = document.createElement('div'); itemDiv.className = "flex flex-col select-none";
+            const headerDiv = document.createElement('div');
+            
+            let isActive = false;
+            if (depth > 0) {
+                const type = currentParts[0]; const value = currentParts.slice(1).join('/');
+                isActive = activeFilters[type] && activeFilters[type].includes(value);
+            }
+
+            headerDiv.className = `flex items-center justify-between py-1 px-1.5 hover:bg-slate-700/40 rounded cursor-pointer group transition-all duration-150 ${isActive ? 'bg-tech-secondary/30 border-l-2 border-tech-accent pl-1' : ''}`;
+            const leftDiv = document.createElement('div');
+            leftDiv.className = "flex items-center gap-1 overflow-hidden"; leftDiv.style.paddingLeft = (depth * 10) + "px";
+
+            if (hasChildren) {
+                const isOpen = filterText !== "" || expandedTagPaths.has(currentPath) || (depth === 0 && expandedTagPaths.has("init_done"));
+                if (isOpen && !expandedTagPaths.has(currentPath)) expandedTagPaths.add(currentPath);
+
+                const toggleIcon = document.createElement('i');
+                toggleIcon.className = `fa-solid fa-chevron-${isOpen ? 'down' : 'right'} text-[9px] w-3 text-center cursor-pointer transition text-slate-500 hover:text-tech-accent`;
+                toggleIcon.onclick = (e) => {
+                    e.stopPropagation();
+                    if (expandedTagPaths.has(currentPath)) expandedTagPaths.delete(currentPath); else expandedTagPaths.add(currentPath);
+                    updateTagTree();
+                };
+                leftDiv.appendChild(toggleIcon);
+                if (!isOpen) childContainer.classList.add('hidden');
+            } else { leftDiv.innerHTML += '<span class="w-3 shrink-0"></span>'; }
+
+            const tagText = document.createElement('span');
+            tagText.className = `truncate transition text-xs ${isActive ? 'text-tech-accent font-bold' : 'text-slate-300 group-hover:text-white'}`;
+            tagText.textContent = key; leftDiv.appendChild(tagText);
+
+            const countSpan = document.createElement('span');
+            countSpan.className = `text-[9px] px-1 rounded shrink-0 transition ${isActive ? 'bg-tech-accent text-slate-900 font-bold' : 'bg-slate-800 text-slate-500 group-hover:bg-slate-700 group-hover:text-slate-300'}`;
+            countSpan.textContent = node.count;
+
+            headerDiv.appendChild(leftDiv); headerDiv.appendChild(countSpan);
+            headerDiv.onclick = () => {
+                if (depth === 0) { const toggleIcon = headerDiv.querySelector('i'); if (toggleIcon) toggleIcon.click(); } 
+                else { const type = currentParts[0]; const value = currentParts.slice(1).join('/'); toggleFacetedFilter(type, value); }
+            };
+
+            itemDiv.appendChild(headerDiv); if (hasChildren) itemDiv.appendChild(childContainer);
+            parentEl.appendChild(itemDiv);
+        });
+        return hasAnyMatch;
+    }
+
+    function toggleFacetedFilter(type, value) {
+        if (!activeFilters[type]) activeFilters[type] = [];
+        const idx = activeFilters[type].indexOf(value);
+        if (idx > -1) activeFilters[type].splice(idx, 1);
+        else activeFilters[type].push(value);
+        renderNoteList(); updateTagTree();
+    }
+
+    function renderActiveFiltersPanel() {
+        els.filtersList.innerHTML = ''; let hasFilters = false;
+        Object.keys(activeFilters).forEach(type => {
+            activeFilters[type].forEach(value => {
+                hasFilters = true;
+                const badge = document.createElement('span');
+                badge.className = "inline-flex items-center gap-1 bg-tech-secondary/20 border border-tech-secondary/50 text-slate-200 text-xs px-2 py-1 rounded font-mono animate-fade-in";
+                badge.innerHTML = `<span class="text-tech-accent font-bold">${type}:</span><span>${value}</span><button class="hover:text-red-400 font-bold ml-1 transition" onclick="removeSingleFilter('${type}', '${value}')">✕</button>`;
+                els.filtersList.appendChild(badge);
+            });
+        });
+        
+        if (hasFilters) els.noFiltersMsg.classList.add('hidden');
+        else els.noFiltersMsg.classList.remove('hidden');
+    }
+
+    function removeSingleFilter(type, value) { if (activeFilters[type]) activeFilters[type] = activeFilters[type].filter(v => v !== value); renderNoteList(); updateTagTree(); }
+    function clearAllFilters() { activeFilters = {}; renderNoteList(); updateTagTree(); }
 
   </script>
 </body>
