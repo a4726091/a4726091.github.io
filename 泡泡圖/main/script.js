@@ -86,7 +86,8 @@ var rightClickfindBubble = new creatNewrightClickButton(rightClickButtonLocation
 var BubbleBack = new creatNewrightClickButton(rightClickButtonLocation("X",1), rightClickButtonLocation("Y",7), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", FBubbleBack, "數字向前",rightClickMenu);
 var BubblePush = new creatNewrightClickButton(rightClickButtonLocation("X",2), rightClickButtonLocation("Y",7), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", FBubblePush, "數字向後",rightClickMenu);
 
-
+// === 新增：刪除泡泡圖功能（兩個按鈕）===
+var BubbleDelete = new creatNewrightClickButton(rightClickButtonLocation("X",3), rightClickButtonLocation("Y",7), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", deleteSpecificBubble, "刪除泡泡",rightClickMenu);
 
 // 新建的domelment的座標會位於本身在html的位置上，所以一開始要設定在左上角與canvas切齊
 var textarea2 = new createjs.DOMElement("textbox2");
@@ -513,7 +514,8 @@ function outputSaveData() {
 		}
 		saveData = "#all" + bubbleID.length.toString() + "#Xall" + saveData;
     //saveContainToBase64() 
-     saveData = saveData + "#base64#" + saveContainToBase64() + "#Xbase64#";
+     //saveData = saveData + "#base64#" + saveContainToBase64() + "#Xbase64#";
+	 saveData = saveData + "#base64#" + saveContainToBase64(false) + "#Xbase64#";
 		/////////////////////////////////
 		//匯出TXT，參考https://stackoverflow.com/questions/21012580/is-it-possible-to-write-data-to-file-using-only-javascript
 		var link = document.createElement('a');
@@ -1363,23 +1365,47 @@ function selectFile() {
 /////////////////////////////
 //圖片匯出功能
 //暫存pic並轉存為Base64
-function saveContainToBase64() {
+//暫存pic並轉存為Base64 (增加 includeBubbles 參數來決定是否包含泡泡圖)
+function saveContainToBase64(includeBubbles) {
 		//隱藏滑鼠泡泡球
 		circleAtMouse.visible = false;
 		textAtMouse.visible = false;
-		// Update the stage once to show the loaded image (at its native size)
+		
+        // 如果是「匯出存檔」(includeBubbles 為 false)，把畫布上的其他泡泡暫時隱藏
+        if (includeBubbles === false) {
+            for (var i = 0; i < pic.numChildren; i++) {
+                var child = pic.getChildAt(i);
+                // 只保留 bitmap (原底圖) 顯示，其餘隱藏
+                if (child !== bitmap) {
+                    child.visible = false;
+                }
+            }
+        }
+
+		// Update the stage once to show the loaded image
 		stage.update();
 
 		// Cache the bitmap. This is necessary to create the cache-canvas.
 		pic.cache(0, 0, image.width, image.height);
-		//console.log(image.width + "," + image.height)
-		// Note that if you update again, it will show the canvas image as blurred.
-		//stage.update();
-
+		
 		// Get the cache-canvas's data url.
 		var url = pic.getCacheDataURL();
 
-		return url
+        pic.uncache(); // 取得 data URL 後立刻清除快取，避免影響後續操作
+
+        // 恢復所有泡泡圖的顯示
+        if (includeBubbles === false) {
+            for (var i = 0; i < pic.numChildren; i++) {
+                var child = pic.getChildAt(i);
+                if (child !== bitmap) {
+                    child.visible = true;
+                }
+            }
+        }
+
+        stage.update();
+
+		return url;
 }
 //將BASE64轉圖片
 function outputContainToImage() {
@@ -1393,7 +1419,8 @@ function outputContainToImage() {
 		} else {
 				tempfileName.value = tempfileName.value + " 泡泡圖"
 		}
-		downloadimage(saveContainToBase64(), tempfileName.value);
+		//downloadimage(saveContainToBase64(), tempfileName.value);
+		downloadimage(saveContainToBase64(true), tempfileName.value);
 }
 
 var saveFile = function(data, filename) {
@@ -2224,4 +2251,93 @@ function findNextUnmeasuredBubble(startNum) {
     }
 
     return -1;  // 全部完成
+}
+
+
+
+//刪除泡泡圖的功能
+
+// 刪除指定的泡泡圖並自動重新編號
+// 刪除指定的泡泡圖並自動重新編號
+function deleteSpecificBubble() {
+    var textTemp = document.getElementById("textbox2");
+    var targetNum = Number(textTemp.value);
+/*
+    // 驗證輸入數字是否有效
+    if (isNaN(targetNum) || targetNum < 1 || targetNum >= tempBubbleNumber) {
+        alert("請輸入有效的泡泡圖數字！");
+        return;
+    }
+*/
+    console.log("執行刪除泡泡：" + targetNum);
+
+    // 1. 從畫布 (pic) 移除對應的圖形與文字
+    for (var i = pic.numChildren - 1; i >= 0; i--) {
+        var child = pic.getChildAt(i);
+        if (child instanceof createjs.Text && child !== textAtMouse) {
+            var currentNum = Number(child.text);
+            if (currentNum === targetNum) {
+                var prevChild = pic.getChildAt(i - 1);
+                pic.removeChild(child);
+                if (prevChild instanceof createjs.Shape && prevChild !== circleAtMouse) {
+                    pic.removeChild(prevChild);
+                }
+            }
+        }
+    }
+
+    // 2. 從資料陣列中移除該筆資料
+    var targetIndex = -1;
+    for (var j = 1; j < bubblenumber.length; j++) {
+        // 【修復點】：加上 Number()，確保匯入的字串也能正確比對
+        if (Number(bubblenumber[j]) === targetNum) {
+            targetIndex = j;
+            break;
+        }
+    }
+
+    // 確實找到索引後，將對應的所有資料刪除
+    if (targetIndex !== -1) {
+        bubbleID.splice(targetIndex, 1);
+        bubblenumber.splice(targetIndex, 1);
+        bubbleX.splice(targetIndex, 1);
+        bubbleY.splice(targetIndex, 1);
+        bubbleStroke.splice(targetIndex, 1);
+        bubbleFill.splice(targetIndex, 1);
+        bubblesize.splice(targetIndex, 1);
+        bubbleTextData.splice(targetIndex, 1);
+        bubbleTextColorData.splice(targetIndex, 1);
+    }
+
+    // 3. 畫布物件與陣列資料：大於目標數字的全部減 1 (重新編號)
+    for (var k = 0; k < pic.numChildren; k++) {
+        var childCanvas = pic.getChildAt(k);
+        if (childCanvas instanceof createjs.Text && childCanvas !== textAtMouse) {
+            var checkNum = Number(childCanvas.text);
+            if (!isNaN(checkNum) && checkNum > targetNum) {
+                childCanvas.text = (checkNum - 1).toString();
+            }
+        }
+    }
+
+    for (var m = 1; m < bubblenumber.length; m++) {
+        // 【修復點】：加上 Number() 確保運算正確
+        if (Number(bubblenumber[m]) > targetNum) {
+            bubblenumber[m] = Number(bubblenumber[m]) - 1;
+        }
+    }
+
+    // 4. 更新全域計數器
+    tempBubbleNumber--;
+    tempID--;
+    textAtMouse.text = tempBubbleNumber;
+    
+    // 5. 關閉選單並恢復狀態
+    rightClickMenu.visible = false;
+    bubblemode = true;
+    backspaceMode = true; // 恢復 backspace 功能
+    textTemp.value = "";  // 清空輸入框
+    
+    stage.update();
+    console.log("刪除與重新編號完成");
 }
