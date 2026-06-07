@@ -66,7 +66,7 @@ rightClickMenuBackground.graphics
 		.setStrokeStyle(2)
 		.beginStroke("#000000")
 		.beginFill("DeepSkyBlue")
-		.drawRect(0, 0, rightcheckBabblesWidth*3+rightcheckGap*4, rightcheckBabblesHeight*7+rightcheckGap*8);
+		.drawRect(0, 0, rightcheckBabblesWidth*3+rightcheckGap*4, rightcheckBabblesHeight*8+rightcheckGap*9);
 rightClickMenuBackground.alpha = 0.7;
 rightClickMenu.addChild(rightClickMenuBackground);
 //創建右鍵選單的按鈕
@@ -87,7 +87,13 @@ var BubbleBack = new creatNewrightClickButton(rightClickButtonLocation("X",1), r
 var BubblePush = new creatNewrightClickButton(rightClickButtonLocation("X",2), rightClickButtonLocation("Y",7), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", FBubblePush, "數字向後",rightClickMenu);
 
 // === 新增：刪除泡泡圖功能（兩個按鈕）===
-var BubbleDelete = new creatNewrightClickButton(rightClickButtonLocation("X",3), rightClickButtonLocation("Y",7), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", deleteSpecificBubble, "刪除泡泡",rightClickMenu);
+var BubbleDelete = new creatNewrightClickButton(rightClickButtonLocation("X",1), rightClickButtonLocation("Y",8), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", deleteSpecificBubble, "刪除泡泡",rightClickMenu);
+
+// 功能 1 按鈕：刪除但不重新排序 (放在 X:4, Y:7 位置，可依視覺需求調整座標)
+var BubbleDeleteNoSort = new creatNewrightClickButton(rightClickButtonLocation("X",2), rightClickButtonLocation("Y",8), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", deleteBubbleNoRenumber, "刪除不排序", rightClickMenu);
+
+// 功能 2 按鈕：將所有泡泡由小到大重新排序以填補空缺 (放在 X:5, Y:7 位置)
+var BubbleSortAll = new creatNewrightClickButton(rightClickButtonLocation("X",3), rightClickButtonLocation("Y",8), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", sortAndRenumberBubbles, "重新排序", rightClickMenu);
 
 // 新建的domelment的座標會位於本身在html的位置上，所以一開始要設定在左上角與canvas切齊
 var textarea2 = new createjs.DOMElement("textbox2");
@@ -2340,4 +2346,138 @@ function deleteSpecificBubble() {
     
     stage.update();
     console.log("刪除與重新編號完成");
+}
+
+
+// 功能 1：刪除指定的泡泡圖，但【不】自動重新編號後面號碼
+function deleteBubbleNoRenumber() {
+    var textTemp = document.getElementById("textbox2");
+    var targetNum = Number(textTemp.value);
+   /*
+    // 驗證輸入數字是否有效
+    if (isNaN(targetNum) || targetNum < 1) {
+        alert("請輸入有效的泡泡圖數字！");
+        return;
+    }
+   */
+    console.log("執行刪除泡泡（不重新排序）：" + targetNum);
+
+    // 1. 從畫布 (pic) 移除對應的圖形與文字
+    for (var i = pic.numChildren - 1; i >= 0; i--) {
+        var child = pic.getChildAt(i);
+        if (child instanceof createjs.Text && child !== textAtMouse) {
+            var currentNum = Number(child.text);
+            if (currentNum === targetNum) {
+                var prevChild = pic.getChildAt(i - 1);
+                pic.removeChild(child);
+                if (prevChild instanceof createjs.Shape && prevChild !== circleAtMouse) {
+                    pic.removeChild(prevChild);
+                }
+            }
+        }
+    }
+
+    // 2. 從資料陣列中移除該筆資料
+    var targetIndex = -1;
+    for (var j = 1; j < bubblenumber.length; j++) {
+        if (Number(bubblenumber[j]) === targetNum) {
+            targetIndex = j;
+            break;
+        }
+    }
+
+    if (targetIndex !== -1) {
+        bubbleID.splice(targetIndex, 1);
+        bubblenumber.splice(targetIndex, 1);
+        bubbleX.splice(targetIndex, 1);
+        bubbleY.splice(targetIndex, 1);
+        bubbleStroke.splice(targetIndex, 1);
+        bubbleFill.splice(targetIndex, 1);
+        bubblesize.splice(targetIndex, 1);
+        bubbleTextData.splice(targetIndex, 1);
+        bubbleTextColorData.splice(targetIndex, 1);
+    }
+
+    // 3. 動態更新全域計數器（以當前陣列中最大號碼 + 1 作為下一顆新泡泡的預設號碼）
+    var maxNum = 0;
+    for (var m = 1; m < bubblenumber.length; m++) {
+        var num = Number(bubblenumber[m]);
+        if (num > maxNum) maxNum = num;
+    }
+    tempBubbleNumber = maxNum + 1;
+    textAtMouse.text = tempBubbleNumber;
+    
+    // 4. 關閉選單並恢復狀態
+    rightClickMenu.visible = false;
+    bubblemode = true;
+    backspaceMode = true;
+    textTemp.value = "";
+    
+    stage.update();
+    console.log("刪除完成（未重新排序），下一顆新泡泡號碼改為：" + tempBubbleNumber);
+}
+
+// 功能 2：將現有的所有泡泡圖由小到大重新排序，完美填補因刪除造成的斷號空缺
+function sortAndRenumberBubbles() {
+    // 1. 收集目前陣列中所有剩餘的合法的泡泡數字
+    var activeNumbers = [];
+    for (var j = 1; j < bubblenumber.length; j++) {
+        var num = Number(bubblenumber[j]);
+        if (!isNaN(num)) {
+            activeNumbers.push(num);
+        }
+    }
+
+    if (activeNumbers.length === 0) {
+        alert("目前畫布上沒有可排序的泡泡！");
+        return;
+    }
+
+    // 2. 由小到大排序，並防呆去除重複項
+    activeNumbers.sort(function(a, b) { return a - b; });
+    var uniqueSorted = [];
+    for (var i = 0; i < activeNumbers.length; i++) {
+        if (uniqueSorted.indexOf(activeNumbers[i]) === -1) {
+            uniqueSorted.push(activeNumbers[i]);
+        }
+    }
+
+    // 3. 建立新舊編號對照表 (例如：原本剩餘的 1, 3, 5 -> 對應對照成新編號 1, 2, 3)
+    var numberMap = {};
+    for (var k = 0; k < uniqueSorted.length; k++) {
+        numberMap[uniqueSorted[k]] = k + 1; // 從 1 開始重新連續編號
+    }
+
+    // 4. 更新資料陣列中的編號紀錄
+    for (var m = 1; m < bubblenumber.length; m++) {
+        var oldNum = Number(bubblenumber[m]);
+        if (numberMap[oldNum] !== undefined) {
+            bubblenumber[m] = numberMap[oldNum];
+        }
+    }
+
+    // 5. 更新畫布上所有 Text 物件顯示的數字文字
+    for (var n = 0; n < pic.numChildren; n++) {
+        var child = pic.getChildAt(n);
+        if (child instanceof createjs.Text && child !== textAtMouse) {
+            var currentNum = Number(child.text);
+            if (numberMap[currentNum] !== undefined) {
+                child.text = numberMap[currentNum].toString();
+            }
+        }
+    }
+
+    // 6. 重新校正全域變數計數器與滑鼠文字
+    tempBubbleNumber = uniqueSorted.length + 1;
+    tempID = uniqueSorted.length; // 同步調整 ID 總計數
+    textAtMouse.text = tempBubbleNumber;
+
+    // 7. 關閉右鍵選單並刷新畫面
+    rightClickMenu.visible = false;
+    bubblemode = true;
+    backspaceMode = true;
+    
+    stage.update();
+    alert("所有泡泡已重新從小到大排序，斷號空缺填補完成！");
+    console.log("重新編號完成，下一顆新泡泡為：" + tempBubbleNumber);
 }
