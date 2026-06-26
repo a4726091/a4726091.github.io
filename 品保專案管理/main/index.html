@@ -76,6 +76,8 @@
         // 解構 React Hook
         const { useState, useEffect } = React;
         
+
+
         // 工具函式：產生隨機 ID (Base36 字串)
         const generateId = () => Math.random().toString(36).substr(2, 9);
 
@@ -627,6 +629,39 @@
             // 定義圖片預覽狀態 (一般簡圖 / 備註簡圖)
             const [sketchPreview, setSketchPreview] = useState("");
             const [remarksSketchPreview, setRemarksSketchPreview] = useState("");
+
+            // --- 圖片縮放、全螢幕拖曳控制狀態 ---
+            const [imgScale, setImgScale] = useState(1);
+            const [offset, setOffset] = useState({ x: 0, y: 0 });
+            const [isDragging, setIsDragging] = useState(false);
+            const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+            const handleWheelZoom = (e) => {
+                e.preventDefault();
+                if (e.deltaY < 0) setImgScale(prev => Math.min(prev + 0.1, 8)); // 最大放大 8 倍
+                else setImgScale(prev => Math.max(prev - 0.1, 0.2));
+            };
+
+            const handleMouseDown = (e) => {
+                e.preventDefault();
+                setIsDragging(true);
+                setDragStart({ x: e.clientX - offset.x, y: e.clientY - offset.y });
+            };
+
+            const handleMouseMove = (e) => {
+                if (!isDragging) return;
+                setOffset({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+            };
+
+            const handleMouseUp = () => setIsDragging(false);
+
+            const resetImgTransform = () => {
+                setImgScale(1);
+                setOffset({ x: 0, y: 0 });
+                setIsDragging(false);
+            };
+            // ----------------------------------------
+
             // 點擊圖片放大的狀態
             const [selectedSketch, setSelectedSketch] = useState(null);
 
@@ -986,14 +1021,41 @@ const handleExportToExcel = () => {
                     
                     {/* 圖片放大檢視 Modal */}
                     {selectedSketch && (
-                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setSelectedSketch(null)}>
-                            <div className="bg-white rounded-lg p-4 max-w-4xl max-h-screen overflow-auto" onClick={e => e.stopPropagation()}>
-                                <div className="flex justify-end">
-                                    <button onClick={() => setSelectedSketch(null)} className="text-gray-600 hover:text-gray-800">
-                                        <i className="fas fa-times text-xl"></i>
-                                    </button>
-                                </div>
-                                <img src={selectedSketch} alt="放大簡圖" className="max-w-full max-h-[80vh] object-contain" />
+                        <div 
+                            className="fixed inset-0 bg-black z-50 flex flex-col justify-center items-center select-none overflow-hidden"
+                            onMouseMove={handleMouseMove}
+                            onMouseUp={handleMouseUp}
+                            onMouseLeave={handleMouseUp}
+                        >
+                            {/* 右上角浮動關閉按鈕 */}
+                            <button 
+                                onClick={() => { setSelectedSketch(null); resetImgTransform(); }} 
+                                className="absolute top-4 right-4 bg-gray-800 bg-opacity-60 text-white rounded-full w-12 h-12 flex items-center justify-center hover:bg-red-600 transition-colors z-[60]"
+                            >
+                                <i className="fas fa-times text-2xl"></i>
+                            </button>
+                            
+                            {/* 底部操作提示 */}
+                            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-900 bg-opacity-75 text-white px-5 py-2 rounded-full text-sm z-[60] pointer-events-none tracking-wide">
+                                <i className="fas fa-search-plus mr-2"></i>滾輪放大縮小 / <i className="fas fa-arrows-alt mr-2"></i>按住滑鼠左鍵拖曳
+                            </div>
+
+                            {/* 圖片顯示及拖曳觸發區域 */}
+                            <div 
+                                onWheel={handleWheelZoom} 
+                                onMouseDown={handleMouseDown}
+                                className={`w-full h-full flex justify-center items-center ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+                            >
+                                <img 
+                                    src={selectedSketch} 
+                                    alt="放大簡圖" 
+                                    className="max-w-full max-h-full object-contain pointer-events-none" 
+                                    style={{ 
+                                        transform: `translate(${offset.x}px, ${offset.y}px) scale(${imgScale})`, 
+                                        transition: isDragging ? 'none' : 'transform 0.1s ease-out', 
+                                        transformOrigin: 'center center' 
+                                    }} 
+                                />
                             </div>
                         </div>
                     )}
@@ -1250,6 +1312,38 @@ const handleExportToExcel = () => {
         const Tab5_Meetings = ({ project, updateProject }) => {
             // 圖片預覽狀態
             const [picPreview, setPicPreview] = useState("");
+
+            // --- 圖片縮放、全螢幕拖曳控制狀態 ---
+            const [imgScale, setImgScale] = useState(1);
+            const [offset, setOffset] = useState({ x: 0, y: 0 });
+            const [isDragging, setIsDragging] = useState(false);
+            const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+            const handleWheelZoom = (e) => {
+                e.preventDefault();
+                if (e.deltaY < 0) setImgScale(prev => Math.min(prev + 0.1, 8));
+                else setImgScale(prev => Math.max(prev - 0.1, 0.2));
+            };
+
+            const handleMouseDown = (e) => {
+                e.preventDefault();
+                setIsDragging(true);
+                setDragStart({ x: e.clientX - offset.x, y: e.clientY - offset.y });
+            };
+
+            const handleMouseMove = (e) => {
+                if (!isDragging) return;
+                setOffset({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+            };
+
+            const handleMouseUp = () => setIsDragging(false);
+
+            const resetImgTransform = () => {
+                setImgScale(1);
+                setOffset({ x: 0, y: 0 });
+                setIsDragging(false);
+            };
+            // ----------------------------------------
             const [selectedImg, setSelectedImg] = useState(null);
             
             const [isOpen, setIsOpen] = useState(false);
@@ -1356,12 +1450,41 @@ const handleExportToExcel = () => {
 
                                 {/* 圖片放大檢視 Modal */}
                                 {selectedImg && (
-                                    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60]" onClick={() => setSelectedImg(null)}>
-                                        <div className="relative max-w-4xl max-h-[90vh] p-2 bg-white rounded-lg shadow-2xl" onClick={e => e.stopPropagation()}>
-                                            <button onClick={() => setSelectedImg(null)} className="absolute -top-10 -right-10 text-white text-3xl hover:text-gray-300">
-                                                <i className="fas fa-times"></i>
-                                            </button>
-                                            <img src={selectedImg} alt="放大" className="max-w-full max-h-[80vh] block mx-auto rounded"/>
+                                    <div 
+                                        className="fixed inset-0 bg-black z-[60] flex flex-col justify-center items-center select-none overflow-hidden"
+                                        onMouseMove={handleMouseMove}
+                                        onMouseUp={handleMouseUp}
+                                        onMouseLeave={handleMouseUp}
+                                    >
+                                        {/* 右上角浮動關閉按鈕 */}
+                                        <button 
+                                            onClick={() => { setSelectedImg(null); resetImgTransform(); }} 
+                                            className="absolute top-4 right-4 bg-gray-800 bg-opacity-60 text-white rounded-full w-12 h-12 flex items-center justify-center hover:bg-red-600 transition-colors z-[70]"
+                                        >
+                                            <i className="fas fa-times text-2xl"></i>
+                                        </button>
+                                        
+                                        {/* 底部操作提示 */}
+                                        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-900 bg-opacity-75 text-white px-5 py-2 rounded-full text-sm z-[70] pointer-events-none tracking-wide">
+                                            <i className="fas fa-search-plus mr-2"></i>滾輪放大縮小 / <i className="fas fa-arrows-alt mr-2"></i>按住滑鼠左鍵拖曳
+                                        </div>
+
+                                        {/* 圖片顯示及拖曳觸發區域 */}
+                                        <div 
+                                            onWheel={handleWheelZoom} 
+                                            onMouseDown={handleMouseDown}
+                                            className={`w-full h-full flex justify-center items-center ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+                                        >
+                                            <img 
+                                                src={selectedImg} 
+                                                alt="放大" 
+                                                className="max-w-full max-h-full object-contain pointer-events-none" 
+                                                style={{ 
+                                                    transform: `translate(${offset.x}px, ${offset.y}px) scale(${imgScale})`, 
+                                                    transition: isDragging ? 'none' : 'transform 0.1s ease-out', 
+                                                    transformOrigin: 'center center' 
+                                                }} 
+                                            />
                                         </div>
                                     </div>
                                 )}
