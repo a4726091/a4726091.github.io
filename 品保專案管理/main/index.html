@@ -191,7 +191,346 @@
                 overall
             };
         };
+        // ===== 版次 / 修改履歷工具 =====
+        const HISTORY_OPTIONS = {
+            maxRecords: 500,
+            defaultUser: "目前使用者"
+        };
 
+        const HISTORY_FIELD_LABELS = {
+            vendor: "廠商",
+            no: "件號",
+            name: "件名",
+            provisionalMethod: "是否以暫定工法",
+            date: "送樣時間",
+            status: "狀態",
+            checkDate: "檢查日",
+            result: "結果",
+            remarks: "備註",
+            drawing: "圖面",
+            bubble: "泡泡圖",
+            eval: "評價表",
+            cp: "管制計畫",
+            sip: "檢驗標準",
+            sop: "作業標準",
+            partNo: "關聯件號",
+            desc: "問題描述",
+            solution: "對策",
+            pic: "擔當 / 圖片",
+            planDate: "預定完成日",
+            title: "任務名稱",
+            due: "到期日",
+            done: "完成狀態",
+            type: "類型",
+            subject: "主題",
+            attendees: "出席人員",
+            relatedPartNo: "關聯部品",
+            content: "內容",
+            actionItems: "待辦 / 結論"
+        };
+
+        const DOC_STATUS_TEXT = {
+            0: "未上傳",
+            1: "審核中",
+            2: "已確認"
+        };
+
+        const HISTORY_MODULE_LABELS = {
+            parts: "部品送樣",
+            docs: "PPAP 文件",
+            issues: "問題點追蹤",
+            tasks: "其他任務",
+            meetings: "會議紀錄"
+        };
+
+        const historyNow = () => {
+            return new Date().toLocaleString("zh-TW", { hour12: false });
+        };
+
+        const normalizeHistoryValue = (value, field) => {
+            if (field && ["drawing", "bubble", "eval", "cp", "sip", "sop"].includes(field)) {
+                return DOC_STATUS_TEXT[value ?? 0] || String(value ?? "");
+            }
+
+            if (typeof value === "boolean") {
+                return value ? "已完成" : "未完成";
+            }
+
+            if (value === undefined || value === null || value === "") {
+                return "-";
+            }
+
+            if (typeof value === "object") {
+                try {
+                    return JSON.stringify(value);
+                } catch {
+                    return String(value);
+                }
+            }
+
+            return String(value);
+        };
+
+        const createHistoryRecord = ({
+            module,
+            action,
+            target,
+            field = "",
+            oldValue = "",
+            newValue = "",
+            user = HISTORY_OPTIONS.defaultUser
+        }) => ({
+            id: generateId(),
+            time: historyNow(),
+            module,
+            moduleLabel: HISTORY_MODULE_LABELS[module] || module,
+            action,
+            target,
+            field,
+            fieldLabel: HISTORY_FIELD_LABELS[field] || field,
+            oldValue: normalizeHistoryValue(oldValue, field),
+            newValue: normalizeHistoryValue(newValue, field),
+            user
+        });
+
+        const mapById = (items = [], idKey = "id") => {
+            const map = {};
+            items.forEach(item => {
+                if (item && item[idKey]) {
+                    map[item[idKey]] = item;
+                }
+            });
+            return map;
+        };
+
+        const getPartTargetLabel = (part) => {
+            if (!part) return "未知部品";
+            return `${part.no || "未填件號"} ${part.name || ""}`.trim();
+        };
+
+        const getIssueTargetLabel = (issue) => {
+            if (!issue) return "未知問題";
+            return `${issue.partNo || "未指定件號"} ${issue.desc || ""}`.trim();
+        };
+
+        const getTaskTargetLabel = (task) => {
+            if (!task) return "未知任務";
+            return task.title || "未命名任務";
+        };
+
+        const getMeetingTargetLabel = (meeting) => {
+            if (!meeting) return "未知會議";
+            return `${meeting.date || ""} ${meeting.subject || meeting.type || "未命名會議"}`.trim();
+        };
+
+        const diffItemFields = ({
+            prevItem,
+            nextItem,
+            fields,
+            module,
+            target
+        }) => {
+            const records = [];
+
+            fields.forEach(field => {
+                const oldValue = prevItem?.[field];
+                const newValue = nextItem?.[field];
+
+                if (JSON.stringify(oldValue ?? "") !== JSON.stringify(newValue ?? "")) {
+                    records.push(createHistoryRecord({
+                        module,
+                        action: "修改",
+                        target,
+                        field,
+                        oldValue,
+                        newValue
+                    }));
+                }
+            });
+
+            return records;
+        };
+
+        const buildListHistoryRecords = ({
+            prevList = [],
+            nextList = [],
+            module,
+            fields,
+            getTargetLabel
+        }) => {
+            const records = [];
+            const prevMap = mapById(prevList);
+            const nextMap = mapById(nextList);
+
+            // 新增
+            Object.values(nextMap).forEach(nextItem => {
+                if (!prevMap[nextItem.id]) {
+                    records.push(createHistoryRecord({
+                        module,
+                        action: "新增",
+                        target: getTargetLabel(nextItem),
+                        field: "",
+                        oldValue: "",
+                        newValue: "新增資料"
+                    }));
+                }
+            });
+
+            // 刪除
+            Object.values(prevMap).forEach(prevItem => {
+                if (!nextMap[prevItem.id]) {
+                    records.push(createHistoryRecord({
+                        module,
+                        action: "刪除",
+                        target: getTargetLabel(prevItem),
+                        field: "",
+                        oldValue: "刪除前資料",
+                        newValue: ""
+                    }));
+                }
+            });
+
+            // 修改
+            Object.values(nextMap).forEach(nextItem => {
+                const prevItem = prevMap[nextItem.id];
+                if (!prevItem) return;
+
+                records.push(...diffItemFields({
+                    prevItem,
+                    nextItem,
+                    fields,
+                    module,
+                    target: getTargetLabel(nextItem)
+                }));
+            });
+
+            return records;
+        };
+
+        const buildDocsHistoryRecords = (prevProject, nextProject) => {
+            const records = [];
+            const prevDocs = prevProject.docs || {};
+            const nextDocs = nextProject.docs || {};
+            const docKeys = ["drawing", "bubble", "eval", "cp", "sip", "sop"];
+
+            const prevPartsMap = mapById(prevProject.parts || []);
+            const nextPartsMap = mapById(nextProject.parts || []);
+
+            const addedPartIds = new Set(
+                (nextProject.parts || [])
+                    .filter(part => !prevPartsMap[part.id])
+                    .map(part => part.id)
+            );
+
+            const deletedPartIds = new Set(
+                (prevProject.parts || [])
+                    .filter(part => !nextPartsMap[part.id])
+                    .map(part => part.id)
+            );
+
+            const allPartIds = new Set([
+                ...Object.keys(prevDocs),
+                ...Object.keys(nextDocs)
+            ]);
+
+            allPartIds.forEach(partId => {
+                // 新增 / 刪除部品時，避免把初始化 docs 也記成一堆修改
+                if (addedPartIds.has(partId) || deletedPartIds.has(partId)) return;
+
+                const part = nextPartsMap[partId] || prevPartsMap[partId];
+                const target = getPartTargetLabel(part);
+
+                docKeys.forEach(key => {
+                    const oldValue = prevDocs[partId]?.[key] ?? 0;
+                    const newValue = nextDocs[partId]?.[key] ?? 0;
+
+                    if (oldValue !== newValue) {
+                        records.push(createHistoryRecord({
+                            module: "docs",
+                            action: "修改",
+                            target,
+                            field: key,
+                            oldValue,
+                            newValue
+                        }));
+                    }
+                });
+            });
+
+            return records;
+        };
+
+        const buildProjectHistoryRecords = (prevProject, nextProject) => {
+            if (!prevProject || !nextProject) return [];
+
+            const records = [];
+
+            records.push(...buildListHistoryRecords({
+                prevList: prevProject.parts || [],
+                nextList: nextProject.parts || [],
+                module: "parts",
+                fields: [
+                    "vendor",
+                    "no",
+                    "name",
+                    "provisionalMethod",
+                    "date",
+                    "status",
+                    "checkDate",
+                    "result",
+                    "remarks"
+                ],
+                getTargetLabel: getPartTargetLabel
+            }));
+
+            records.push(...buildDocsHistoryRecords(prevProject, nextProject));
+
+            records.push(...buildListHistoryRecords({
+                prevList: prevProject.issues || [],
+                nextList: nextProject.issues || [],
+                module: "issues",
+                fields: [
+                    "partNo",
+                    "desc",
+                    "solution",
+                    "pic",
+                    "planDate",
+                    "result"
+                ],
+                getTargetLabel: getIssueTargetLabel
+            }));
+
+            records.push(...buildListHistoryRecords({
+                prevList: prevProject.tasks || [],
+                nextList: nextProject.tasks || [],
+                module: "tasks",
+                fields: [
+                    "title",
+                    "pic",
+                    "due",
+                    "done"
+                ],
+                getTargetLabel: getTaskTargetLabel
+            }));
+
+            records.push(...buildListHistoryRecords({
+                prevList: prevProject.meetings || [],
+                nextList: nextProject.meetings || [],
+                module: "meetings",
+                fields: [
+                    "date",
+                    "type",
+                    "subject",
+                    "attendees",
+                    "relatedPartNo",
+                    "content",
+                    "actionItems"
+                ],
+                getTargetLabel: getMeetingTargetLabel
+            }));
+
+            return records;
+        };
                 // ===== 資料異常提醒 + 逾期追蹤工具 =====
         const ALERT_RULES = {
             sampleCheckDueDays: 7,     // 送樣後超過 7 天仍未檢查，視為逾期
@@ -831,9 +1170,15 @@
             const createProject = () => {
                 if (!newModel.trim()) return alert("請輸入車型名稱");
                 const id = `proj-${Date.now()}`;
-                const newProj = {
+                                const newProj = {
                     info: { model: newModel, purpose: newPurpose, owner: newOwner || "未指定", sop: "2025-12-31" },
-                    parts: [], docs: {}, issues: [], tasks: []
+                    parts: [],
+                    docs: {},
+                    issues: [],
+                    tasks: [],
+                    meetings: [],
+                    version: 1,
+                    history: []
                 };
                 setProjects(prev => ({ ...prev, [id]: newProj }));
                 setCurrentProjectId(id);
@@ -1369,9 +1714,14 @@
                                 {project.info.purpose}
                             </span>
 
-                            <h1 className="text-2xl font-bold text-slate-800">
-                                {project.info.model}
-                            </h1>
+                            <div className="flex items-center gap-3">
+    <h1 className="text-2xl font-bold text-slate-800">
+        {project.info.model}
+    </h1>
+    <span className="text-xs bg-slate-800 text-white px-2 py-1 rounded-full">
+        v{project.version || 1}
+    </span>
+</div>
 
                             <div className="text-slate-500 text-sm mt-2 flex gap-6">
                                 <span className="flex items-center gap-2">
@@ -2411,7 +2761,201 @@ const handleExportToExcel = () => {
                 </div>
             );
         };
-        
+                // ===== Tab6: 版次 / 修改履歷 =====
+        const Tab6_History = ({ project }) => {
+            const [keyword, setKeyword] = useState("");
+            const [moduleFilter, setModuleFilter] = useState("all");
+
+            const history = project.history || [];
+            const currentVersion = project.version || 1;
+
+            const moduleOptions = [...new Set(history.map(h => h.module).filter(Boolean))];
+
+            const filteredHistory = history.filter(item => {
+                if (moduleFilter !== "all" && item.module !== moduleFilter) return false;
+
+                const key = keyword.trim().toLowerCase();
+                if (!key) return true;
+
+                const text = [
+                    item.time,
+                    item.moduleLabel,
+                    item.action,
+                    item.target,
+                    item.fieldLabel,
+                    item.oldValue,
+                    item.newValue,
+                    item.user,
+                    item.version
+                ].join(" ").toLowerCase();
+
+                return text.includes(key);
+            });
+
+            const actionStyle = (action) => {
+                switch (action) {
+                    case "新增":
+                        return "bg-green-100 text-green-700";
+                    case "刪除":
+                        return "bg-red-100 text-red-700";
+                    case "修改":
+                        return "bg-blue-100 text-blue-700";
+                    default:
+                        return "bg-gray-100 text-gray-700";
+                }
+            };
+
+            const moduleStyle = (module) => {
+                switch (module) {
+                    case "parts":
+                        return "bg-sky-100 text-sky-700";
+                    case "docs":
+                        return "bg-purple-100 text-purple-700";
+                    case "issues":
+                        return "bg-red-100 text-red-700";
+                    case "tasks":
+                        return "bg-amber-100 text-amber-700";
+                    case "meetings":
+                        return "bg-indigo-100 text-indigo-700";
+                    default:
+                        return "bg-gray-100 text-gray-700";
+                }
+            };
+
+            return (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div className="p-4 bg-gray-50 border-b flex justify-between items-center">
+                        <div>
+                            <h3 className="font-bold text-gray-700 flex items-center gap-2">
+                                <i className="fas fa-clock-rotate-left text-indigo-500"></i>
+                                6. 版次 / 修改履歷
+                            </h3>
+                            <div className="text-xs text-gray-500 mt-1">
+                                目前版次：v{currentVersion}，共 {history.length} 筆修改紀錄
+                            </div>
+                        </div>
+
+                        <div className="text-right text-xs text-gray-500">
+                            最新修改：
+                            <div className="font-bold text-gray-700">
+                                {history[0]?.time || "尚無修改紀錄"}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="p-4 border-b bg-white pdf-hide">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="md:col-span-2">
+                                <label className="block text-xs font-bold text-slate-500 mb-1">
+                                    關鍵字搜尋
+                                </label>
+                                <input
+                                    value={keyword}
+                                    onChange={e => setKeyword(e.target.value)}
+                                    className="w-full border rounded-lg px-3 py-2 text-sm"
+                                    placeholder="搜尋件號、欄位、修改前後內容、時間、使用者..."
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 mb-1">
+                                    模組篩選
+                                </label>
+                                <select
+                                    value={moduleFilter}
+                                    onChange={e => setModuleFilter(e.target.value)}
+                                    className="w-full border rounded-lg px-3 py-2 text-sm"
+                                >
+                                    <option value="all">全部模組</option>
+                                    {moduleOptions.map(module => (
+                                        <option key={module} value={module}>
+                                            {HISTORY_MODULE_LABELS[module] || module}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="divide-y divide-gray-100">
+                        {filteredHistory.length === 0 ? (
+                            <div className="text-center py-12 text-gray-400">
+                                尚無符合條件的修改履歷
+                            </div>
+                        ) : (
+                            filteredHistory.map(item => (
+                                <div key={item.id} className="p-5 hover:bg-gray-50">
+                                    <div className="flex justify-between items-start gap-4">
+                                        <div className="flex-1">
+                                            <div className="flex flex-wrap items-center gap-2 mb-2">
+                                                <span className="text-xs bg-slate-800 text-white px-2 py-1 rounded-full">
+                                                    v{item.version || "-"}
+                                                </span>
+                                                <span className={`text-xs px-2 py-1 rounded-full font-bold ${moduleStyle(item.module)}`}>
+                                                    {item.moduleLabel}
+                                                </span>
+                                                <span className={`text-xs px-2 py-1 rounded-full font-bold ${actionStyle(item.action)}`}>
+                                                    {item.action}
+                                                </span>
+                                                <span className="text-xs text-gray-500">
+                                                    {item.time}
+                                                </span>
+                                            </div>
+
+                                            <div className="font-bold text-gray-800 mb-1">
+                                                {item.target}
+                                            </div>
+
+                                            {item.fieldLabel && (
+                                                <div className="text-sm text-gray-600 mb-2">
+                                                    欄位：
+                                                    <span className="font-bold text-blue-700">
+                                                        {item.fieldLabel}
+                                                    </span>
+                                                </div>
+                                            )}
+
+                                            {item.action === "修改" ? (
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                                                    <div className="bg-red-50 border border-red-100 rounded-lg p-3">
+                                                        <div className="text-xs text-red-500 font-bold mb-1">
+                                                            修改前
+                                                        </div>
+                                                        <div className="text-gray-700 whitespace-pre-line break-words">
+                                                            {item.oldValue}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="bg-green-50 border border-green-100 rounded-lg p-3">
+                                                        <div className="text-xs text-green-600 font-bold mb-1">
+                                                            修改後
+                                                        </div>
+                                                        <div className="text-gray-700 whitespace-pre-line break-words">
+                                                            {item.newValue}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3">
+                                                    {item.action === "新增" ? item.newValue : item.oldValue}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="text-right text-xs text-gray-400 min-w-[90px]">
+                                            修改者
+                                            <div className="font-bold text-gray-600 mt-1">
+                                                {item.user || "目前使用者"}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+            );
+        };
         // ===== Dashboard 儀表板組件 =====
         const Dashboard = ({ projects, setCurrentId, setActiveView, setActiveTab }) => {
 
@@ -2605,8 +3149,8 @@ const handleExportToExcel = () => {
                 return () => window.removeEventListener("beforeunload", handler);
             }, []);
 
-                        // 取得當前專案資料物件
-            const current = projects[currentId] || { info: {}, parts: [], docs: {}, issues: [], tasks: [], meetings: [] };
+                                    // 取得當前專案資料物件
+            const current = projects[currentId] || { info: {}, parts: [], docs: {}, issues: [], tasks: [], meetings: [], version: 1, history: [] };
 
             // 先依照目前分組條件產生資料，再套用搜尋與篩選
             const groupedCurrent = buildGroupedProject(current, groupBy, selectedGroup);
@@ -2614,13 +3158,53 @@ const handleExportToExcel = () => {
 
             // 更新當前專案的輔助函式
 
-            // 更新當前專案的輔助函式
+                        // 更新當前專案的輔助函式：自動產生版次與修改履歷
             const updateCurrent = (fn) => {
-                
-                setProjects(p => ({ ...p, [currentId]: fn(p[currentId]) }));
+                setProjects(prevProjects => {
+                    const prevProject = prevProjects[currentId];
+
+                    if (!prevProject) return prevProjects;
+
+                    const nextProjectRaw = fn(prevProject);
+
+                    if (!nextProjectRaw) return prevProjects;
+
+                    // 比對更新前後差異
+                    const historyRecords = buildProjectHistoryRecords(prevProject, nextProjectRaw);
+
+                    // 沒有實際差異時，不新增履歷
+                    if (historyRecords.length === 0) {
+                        return {
+                            ...prevProjects,
+                            [currentId]: nextProjectRaw
+                        };
+                    }
+
+                    const nextVersion = (prevProject.version || 1) + 1;
+
+                    const versionedHistoryRecords = historyRecords.map(record => ({
+                        ...record,
+                        version: nextVersion
+                    }));
+
+                    const nextProject = {
+                        ...nextProjectRaw,
+                        version: nextVersion,
+                        history: [
+                            ...versionedHistoryRecords,
+                            ...(prevProject.history || [])
+                        ].slice(0, HISTORY_OPTIONS.maxRecords)
+                    };
+
+                    return {
+                        ...prevProjects,
+                        [currentId]: nextProject
+                    };
+                });
             };
 
             // 載入中狀態處理
+
             if (activeView === "project" && !currentId) {
                 return (
                     <div className="flex items-center justify-center h-screen text-xl text-gray-500">
@@ -2689,6 +3273,10 @@ const handleExportToExcel = () => {
     
     {/* 頁尾聲明 */}
     <div className="mt-10 text-center text-xs text-gray-400 border-t pt-4">
+            <div className="pdf-page-break"></div>
+
+    <div className="pdf-section-title">5. 修改履歷摘要</div>
+    <Tab6_History project={current} />
         本報表由 QA PMS 系統自動產生
     </div>
 
@@ -2724,12 +3312,13 @@ const handleExportToExcel = () => {
                                 {/* Tab 切換按鈕 */}
                                 <div className="mb-6">
                                     <div className="flex gap-4 border-b">
-                                        {[
+                                                                                {[
                                             { id: "tab1", icon: "fa-box-open", label: "1. 部品送樣" },
                                             { id: "tab2", icon: "fa-file-contract", label: "2. PPAP 文件" },
                                             { id: "tab3", icon: "fa-bug", label: "3. 問題點追蹤" },
                                             { id: "tab4", icon: "fa-list-check", label: "4. 其他任務" },
                                             { id: "tab5", icon: "fa-comments", label: "5. 會議紀錄" },
+                                            { id: "tab6", icon: "fa-clock-rotate-left", label: "6. 修改履歷" },
                                         ].map(t => (
                                             <button
                                                 key={t.id}
@@ -2741,12 +3330,13 @@ const handleExportToExcel = () => {
                                         ))}
                                     </div>
                                 </div>
-                                                                {/* 根據 Tab 顯示對應組件 */}
+                                                                                                {/* 根據 Tab 顯示對應組件 */}
                                 {activeTab === "tab1" && <Tab1_Submission project={visibleCurrent} updateProject={updateCurrent} />}
                                 {activeTab === "tab2" && <Tab2_Docs project={visibleCurrent} updateProject={updateCurrent} />}
                                 {activeTab === "tab3" && <Tab3_Issues project={visibleCurrent} updateProject={updateCurrent} />}
                                 {activeTab === "tab4" && <Tab4_Tasks project={current} updateProject={updateCurrent} />}
                                 {activeTab === "tab5" && <Tab5_Meetings project={visibleCurrent} updateProject={updateCurrent} />}
+                                {activeTab === "tab6" && <Tab6_History project={current} />}
 
                             </>
                         )}
