@@ -226,7 +226,8 @@
             attendees: "出席人員",
             relatedPartNo: "關聯部品",
             content: "內容",
-            actionItems: "待辦 / 結論"
+                        actionItems: "待辦 / 結論",
+            overdueDeferrals: "逾期延後提醒"
         };
 
         const DOC_STATUS_TEXT = {
@@ -240,7 +241,8 @@
             docs: "PPAP 文件",
             issues: "問題點追蹤",
             tasks: "其他任務",
-            meetings: "會議紀錄"
+                        meetings: "會議紀錄",
+            overdueDeferrals: "逾期延後提醒"
         };
 
         const historyNow = () => {
@@ -406,7 +408,58 @@
 
             return records;
         };
+        const buildOverdueDeferralHistoryRecords = (prevProject, nextProject) => {
+            const records = [];
+            const prevDeferrals = prevProject.overdueDeferrals || {};
+            const nextDeferrals = nextProject.overdueDeferrals || {};
 
+            const allKeys = new Set([
+                ...Object.keys(prevDeferrals),
+                ...Object.keys(nextDeferrals)
+            ]);
+
+            allKeys.forEach(key => {
+                const prevItem = prevDeferrals[key];
+                const nextItem = nextDeferrals[key];
+
+                if (!prevItem && nextItem) {
+                    records.push(createHistoryRecord({
+                        module: "overdueDeferrals",
+                        action: "新增",
+                        target: nextItem.target || key,
+                        field: "overdueDeferrals",
+                        oldValue: "",
+                        newValue: `延後至 ${nextItem.deferUntil}；原因：${nextItem.reason || "-"}；對策：${nextItem.countermeasure || "-"}`
+                    }));
+                    return;
+                }
+
+                if (prevItem && !nextItem) {
+                    records.push(createHistoryRecord({
+                        module: "overdueDeferrals",
+                        action: "刪除",
+                        target: prevItem.target || key,
+                        field: "overdueDeferrals",
+                        oldValue: `原延後至 ${prevItem.deferUntil}`,
+                        newValue: ""
+                    }));
+                    return;
+                }
+
+                if (JSON.stringify(prevItem) !== JSON.stringify(nextItem)) {
+                    records.push(createHistoryRecord({
+                        module: "overdueDeferrals",
+                        action: "修改",
+                        target: nextItem.target || key,
+                        field: "overdueDeferrals",
+                        oldValue: `延後至 ${prevItem.deferUntil}；原因：${prevItem.reason || "-"}；對策：${prevItem.countermeasure || "-"}`,
+                        newValue: `延後至 ${nextItem.deferUntil}；原因：${nextItem.reason || "-"}；對策：${nextItem.countermeasure || "-"}`
+                    }));
+                }
+            });
+
+            return records;
+        };
         const buildDocsHistoryRecords = (prevProject, nextProject) => {
             const records = [];
             const prevDocs = prevProject.docs || {};
@@ -484,6 +537,7 @@
             }));
 
             records.push(...buildDocsHistoryRecords(prevProject, nextProject));
+            records.push(...buildOverdueDeferralHistoryRecords(prevProject, nextProject));
 
             records.push(...buildListHistoryRecords({
                 prevList: prevProject.issues || [],
@@ -558,7 +612,90 @@
         const isBlankResult = (value) => {
             return !value || value === "-" || value.toString().trim() === "";
         };
+        // ===== 延後提醒判斷工具 =====
+        const isActiveDeferral = (deferral) => {
+            if (!deferral || !deferral.deferUntil) return false;
 
+            const deferUntil = normalizeDateOnly(deferral.deferUntil);
+            if (!deferUntil) return false;
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            // 延後日期當天仍視為延後中；隔天開始重新提醒
+            return today <= deferUntil;
+        };
+
+                const getActiveOverdueDeferrals = (project) => {
+            const visiblePartIds = new Set((project.parts || []).map(part => part.id));
+            const visibleIssueIds = new Set((project.issues || []).map(issue => issue.id));
+            const visibleTaskIds = new Set((project.tasks || []).map(task => task.id));
+
+            const isDeferralInCurrentScope = (deferral) => {
+                if (!deferral) return false;
+
+                // 新版資料：優先使用 refType / refId 判斷
+                if (deferral.refType && deferral.refId) {
+                    if (deferral.refType === "part") return visiblePartIds.has(deferral.refId);
+                    if (deferral.refType === "issue") return visibleIssueIds.has(deferral.refId);
+                    if (deferral.refType === "task") return visibleTaskIds.has(deferral.refId);
+                }
+
+                // 舊版資料相容：從 alertKey 判斷
+                const key = deferral.alertKey || "";
+
+                if (
+                    key.startsWith("part-check-overdue-") ||
+                    key.startsWith("part-result-pending-") ||
+                    key.startsWith("part-ng-resubmit-")
+                ) {
+                    const partId = key
+                        .replace("part-check-overdue-", "")
+                        .replace("part-result-pending-", "")
+                        .replace("part-ng-resubmit-", "");
+
+                    return visiblePartIds.has(partId);
+                }
+
+                if (key.startsWith("issue-overdue-")) {
+                    const issueId = key.replace("issue-overdue-", "");
+                    return visibleIssueIds.has(issueId);
+                }
+
+                if (key.startsWith("task-overdue-")) {
+                    const taskId = key.replace("task-overdue-", "");
+                    return visibleTaskIds.has(taskId);
+                }
+
+                // 無法判斷來源的舊資料，保守顯示
+                return true;
+            };
+
+            return Object.values(project.overdueDeferrals || {})
+                .filter(deferral => isActiveDeferral(deferral))
+                .filter(deferral => isDeferralInCurrentScope(deferral));
+        };
+
+        const hasActivePartDeferral = (project, partId) => {
+            const deferrals = Object.values(project.overdueDeferrals || {});
+
+            return deferrals.some(deferral => {
+                if (!isActiveDeferral(deferral)) return false;
+
+                // 新版資料：有 refType / refId
+                if (deferral.refType === "part" && deferral.refId === partId) {
+                    return true;
+                }
+
+                // 舊版資料相容：用 alertKey 判斷
+                const key = deferral.alertKey || "";
+                return (
+                    key === `part-check-overdue-${partId}` ||
+                    key === `part-result-pending-${partId}` ||
+                    key === `part-ng-resubmit-${partId}`
+                );
+            });
+        };
         const getDuplicatePartNos = (parts = []) => {
             const counter = {};
             parts.forEach(part => {
@@ -574,14 +711,35 @@
             );
         };
 
-        const buildProjectAlerts = (project) => {
+                const buildProjectAlerts = (project) => {
             const parts = project.parts || [];
             const issues = project.issues || [];
             const tasks = project.tasks || [];
-            const duplicateNos = getDuplicatePartNos(parts);
+            const overdueDeferrals = project.overdueDeferrals || {};
 
+            const duplicateNos = getDuplicatePartNos(parts);
             const dataIssues = [];
             const overdueItems = [];
+
+            const shouldShowOverdue = (alertKey) => {
+                const deferral = overdueDeferrals[alertKey];
+
+                // 沒有延後紀錄 → 正常提醒
+                if (!deferral || !deferral.deferUntil) return true;
+
+                const deferUntil = normalizeDateOnly(deferral.deferUntil);
+                if (!deferUntil) return true;
+
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+
+                // 今天已經超過延後日期 → 重新提醒
+                return today > deferUntil;
+            };
+
+            const getDeferralInfo = (alertKey) => {
+                return overdueDeferrals[alertKey] || null;
+            };
 
             parts.forEach((part, index) => {
                 const rowLabel = `${part.no || `第${index + 1}筆`} ${part.name || ""}`.trim();
@@ -689,29 +847,45 @@
                     daysAfterSample !== null &&
                     daysAfterSample > ALERT_RULES.sampleCheckDueDays
                 ) {
-                    overdueItems.push({
-                        type: "檢查逾期",
-                        level: "danger",
-                        target: rowLabel,
-                        message: `送樣後已 ${daysAfterSample} 天仍未填檢查日`,
-                        source: "部品送樣"
-                    });
+                    const alertKey = `part-check-overdue-${part.id}`;
+
+                    if (shouldShowOverdue(alertKey)) {
+                        overdueItems.push({
+                            key: alertKey,
+                            type: "檢查逾期",
+                            level: "danger",
+                            target: rowLabel,
+                            message: `送樣後已 ${daysAfterSample} 天仍未填檢查日`,
+                            source: "部品送樣",
+                            refType: "part",
+                            refId: part.id,
+                            deferral: getDeferralInfo(alertKey)
+                        });
+                    }
                 }
 
                 const daysAfterCheck = diffDaysFromToday(part.checkDate);
-                if (
+                                if (
                     part.checkDate &&
                     isBlankResult(part.result) &&
                     daysAfterCheck !== null &&
                     daysAfterCheck > 0
                 ) {
-                    overdueItems.push({
-                        type: "結果未結",
-                        level: "warning",
-                        target: rowLabel,
-                        message: `檢查後已 ${daysAfterCheck} 天仍未填寫結果`,
-                        source: "部品送樣"
-                    });
+                    const alertKey = `part-result-pending-${part.id}`;
+
+                    if (shouldShowOverdue(alertKey)) {
+                        overdueItems.push({
+                            key: alertKey,
+                            type: "結果未結",
+                            level: "warning",
+                            target: rowLabel,
+                            message: `檢查後已 ${daysAfterCheck} 天仍未填寫結果`,
+                            source: "部品送樣",
+                            refType: "part",
+                            refId: part.id,
+                            deferral: getDeferralInfo(alertKey)
+                        });
+                    }
                 }
 
                 if (
@@ -720,18 +894,26 @@
                     daysAfterCheck !== null &&
                     daysAfterCheck > ALERT_RULES.ngResubmitDueDays
                 ) {
-                    overdueItems.push({
-                        type: "NG 重送逾期",
-                        level: "danger",
-                        target: rowLabel,
-                        message: `NG 後已 ${daysAfterCheck} 天仍未結案 / 重送`,
-                        source: "部品送樣"
-                    });
+                    const alertKey = `part-ng-resubmit-${part.id}`;
+
+                    if (shouldShowOverdue(alertKey)) {
+                        overdueItems.push({
+                            key: alertKey,
+                            type: "NG 重送逾期",
+                            level: "danger",
+                            target: rowLabel,
+                            message: `NG 後已 ${daysAfterCheck} 天仍未結案 / 重送`,
+                            source: "部品送樣",
+                            refType: "part",
+                            refId: part.id,
+                            deferral: getDeferralInfo(alertKey)
+                        });
+                    }
                 }
             });
 
             // ===== 問題點逾期 =====
-            issues.forEach(issue => {
+                        issues.forEach(issue => {
                 const daysAfterPlan = diffDaysFromToday(issue.planDate);
 
                 if (
@@ -740,18 +922,26 @@
                     daysAfterPlan !== null &&
                     daysAfterPlan > 0
                 ) {
-                    overdueItems.push({
-                        type: "問題點逾期",
-                        level: "danger",
-                        target: issue.partNo || "未指定件號",
-                        message: `問題點預定完成日已逾期 ${daysAfterPlan} 天：${issue.desc || ""}`,
-                        source: "問題點追蹤"
-                    });
+                    const alertKey = `issue-overdue-${issue.id}`;
+
+                    if (shouldShowOverdue(alertKey)) {
+                        overdueItems.push({
+                            key: alertKey,
+                            type: "問題點逾期",
+                            level: "danger",
+                            target: issue.partNo || "未指定件號",
+                            message: `問題點預定完成日已逾期 ${daysAfterPlan} 天：${issue.desc || ""}`,
+                            source: "問題點追蹤",
+                            refType: "issue",
+                            refId: issue.id,
+                            deferral: getDeferralInfo(alertKey)
+                        });
+                    }
                 }
             });
 
             // ===== 其他任務逾期 =====
-            tasks.forEach(task => {
+                        tasks.forEach(task => {
                 const daysAfterDue = diffDaysFromToday(task.due);
 
                 if (
@@ -760,13 +950,21 @@
                     daysAfterDue !== null &&
                     daysAfterDue > 0
                 ) {
-                    overdueItems.push({
-                        type: "任務逾期",
-                        level: "warning",
-                        target: task.title || "未命名任務",
-                        message: `任務已逾期 ${daysAfterDue} 天，負責人：${task.pic || "未指定"}`,
-                        source: "其他任務"
-                    });
+                    const alertKey = `task-overdue-${task.id}`;
+
+                    if (shouldShowOverdue(alertKey)) {
+                        overdueItems.push({
+                            key: alertKey,
+                            type: "任務逾期",
+                            level: "warning",
+                            target: task.title || "未命名任務",
+                            message: `任務已逾期 ${daysAfterDue} 天，負責人：${task.pic || "未指定"}`,
+                            source: "其他任務",
+                            refType: "task",
+                            refId: task.id,
+                            deferral: getDeferralInfo(alertKey)
+                        });
+                    }
                 }
             });
 
@@ -1170,16 +1368,18 @@
             const createProject = () => {
                 if (!newModel.trim()) return alert("請輸入車型名稱");
                 const id = `proj-${Date.now()}`;
-                                const newProj = {
+                                                const newProj = {
                     info: { model: newModel, purpose: newPurpose, owner: newOwner || "未指定", sop: "2025-12-31" },
                     parts: [],
                     docs: {},
                     issues: [],
                     tasks: [],
                     meetings: [],
+                    overdueDeferrals: {},
                     version: 1,
                     history: []
                 };
+
                 setProjects(prev => ({ ...prev, [id]: newProj }));
                 setCurrentProjectId(id);
                 setShowNewProject(false);
@@ -1332,15 +1532,19 @@
                 </div>
             );
         };
-        // ===== 專案提醒面板：資料異常提醒 + 逾期追蹤 =====
-                    const ProjectAlertPanel = ({ project }) => {
+                // ===== 專案提醒面板：資料異常提醒 + 逾期追蹤 =====
+        const ProjectAlertPanel = ({ project, updateProject }) => {
             const [expanded, setExpanded] = useState(false);
-            const alerts = buildProjectAlerts(project);
+            const [deferralTarget, setDeferralTarget] = useState(null);
 
-
+                                    const alerts = buildProjectAlerts(project);
             const dataIssues = alerts.dataIssues || [];
             const overdueItems = alerts.overdueItems || [];
-            const totalAlerts = alerts.total || 0;
+            const deferredItems = getActiveOverdueDeferrals(project);
+
+            // 顯示用總數：資料異常 + 逾期項目 + 已延後項目
+            // 注意：alerts.total 只包含 dataIssues + overdueItems，不包含 deferredItems
+            const totalDisplayItems = dataIssues.length + overdueItems.length + deferredItems.length;
 
             const levelStyle = (level) => {
                 switch (level) {
@@ -1364,9 +1568,48 @@
                 }
             };
 
-            if (totalAlerts === 0) {
+                        const handleSaveDeferral = (e) => {
+                e.preventDefault();
+
+                if (!deferralTarget || !updateProject) return;
+
+                const f = new FormData(e.target);
+                const deferUntil = f.get("deferUntil");
+                const reason = f.get("reason");
+                const countermeasure = f.get("countermeasure");
+
+                if (!deferUntil) {
+                    alert("請輸入延後提醒日期");
+                    return;
+                }
+
+                updateProject(prev => ({
+                    ...prev,
+                    overdueDeferrals: {
+                        ...(prev.overdueDeferrals || {}),
+                                                [deferralTarget.key]: {
+                            alertKey: deferralTarget.key,
+                            type: deferralTarget.type,
+                            target: deferralTarget.target,
+                            source: deferralTarget.source,
+                            message: deferralTarget.message,
+                            refType: deferralTarget.refType || "",
+                            refId: deferralTarget.refId || "",
+                            deferUntil,
+                            reason,
+                            countermeasure,
+                            createdAt: new Date().toLocaleString("zh-TW", { hour12: false })
+                        }
+                    }
+                }));
+
+                setDeferralTarget(null);
+            };
+
+                        if (totalDisplayItems === 0) {
                 return (
                     <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl p-4 mb-6 flex items-center gap-3">
+
                         <i className="fas fa-circle-check text-emerald-500 text-xl"></i>
                         <div>
                             <div className="font-bold">資料檢核正常</div>
@@ -1376,104 +1619,283 @@
                 );
             }
 
-            return (
-                <div className="bg-white border border-red-200 rounded-xl shadow-sm mb-6 overflow-hidden">
-                    <div
-                        className="p-4 bg-red-50 cursor-pointer flex justify-between items-center"
-                        onClick={() => setExpanded(v => !v)}
-                    >
-                        <div className="flex items-center gap-3">
-                            <i className="fas fa-triangle-exclamation text-red-500 text-xl"></i>
-                            <div>
-                                <div className="font-bold text-red-700">
-                                    資料異常提醒 / 逾期追蹤
-                                </div>
-                                <div className="text-sm text-red-600">
-                                    發現 {dataIssues.length} 筆資料異常、{overdueItems.length} 筆逾期項目
+                        return (
+                <>
+                    <div className="bg-white border border-red-200 rounded-xl shadow-sm mb-6 overflow-hidden">
+                        <div
+                            className="p-4 bg-red-50 cursor-pointer flex justify-between items-center"
+                            onClick={() => setExpanded(v => !v)}
+                        >
+                            <div className="flex items-center gap-3">
+                                <i className="fas fa-triangle-exclamation text-red-500 text-xl"></i>
+                                <div>
+                                    <div className="font-bold text-red-700">
+                                        資料異常提醒 / 逾期追蹤
+                                    </div>
+                                    <div className="text-sm text-red-600">
+                                        異常 {dataIssues.length} 筆、逾期項目 {overdueItems.length} 筆、已延後項目 {deferredItems.length} 筆
+                                    </div>
                                 </div>
                             </div>
+
+                            <button className="text-red-700 text-sm font-bold pdf-hide">
+                                {expanded ? "收合" : "展開"}
+                                <i className={`fas ${expanded ? "fa-chevron-up" : "fa-chevron-down"} ml-2`}></i>
+                            </button>
                         </div>
 
-                        <button className="text-red-700 text-sm font-bold pdf-hide">
-                            {expanded ? "收合" : "展開"}
-                            <i className={`fas ${expanded ? "fa-chevron-up" : "fa-chevron-down"} ml-2`}></i>
-                        </button>
-                    </div>
+                        {expanded && (
+                            <div className="p-4 space-y-5">
+                                <div>
+                                    <h4 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
+                                        <i className="fas fa-database"></i>
+                                        資料異常提醒
+                                        <span className="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded-full">
+                                            {dataIssues.length} 筆
+                                        </span>
+                                    </h4>
 
-                    {expanded && (
-                        <div className="p-4 space-y-5">
-                            <div>
-                                <h4 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
-                                    <i className="fas fa-database"></i>
-                                    資料異常提醒
-                                    <span className="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded-full">
-                                        {dataIssues.length} 筆
-                                    </span>
-                                </h4>
-
-                                {dataIssues.length === 0 ? (
-                                    <div className="text-sm text-gray-400">無資料異常</div>
-                                ) : (
-                                    <div className="space-y-2">
-                                        {dataIssues.map((item, idx) => (
-                                            <div
-                                                key={`data-${idx}`}
-                                                className={`border rounded-lg p-3 text-sm flex gap-3 ${levelStyle(item.level)}`}
-                                            >
-                                                <i className={`fas ${iconClass(item.level)} mt-0.5`}></i>
-                                                <div>
-                                                    <div className="font-bold">
-                                                        [{item.type}] {item.target}
-                                                    </div>
-                                                    <div>{item.message}</div>
-                                                    <div className="text-xs opacity-70 mt-1">
-                                                        來源：{item.source}
+                                    {dataIssues.length === 0 ? (
+                                        <div className="text-sm text-gray-400">無資料異常</div>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            {dataIssues.map((item, idx) => (
+                                                <div
+                                                    key={`data-${idx}`}
+                                                    className={`border rounded-lg p-3 text-sm flex gap-3 ${levelStyle(item.level)}`}
+                                                >
+                                                    <i className={`fas ${iconClass(item.level)} mt-0.5`}></i>
+                                                    <div>
+                                                        <div className="font-bold">
+                                                            [{item.type}] {item.target}
+                                                        </div>
+                                                        <div>{item.message}</div>
+                                                        <div className="text-xs opacity-70 mt-1">
+                                                            來源：{item.source}
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <h4 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
+                                        <i className="fas fa-clock"></i>
+                                        逾期追蹤
+                                        <span className="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded-full">
+                                            {overdueItems.length} 筆
+                                        </span>
+                                    </h4>
+
+                                    {overdueItems.length === 0 ? (
+                                        <div className="text-sm text-gray-400">無逾期項目</div>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            {overdueItems.map((item, idx) => (
+                                                                                                <div
+                                                    key={`overdue-${idx}`}
+                                                    className={`border rounded-lg p-3 text-sm flex gap-3 ${item.deferral ? "bg-yellow-100 text-yellow-800 border-yellow-300" : levelStyle(item.level)}`}
+                                                >
+                                                    <i className={`fas ${iconClass(item.level)} mt-0.5`}></i>
+
+                                                    <div className="flex-1">
+                                                        <div className="font-bold">
+                                                            [{item.type}] {item.target}
+                                                        </div>
+
+                                                        <div>{item.message}</div>
+
+                                                        <div className="text-xs opacity-70 mt-1">
+                                                            來源：{item.source}
+                                                        </div>
+
+                                                        {item.deferral && (
+                                                            <div className="mt-2 text-xs bg-white bg-opacity-60 border rounded p-2">
+                                                                <div className="font-bold">
+                                                                    前次延後提醒：{item.deferral.deferUntil}
+                                                                </div>
+                                                                <div>原因：{item.deferral.reason || "-"}</div>
+                                                                <div>對策：{item.deferral.countermeasure || "-"}</div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {updateProject && (
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setDeferralTarget(item);
+                                                            }}
+                                                            className="pdf-hide h-fit px-3 py-1.5 bg-white border border-current rounded text-xs font-bold hover:bg-gray-50"
+                                                        >
+                                                            <i className="fas fa-calendar-plus mr-1"></i>
+                                                            延後提醒
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                                                        )}
+                                </div>
+
+                                <div>
+                                    <h4 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
+                                        <i className="fas fa-calendar-check"></i>
+                                        已延後項目
+                                        <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full">
+                                            {deferredItems.length} 筆
+                                        </span>
+                                    </h4>
+
+                                    {deferredItems.length === 0 ? (
+                                        <div className="text-sm text-gray-400">無已延後項目</div>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            {deferredItems.map((item, idx) => (
+                                                <div
+                                                    key={`deferred-${item.alertKey || idx}`}
+                                                    className="border rounded-lg p-3 text-sm flex gap-3 bg-yellow-100 text-yellow-800 border-yellow-300"
+                                                >
+                                                    <i className="fas fa-calendar-check text-yellow-600 mt-0.5"></i>
+
+                                                    <div className="flex-1">
+                                                        <div className="font-bold">
+                                                            [{item.type || "延後提醒"}] {item.target || "-"}
+                                                        </div>
+
+                                                        <div>{item.message || "-"}</div>
+
+                                                        <div className="text-xs opacity-80 mt-1">
+                                                            來源：{item.source || "-"}
+                                                        </div>
+
+                                                        <div className="mt-2 text-xs bg-white bg-opacity-70 border rounded p-2">
+                                                            <div className="font-bold">
+                                                                延後提醒日期：{item.deferUntil || "-"}
+                                                            </div>
+                                                            <div>延後原因：{item.reason || "-"}</div>
+                                                            <div>對策：{item.countermeasure || "-"}</div>
+                                                            <div className="text-gray-500 mt-1">
+                                                                建立時間：{item.createdAt || "-"}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {updateProject && (
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setDeferralTarget({
+                                                                    key: item.alertKey,
+                                                                    type: item.type,
+                                                                    target: item.target,
+                                                                    source: item.source,
+                                                                    message: item.message,
+                                                                    refType: item.refType || "",
+                                                                    refId: item.refId || "",
+                                                                    deferral: item
+                                                                });
+                                                            }}
+                                                            className="pdf-hide h-fit px-3 py-1.5 bg-white border border-current rounded text-xs font-bold hover:bg-yellow-50"
+                                                        >
+                                                            <i className="fas fa-pen mr-1"></i>
+                                                            修改延後
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
+                        )}
+                    </div>
+                    {deferralTarget && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 pdf-hide">
+                            <div className="bg-white rounded-xl p-6 w-full max-w-lg shadow-2xl">
+                                <h3 className="text-lg font-bold mb-2 text-gray-800">
+                                    延後逾期提醒
+                                </h3>
 
-                            <div>
-                                <h4 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
-                                    <i className="fas fa-clock"></i>
-                                    逾期追蹤
-                                    <span className="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded-full">
-                                        {overdueItems.length} 筆
-                                    </span>
-                                </h4>
-
-                                {overdueItems.length === 0 ? (
-                                    <div className="text-sm text-gray-400">無逾期項目</div>
-                                ) : (
-                                    <div className="space-y-2">
-                                        {overdueItems.map((item, idx) => (
-                                            <div
-                                                key={`overdue-${idx}`}
-                                                className={`border rounded-lg p-3 text-sm flex gap-3 ${levelStyle(item.level)}`}
-                                            >
-                                                <i className={`fas ${iconClass(item.level)} mt-0.5`}></i>
-                                                <div>
-                                                    <div className="font-bold">
-                                                        [{item.type}] {item.target}
-                                                    </div>
-                                                    <div>{item.message}</div>
-                                                    <div className="text-xs opacity-70 mt-1">
-                                                        來源：{item.source}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
+                                <div className="text-sm text-gray-600 mb-4 bg-gray-50 border rounded p-3">
+                                    <div className="font-bold text-gray-800">
+                                        [{deferralTarget.type}] {deferralTarget.target}
                                     </div>
-                                )}
+                                    <div className="mt-1">{deferralTarget.message}</div>
+                                    <div className="text-xs text-gray-400 mt-1">
+                                        來源：{deferralTarget.source}
+                                    </div>
+                                </div>
+
+                                <form onSubmit={handleSaveDeferral} className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">
+                                            延後提醒日期
+                                        </label>
+                                        <input
+                                            type="date"
+                                            name="deferUntil"
+                                            required
+                                            defaultValue={deferralTarget.deferral?.deferUntil || ""}
+                                            className="w-full border rounded-lg px-3 py-2"
+                                        />
+                                        <div className="text-xs text-gray-400 mt-1">
+                                            在此日期以前不提醒；超過此日期後若仍未完成，會再次提醒。
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">
+                                            延後原因
+                                        </label>
+                                        <textarea
+                                            name="reason"
+                                            rows="3"
+                                            defaultValue={deferralTarget.deferral?.reason || ""}
+                                            className="w-full border rounded-lg px-3 py-2"
+                                            placeholder="例：廠商需重新備料、檢具等待校正..."
+                                        ></textarea>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">
+                                            對策
+                                        </label>
+                                        <textarea
+                                            name="countermeasure"
+                                            rows="3"
+                                            defaultValue={deferralTarget.deferral?.countermeasure || ""}
+                                            className="w-full border rounded-lg px-3 py-2"
+                                            placeholder="例：要求廠商於 7/5 前回覆改善計畫..."
+                                        ></textarea>
+                                    </div>
+
+                                    <div className="flex justify-end gap-3 pt-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setDeferralTarget(null)}
+                                            className="px-4 py-2 text-gray-600"
+                                        >
+                                            取消
+                                        </button>
+
+                                        <button
+                                            type="submit"
+                                            className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                                        >
+                                            儲存延後
+                                        </button>
+                                    </div>
+                                </form>
                             </div>
                         </div>
                     )}
-                </div>
+                </>
             );
         };
+
 
                 // ===== 搜尋與篩選面板 =====
         const PartSearchFilterPanel = ({
@@ -2092,11 +2514,20 @@ const handleExportToExcel = () => {
                 const map = { "結案": "100%", "NG待重送": "40%", "待檢": "60%" };
                 return map[s] || "20%";
             };
-
+            // 已輸入延後提醒且尚未超過延後日期的零件，以黃色底色顯示
+            const isPartDeferred = (partId) => {
+                return hasActivePartDeferral(project, partId);
+            };
             return (
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                     <div className="p-4 bg-gray-50 border-b flex justify-between items-center">
-                        <h3 className="font-bold text-gray-700">1. 部品送樣清單</h3>
+                                                <div>
+                            <h3 className="font-bold text-gray-700">1. 部品送樣清單</h3>
+                            <div className="text-xs text-gray-500 mt-1">
+                                <span className="inline-block w-3 h-3 bg-yellow-100 border border-yellow-300 rounded mr-1 align-middle"></span>
+                                黃色列：已設定延後提醒，且尚未超過延後日期
+                            </div>
+                        </div>
                         <div className="flex gap-2">
                             <button
             onClick={handleExportToExcel}
@@ -2138,8 +2569,11 @@ const handleExportToExcel = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {project.parts.map((p, index) => (
-                                    <tr key={p.id} className="border-b hover:bg-gray-50">
+                                                                {project.parts.map((p, index) => (
+                                    <tr
+                                        key={p.id}
+                                        className={`border-b ${isPartDeferred(p.id) ? "bg-yellow-100 hover:bg-yellow-200" : "hover:bg-gray-50"}`}
+                                    >
                                         <td className="px-4 py-3">{index + 1}</td>
                                         <td className="px-4 py-3">{p.vendor}</td>
                                         <td className="px-4 py-3 font-medium">{p.no}</td>
@@ -3150,7 +3584,7 @@ const handleExportToExcel = () => {
             }, []);
 
                                     // 取得當前專案資料物件
-            const current = projects[currentId] || { info: {}, parts: [], docs: {}, issues: [], tasks: [], meetings: [], version: 1, history: [] };
+                        const current = projects[currentId] || { info: {}, parts: [], docs: {}, issues: [], tasks: [], meetings: [], overdueDeferrals: {}, version: 1, history: [] };
 
             // 先依照目前分組條件產生資料，再套用搜尋與篩選
             const groupedCurrent = buildGroupedProject(current, groupBy, selectedGroup);
@@ -3245,7 +3679,7 @@ const handleExportToExcel = () => {
         selectedGroup={selectedGroup}
     />
 
-    <ProjectAlertPanel project={visibleCurrent} />
+    <ProjectAlertPanel project={visibleCurrent} updateProject={updateCurrent} />
 
     {/* 1. 部品送樣清單 */}
     <div className="pdf-section-title">1. 部品送樣清單</div>
@@ -3307,7 +3741,7 @@ const handleExportToExcel = () => {
                                     setFilters={setPartFilters}
                                 />
 
-                                <ProjectAlertPanel project={visibleCurrent} />
+                                <ProjectAlertPanel project={visibleCurrent} updateProject={updateCurrent} />
 
                                 {/* Tab 切換按鈕 */}
                                 <div className="mb-6">
