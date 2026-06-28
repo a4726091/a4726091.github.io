@@ -626,45 +626,104 @@
             return today <= deferUntil;
         };
 
-                const getActiveOverdueDeferrals = (project) => {
-            const visiblePartIds = new Set((project.parts || []).map(part => part.id));
-            const visibleIssueIds = new Set((project.issues || []).map(issue => issue.id));
-            const visibleTaskIds = new Set((project.tasks || []).map(task => task.id));
+                        const getActiveOverdueDeferrals = (project) => {
+            const visibleParts = project.parts || [];
+            const visibleIssues = project.issues || [];
+            const visibleTasks = project.tasks || [];
 
-            const isDeferralInCurrentScope = (deferral) => {
-                if (!deferral) return false;
+            const visiblePartIds = new Set(visibleParts.map(part => part.id));
+            const visibleIssueIds = new Set(visibleIssues.map(issue => issue.id));
+            const visibleTaskIds = new Set(visibleTasks.map(task => task.id));
 
-                // 新版資料：優先使用 refType / refId 判斷
+            const partMap = Object.fromEntries(visibleParts.map(part => [part.id, part]));
+            const issueMap = Object.fromEntries(visibleIssues.map(issue => [issue.id, issue]));
+            const taskMap = Object.fromEntries(visibleTasks.map(task => [task.id, task]));
+
+            const getDeferralRef = (deferral) => {
+                if (!deferral) return { refType: "", refId: "" };
+
+                // 新版資料：優先使用 refType / refId
                 if (deferral.refType && deferral.refId) {
-                    if (deferral.refType === "part") return visiblePartIds.has(deferral.refId);
-                    if (deferral.refType === "issue") return visibleIssueIds.has(deferral.refId);
-                    if (deferral.refType === "task") return visibleTaskIds.has(deferral.refId);
+                    return {
+                        refType: deferral.refType,
+                        refId: deferral.refId
+                    };
                 }
 
-                // 舊版資料相容：從 alertKey 判斷
+                // 舊版資料相容：從 alertKey 反推
                 const key = deferral.alertKey || "";
 
-                if (
-                    key.startsWith("part-check-overdue-") ||
-                    key.startsWith("part-result-pending-") ||
-                    key.startsWith("part-ng-resubmit-")
-                ) {
-                    const partId = key
-                        .replace("part-check-overdue-", "")
-                        .replace("part-result-pending-", "")
-                        .replace("part-ng-resubmit-", "");
+                if (key.startsWith("part-check-overdue-")) {
+                    return {
+                        refType: "part",
+                        refId: key.replace("part-check-overdue-", "")
+                    };
+                }
 
-                    return visiblePartIds.has(partId);
+                if (key.startsWith("part-result-pending-")) {
+                    return {
+                        refType: "part",
+                        refId: key.replace("part-result-pending-", "")
+                    };
+                }
+
+                if (key.startsWith("part-ng-resubmit-")) {
+                    return {
+                        refType: "part",
+                        refId: key.replace("part-ng-resubmit-", "")
+                    };
                 }
 
                 if (key.startsWith("issue-overdue-")) {
-                    const issueId = key.replace("issue-overdue-", "");
-                    return visibleIssueIds.has(issueId);
+                    return {
+                        refType: "issue",
+                        refId: key.replace("issue-overdue-", "")
+                    };
                 }
 
                 if (key.startsWith("task-overdue-")) {
-                    const taskId = key.replace("task-overdue-", "");
-                    return visibleTaskIds.has(taskId);
+                    return {
+                        refType: "task",
+                        refId: key.replace("task-overdue-", "")
+                    };
+                }
+
+                return { refType: "", refId: "" };
+            };
+
+            const isDeferralInCurrentScope = (deferral) => {
+                const { refType, refId } = getDeferralRef(deferral);
+
+                if (refType === "part") return visiblePartIds.has(refId);
+                if (refType === "issue") return visibleIssueIds.has(refId);
+                if (refType === "task") return visibleTaskIds.has(refId);
+
+                // 無法判斷來源的舊資料，保守顯示
+                return true;
+            };
+
+            const isDeferralStillOpen = (deferral) => {
+                const { refType, refId } = getDeferralRef(deferral);
+
+                // 零件已結案後，延後項目自動移除
+                if (refType === "part") {
+                    const part = partMap[refId];
+                    if (!part) return false;
+                    return part.status !== "結案";
+                }
+
+                // 問題點已確認有效後，延後項目自動移除
+                if (refType === "issue") {
+                    const issue = issueMap[refId];
+                    if (!issue) return false;
+                    return issue.result !== "有效";
+                }
+
+                // 任務完成後，延後項目自動移除
+                if (refType === "task") {
+                    const task = taskMap[refId];
+                    if (!task) return false;
+                    return !task.done;
                 }
 
                 // 無法判斷來源的舊資料，保守顯示
@@ -673,10 +732,17 @@
 
             return Object.values(project.overdueDeferrals || {})
                 .filter(deferral => isActiveDeferral(deferral))
-                .filter(deferral => isDeferralInCurrentScope(deferral));
+                .filter(deferral => isDeferralInCurrentScope(deferral))
+                .filter(deferral => isDeferralStillOpen(deferral));
         };
 
-        const hasActivePartDeferral = (project, partId) => {
+
+                const hasActivePartDeferral = (project, partId) => {
+            const part = (project.parts || []).find(p => p.id === partId);
+
+            // 零件不存在或已結案，就不再顯示黃色延後狀態
+            if (!part || part.status === "結案") return false;
+
             const deferrals = Object.values(project.overdueDeferrals || {});
 
             return deferrals.some(deferral => {
@@ -689,6 +755,7 @@
 
                 // 舊版資料相容：用 alertKey 判斷
                 const key = deferral.alertKey || "";
+
                 return (
                     key === `part-check-overdue-${partId}` ||
                     key === `part-result-pending-${partId}` ||
@@ -696,6 +763,7 @@
                 );
             });
         };
+
         const getDuplicatePartNos = (parts = []) => {
             const counter = {};
             parts.forEach(part => {
@@ -1533,11 +1601,12 @@
             );
         };
                 // ===== 專案提醒面板：資料異常提醒 + 逾期追蹤 =====
-        const ProjectAlertPanel = ({ project, updateProject }) => {
+                const ProjectAlertPanel = ({ project, updateProject }) => {
             const [expanded, setExpanded] = useState(false);
             const [deferralTarget, setDeferralTarget] = useState(null);
+            const [editPartTarget, setEditPartTarget] = useState(null);
 
-                                    const alerts = buildProjectAlerts(project);
+            const alerts = buildProjectAlerts(project);
             const dataIssues = alerts.dataIssues || [];
             const overdueItems = alerts.overdueItems || [];
             const deferredItems = getActiveOverdueDeferrals(project);
@@ -1604,6 +1673,58 @@
                 }));
 
                 setDeferralTarget(null);
+            };
+
+            // 從逾期追蹤 / 已延後項目開啟零件編輯
+            const openPartEditFromAlert = (item) => {
+                if (!item || item.refType !== "part") {
+                    alert("此項目不是零件類型，無法開啟零件編輯");
+                    return;
+                }
+
+                const part = (project.parts || []).find(p => p.id === item.refId);
+
+                if (!part) {
+                    alert("目前篩選 / 分組範圍內找不到此零件，請調整篩選條件後再試");
+                    return;
+                }
+
+                setEditPartTarget(part);
+            };
+
+            // 儲存從提醒面板修改的零件內容
+            const handleSavePartFromAlert = (e) => {
+                e.preventDefault();
+
+                if (!editPartTarget || !updateProject) return;
+
+                const f = new FormData(e.target);
+
+                const updatedFields = {
+                    vendor: f.get("vendor"),
+                    no: f.get("no"),
+                    name: f.get("name"),
+                    provisionalMethod: f.get("provisionalMethod"),
+                    date: f.get("date"),
+                    status: f.get("status"),
+                    checkDate: f.get("checkDate") || "",
+                    result: f.get("result") || "",
+                    remarks: f.get("remarks") || ""
+                };
+
+                updateProject(prev => ({
+                    ...prev,
+                    parts: (prev.parts || []).map(part =>
+                        part.id === editPartTarget.id
+                            ? {
+                                ...part,
+                                ...updatedFields
+                            }
+                            : part
+                    )
+                }));
+
+                setEditPartTarget(null);
             };
 
                         if (totalDisplayItems === 0) {
@@ -1722,17 +1843,32 @@
                                                         )}
                                                     </div>
 
-                                                    {updateProject && (
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setDeferralTarget(item);
-                                                            }}
-                                                            className="pdf-hide h-fit px-3 py-1.5 bg-white border border-current rounded text-xs font-bold hover:bg-gray-50"
-                                                        >
-                                                            <i className="fas fa-calendar-plus mr-1"></i>
-                                                            延後提醒
-                                                        </button>
+                                                                                                        {updateProject && (
+                                                        <div className="pdf-hide flex flex-col gap-2 items-end">
+                                                            {item.refType === "part" && (
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        openPartEditFromAlert(item);
+                                                                    }}
+                                                                    className="h-fit px-3 py-1.5 bg-blue-600 text-white rounded text-xs font-bold hover:bg-blue-700"
+                                                                >
+                                                                    <i className="fas fa-pen-to-square mr-1"></i>
+                                                                    修改零件
+                                                                </button>
+                                                            )}
+
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setDeferralTarget(item);
+                                                                }}
+                                                                className="h-fit px-3 py-1.5 bg-white border border-current rounded text-xs font-bold hover:bg-gray-50"
+                                                            >
+                                                                <i className="fas fa-calendar-plus mr-1"></i>
+                                                                延後提醒
+                                                            </button>
+                                                        </div>
                                                     )}
                                                 </div>
                                             ))}
@@ -1783,26 +1919,41 @@
                                                         </div>
                                                     </div>
 
-                                                    {updateProject && (
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setDeferralTarget({
-                                                                    key: item.alertKey,
-                                                                    type: item.type,
-                                                                    target: item.target,
-                                                                    source: item.source,
-                                                                    message: item.message,
-                                                                    refType: item.refType || "",
-                                                                    refId: item.refId || "",
-                                                                    deferral: item
-                                                                });
-                                                            }}
-                                                            className="pdf-hide h-fit px-3 py-1.5 bg-white border border-current rounded text-xs font-bold hover:bg-yellow-50"
-                                                        >
-                                                            <i className="fas fa-pen mr-1"></i>
-                                                            修改延後
-                                                        </button>
+                                                                                                        {updateProject && (
+                                                        <div className="pdf-hide flex flex-col gap-2 items-end">
+                                                            {item.refType === "part" && (
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        openPartEditFromAlert(item);
+                                                                    }}
+                                                                    className="h-fit px-3 py-1.5 bg-blue-600 text-white rounded text-xs font-bold hover:bg-blue-700"
+                                                                >
+                                                                    <i className="fas fa-pen-to-square mr-1"></i>
+                                                                    修改零件
+                                                                </button>
+                                                            )}
+
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setDeferralTarget({
+                                                                        key: item.alertKey,
+                                                                        type: item.type,
+                                                                        target: item.target,
+                                                                        source: item.source,
+                                                                        message: item.message,
+                                                                        refType: item.refType || "",
+                                                                        refId: item.refId || "",
+                                                                        deferral: item
+                                                                    });
+                                                                }}
+                                                                className="h-fit px-3 py-1.5 bg-white border border-current rounded text-xs font-bold hover:bg-yellow-50"
+                                                            >
+                                                                <i className="fas fa-pen mr-1"></i>
+                                                                修改延後
+                                                            </button>
+                                                        </div>
                                                     )}
                                                 </div>
                                             ))}
@@ -1812,6 +1963,165 @@
                             </div>
                         )}
                     </div>
+                                        {editPartTarget && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 pdf-hide">
+                            <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+                                <h3 className="text-lg font-bold mb-2 text-gray-800">
+                                    修改零件內容
+                                </h3>
+
+                                <div className="text-sm text-gray-600 mb-4 bg-blue-50 border border-blue-100 rounded p-3">
+                                    <div className="font-bold text-blue-800">
+                                        {editPartTarget.no || "未填件號"} {editPartTarget.name || ""}
+                                    </div>
+                                    <div className="text-xs text-blue-600 mt-1">
+                                        從逾期追蹤 / 已延後項目開啟
+                                    </div>
+                                </div>
+
+                                <form onSubmit={handleSavePartFromAlert} className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">
+                                            廠商
+                                        </label>
+                                        <input
+                                            name="vendor"
+                                            defaultValue={editPartTarget.vendor || ""}
+                                            className="w-full border rounded-lg px-3 py-2"
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">
+                                                件號
+                                            </label>
+                                            <input
+                                                name="no"
+                                                defaultValue={editPartTarget.no || ""}
+                                                required
+                                                className="w-full border rounded-lg px-3 py-2"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">
+                                                件名
+                                            </label>
+                                            <input
+                                                name="name"
+                                                defaultValue={editPartTarget.name || ""}
+                                                required
+                                                className="w-full border rounded-lg px-3 py-2"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">
+                                            是否以暫定工法
+                                        </label>
+                                        <select
+                                            name="provisionalMethod"
+                                            defaultValue={editPartTarget.provisionalMethod || "否"}
+                                            className="w-full border rounded-lg px-3 py-2"
+                                        >
+                                            <option>是</option>
+                                            <option>否</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">
+                                                送樣時間
+                                            </label>
+                                            <input
+                                                type="date"
+                                                name="date"
+                                                defaultValue={editPartTarget.date || ""}
+                                                className="w-full border rounded-lg px-3 py-2"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">
+                                                檢查日
+                                            </label>
+                                            <input
+                                                type="date"
+                                                name="checkDate"
+                                                defaultValue={editPartTarget.checkDate || ""}
+                                                className="w-full border rounded-lg px-3 py-2"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">
+                                                狀態
+                                            </label>
+                                            <select
+                                                name="status"
+                                                defaultValue={editPartTarget.status || "待送樣"}
+                                                className="w-full border rounded-lg px-3 py-2"
+                                            >
+                                                <option>待送樣</option>
+                                                <option>待檢</option>
+                                                <option>NG待重送</option>
+                                                <option>結案</option>
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">
+                                                結果
+                                            </label>
+                                            <select
+                                                name="result"
+                                                defaultValue={editPartTarget.result || "-"}
+                                                className="w-full border rounded-lg px-3 py-2"
+                                            >
+                                                <option>-</option>
+                                                <option>合格</option>
+                                                <option>NG</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">
+                                            備註
+                                        </label>
+                                        <textarea
+                                            name="remarks"
+                                            rows="4"
+                                            defaultValue={editPartTarget.remarks || ""}
+                                            className="w-full border rounded-lg px-3 py-2"
+                                        ></textarea>
+                                    </div>
+
+                                    <div className="flex justify-end gap-3 pt-4 border-t">
+                                        <button
+                                            type="button"
+                                            onClick={() => setEditPartTarget(null)}
+                                            className="px-4 py-2 text-gray-600"
+                                        >
+                                            取消
+                                        </button>
+
+                                        <button
+                                            type="submit"
+                                            className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                                        >
+                                            儲存零件
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
                     {deferralTarget && (
                         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 pdf-hide">
                             <div className="bg-white rounded-xl p-6 w-full max-w-lg shadow-2xl">
