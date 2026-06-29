@@ -1614,7 +1614,7 @@
             const modelName = project.info?.model || "未命名專案";
 
                         setPdfChineseFont(doc);
-            doc.text("QA 專案管理輕量報告", 14, 16);
+            doc.text("QA 專案管理報告", 14, 16);
 
             setPdfChineseFont(doc);
             doc.setFontSize(9);
@@ -1741,12 +1741,12 @@
                 }
             });
 
-            // ===== 四、部品送樣清單：含壓縮縮圖 =====
+                        // ===== 四、部品送樣清單：含壓縮縮圖 =====
             const parts = project.parts || [];
 
             const partsForPdf = await Promise.all(parts.map(async part => {
                 const thumbSource = part.sketch || part.remarksSketch || "";
-                const thumb = await compressImageForPDF(thumbSource, 72, 72, 0.45);
+                const thumb = await compressImageForPDF(thumbSource, 64, 64, 0.42);
 
                 return {
                     ...part,
@@ -1759,41 +1759,80 @@
 
             doc.autoTable({
                 startY: y,
+
+                // 表格寬度設定：A4 直式可用寬度約 182mm，這裡留左右空隙
+                margin: { left: 12, right: 12 },
+
+                // 避免同一個零件資料列被切成上下兩頁
+                rowPageBreak: "avoid",
+
+                // 若整個表格快到底，讓 autoTable 自動換頁
+                pageBreak: "auto",
+
                 head: [["縮圖", "廠商", "件號", "件名", "暫定", "送樣", "狀態", "檢查日", "結果", "備註"]],
+
                 body: partsForPdf.length > 0
                     ? partsForPdf.map(part => [
                         part._pdfThumb ? "" : "無",
-                        pdfTruncate(part.vendor, 12),
-                        pdfTruncate(part.no, 16),
-                        pdfTruncate(part.name, 18),
+                        pdfSafeText(part.vendor),
+                        pdfSafeText(part.no),
+                        pdfSafeText(part.name),
                         pdfSafeText(part.provisionalMethod),
                         pdfSafeText(part.date),
                         pdfSafeText(part.status),
                         pdfSafeText(part.checkDate),
                         pdfSafeText(part.result),
-                        pdfTruncate(part.remarks, 35)
+                        // 備註不截斷，讓 autoTable 依文字自動增加列高
+                        pdfSafeText(part.remarks)
                     ])
                     : [["-", "尚無部品資料", "-", "-", "-", "-", "-", "-", "-", "-"]],
+
                 theme: "grid",
+
                 styles: {
-                    fontSize: 6.5,
-                    cellPadding: 1.2,
+                    fontSize: 6.2,
+                    cellPadding: 1.1,
                     overflow: "linebreak",
-                    minCellHeight: 16
+                    valign: "middle",
+                    lineWidth: 0.1
                 },
-                headStyles: { fillColor: [15, 118, 110], textColor: 255 },
+
+                headStyles: {
+                    fillColor: [15, 118, 110],
+                    textColor: 255,
+                    halign: "center",
+                    valign: "middle"
+                },
+
+                bodyStyles: {
+                    valign: "middle"
+                },
+
+                // 欄寬總和控制在約 178mm，避免貼齊頁面邊界
                 columnStyles: {
-                    0: { cellWidth: 17, halign: "center", valign: "middle" },
-                    1: { cellWidth: 18 },
-                    2: { cellWidth: 24 },
-                    3: { cellWidth: 28 },
-                    4: { cellWidth: 12, halign: "center" },
-                    5: { cellWidth: 18 },
-                    6: { cellWidth: 18 },
-                    7: { cellWidth: 18 },
-                    8: { cellWidth: 14, halign: "center" },
-                    9: { cellWidth: 33 }
+                    0: { cellWidth: 14, halign: "center", valign: "middle" }, // 縮圖
+                    1: { cellWidth: 15 },                                     // 廠商
+                    2: { cellWidth: 21 },                                     // 件號
+                    3: { cellWidth: 25 },                                     // 件名
+                    4: { cellWidth: 10, halign: "center" },                   // 暫定
+                    5: { cellWidth: 16, halign: "center" },                   // 送樣
+                    6: { cellWidth: 16, halign: "center" },                   // 狀態
+                    7: { cellWidth: 16, halign: "center" },                   // 檢查日
+                    8: { cellWidth: 12, halign: "center" },                   // 結果
+                    9: { cellWidth: 33 }                                      // 備註
                 },
+
+                didParseCell: (data) => {
+                    if (data.section !== "body") return;
+
+                    // 若該列有縮圖，給最小高度，但不是固定高度。
+                    // 備註字多時，autoTable 仍會依文字自動撐高。
+                    const part = partsForPdf[data.row.index];
+                    if (part && part._pdfThumb) {
+                        data.row.height = Math.max(data.row.height || 0, 14);
+                    }
+                },
+
                 didDrawCell: (data) => {
                     if (data.section !== "body") return;
                     if (data.column.index !== 0) return;
@@ -1801,9 +1840,10 @@
                     const part = partsForPdf[data.row.index];
                     if (!part || !part._pdfThumb) return;
 
-                    const imgSize = 12;
+                    // 縮圖置中，列高變高時也會保持置中
+                    const imgSize = 9.5;
                     const x = data.cell.x + (data.cell.width - imgSize) / 2;
-                    const yy = data.cell.y + 2;
+                    const yy = data.cell.y + (data.cell.height - imgSize) / 2;
 
                     try {
                         doc.addImage(part._pdfThumb, "JPEG", x, yy, imgSize, imgSize);
