@@ -62,8 +62,48 @@
     [contenteditable]:empty:before { content: attr(placeholder); color: #64748b; cursor: text; }
 
     /* Editor Specific Styles */
-    .editor-content img { max-width: 100%; border-radius: 4px; border: 1px solid #334155; margin: 10px 0; transition: all 0.2s; cursor: pointer; }
-    .editor-content img.resizable { box-shadow: 0 0 0 2px #06b6d4; }
+.editor-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  border: 1px solid #334155;
+  margin: 10px 0;
+  transition: box-shadow 0.2s, outline 0.2s;
+  cursor: pointer;
+}
+
+.editor-content img.resizable {
+  outline: 2px solid #06b6d4;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.35), 0 0 12px rgba(6, 182, 212, 0.5);
+}
+
+#image-resize-handle {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  background: #06b6d4;
+  border: 2px solid #0f172a;
+  border-radius: 4px;
+  box-shadow: 0 0 8px rgba(6, 182, 212, 0.9);
+  cursor: nwse-resize;
+  z-index: 90;
+  display: none;
+}
+
+#image-resize-size-label {
+  position: absolute;
+  display: none;
+  z-index: 91;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid #06b6d4;
+  color: #67e8f9;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  pointer-events: none;
+}
     
     .editor-content table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 15px; border: 1px solid #334155; }
     .editor-content th { background-color: #1e293b; color: #06b6d4; font-weight: 600; padding: 8px 12px; border: 1px solid #334155; text-align: left; }
@@ -308,6 +348,11 @@
     let activeFilters = {}; // Faceted Search 狀態
     let expandedTagPaths = new Set(["init_done"]); // 標籤樹展開記憶
     let activeFloatingPanel = null; // 浮動面板狀態控制 ('tag', 'filter', 'ai', null)
+
+    let selectedResizeImage = null;
+let imageResizeState = null;
+const IMAGE_MIN_WIDTH = 80;
+const IMAGE_MAX_WIDTH = 1600;
 
     // --- IndexedDB Configuration ---
     const DB_NAME = 'ZettelAIDB';
@@ -940,21 +985,157 @@
       reader.readAsDataURL(file); input.value = '';
     }
 
-    function makeImageResizable(img) {
-        if(img.dataset.resizable) return;
-        img.dataset.resizable = "true";
-        img.addEventListener('click', function(e) {
-            e.stopPropagation();
-            document.querySelectorAll('.editor-content img').forEach(i => i.classList.remove('resizable'));
-            img.classList.add('resizable');
-        });
-    }
+function getImageResizeHandle() {
+    let handle = document.getElementById('image-resize-handle');
+    if (!handle) {
+        handle = document.createElement('div');
+        handle.id = 'image-resize-handle';
+        document.body.appendChild(handle);
 
-    document.addEventListener('click', function(e) {
-        if (!e.target.closest('.editor-content img')) {
-            document.querySelectorAll('.editor-content img').forEach(i => i.classList.remove('resizable'));
+        handle.addEventListener('mousedown', startImageResize);
+    }
+    return handle;
+}
+
+function getImageResizeSizeLabel() {
+    let label = document.getElementById('image-resize-size-label');
+    if (!label) {
+        label = document.createElement('div');
+        label.id = 'image-resize-size-label';
+        document.body.appendChild(label);
+    }
+    return label;
+}
+
+function makeImageResizable(img) {
+    if (img.dataset.resizable) return;
+
+    img.dataset.resizable = "true";
+
+    // 讓舊圖片與新圖片都維持等比例縮放
+    img.style.height = 'auto';
+
+    img.addEventListener('click', function(e) {
+        e.stopPropagation();
+        selectResizableImage(img);
+    });
+
+    img.addEventListener('load', function() {
+        if (selectedResizeImage === img) {
+            positionImageResizeHandle();
         }
     });
+}
+
+function selectResizableImage(img) {
+    document.querySelectorAll('.editor-content img').forEach(i => i.classList.remove('resizable'));
+
+    selectedResizeImage = img;
+    img.classList.add('resizable');
+
+    positionImageResizeHandle();
+
+    const handle = getImageResizeHandle();
+    const label = getImageResizeSizeLabel();
+
+    handle.style.display = 'block';
+    label.style.display = 'block';
+}
+
+function clearResizableImageSelection() {
+    selectedResizeImage = null;
+
+    document.querySelectorAll('.editor-content img').forEach(i => i.classList.remove('resizable'));
+
+    const handle = document.getElementById('image-resize-handle');
+    const label = document.getElementById('image-resize-size-label');
+
+    if (handle) handle.style.display = 'none';
+    if (label) label.style.display = 'none';
+}
+
+function positionImageResizeHandle() {
+    if (!selectedResizeImage) return;
+
+    const handle = getImageResizeHandle();
+    const label = getImageResizeSizeLabel();
+    const rect = selectedResizeImage.getBoundingClientRect();
+
+    if (rect.width === 0 || rect.height === 0) {
+        handle.style.display = 'none';
+        label.style.display = 'none';
+        return;
+    }
+
+    const scrollX = window.scrollX || window.pageXOffset;
+    const scrollY = window.scrollY || window.pageYOffset;
+
+    handle.style.left = `${rect.right + scrollX - 8}px`;
+    handle.style.top = `${rect.bottom + scrollY - 8}px`;
+
+    label.textContent = `${Math.round(rect.width)} px`;
+    label.style.left = `${rect.right + scrollX - 72}px`;
+    label.style.top = `${rect.bottom + scrollY + 10}px`;
+}
+
+function startImageResize(e) {
+    if (!selectedResizeImage) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const rect = selectedResizeImage.getBoundingClientRect();
+
+    imageResizeState = {
+        img: selectedResizeImage,
+        startX: e.clientX,
+        startWidth: rect.width
+    };
+
+    document.addEventListener('mousemove', resizeSelectedImage);
+    document.addEventListener('mouseup', stopImageResize);
+}
+
+function resizeSelectedImage(e) {
+    if (!imageResizeState) return;
+
+    const dx = e.clientX - imageResizeState.startX;
+    const editorMaxWidth = els.content.clientWidth || IMAGE_MAX_WIDTH;
+
+    let newWidth = imageResizeState.startWidth + dx;
+    newWidth = Math.max(IMAGE_MIN_WIDTH, newWidth);
+    newWidth = Math.min(editorMaxWidth, IMAGE_MAX_WIDTH, newWidth);
+
+    imageResizeState.img.style.width = `${Math.round(newWidth)}px`;
+    imageResizeState.img.style.height = 'auto';
+
+    // 避免瀏覽器自動塞 width/height attribute 造成比例或儲存異常
+    imageResizeState.img.removeAttribute('width');
+    imageResizeState.img.removeAttribute('height');
+
+    positionImageResizeHandle();
+}
+
+function stopImageResize() {
+    imageResizeState = null;
+
+    document.removeEventListener('mousemove', resizeSelectedImage);
+    document.removeEventListener('mouseup', stopImageResize);
+
+    positionImageResizeHandle();
+}
+
+document.addEventListener('click', function(e) {
+    const clickedImage = e.target.closest('.editor-content img');
+    const clickedHandle = e.target.closest('#image-resize-handle');
+
+    if (!clickedImage && !clickedHandle) {
+        clearResizableImageSelection();
+    }
+});
+
+window.addEventListener('resize', positionImageResizeHandle);
+document.addEventListener('scroll', positionImageResizeHandle, true);
 
     function saveNotes() {
       if (notes.length === 0) return showToast('目前沒有任何筆記', 'error');
