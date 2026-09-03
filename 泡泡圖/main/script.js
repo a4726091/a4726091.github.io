@@ -164,6 +164,13 @@ var touch0 = new creatNewrightClickButton(rightClickButtonLocation("X",1), right
 var touchdot = new creatNewrightClickButton(rightClickButtonLocation("X",2), rightClickButtonLocation("Y",5), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", changeTouchNumberDot, ".",touchMenu);
 var touchOKNG = new creatNewrightClickButton(rightClickButtonLocation("X",3), rightClickButtonLocation("Y",5), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", changeTouchOKNG, "OK",touchMenu);
 
+// === 新增：更換泡泡圖 TXT 按鈕（放在 X:3, Y:5，尋找模式下顯示） ===
+var touchUploadTxtBtn = new creatNewrightClickButton(rightClickButtonLocation("X",3), rightClickButtonLocation("Y",5), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", triggerTxtUpload, "更換泡泡圖",touchMenu);
+
+// 初始化預設為尋找模式，因此先隱藏 OK 按鈕
+touchOKNG.Shape.visible = false;
+touchOKNG.text.visible = false;
+
 var inputStandardValueBotton = new creatNewrightClickButton(rightClickButtonLocation("X",2), rightClickButtonLocation("Y",5), rightcheckBabblesWidth, rightcheckBabblesHeight, "#000000", "Lightyellow", inputStandardValueFun, "導入檢查資料",touchMenu);
 
 //切換模式
@@ -1953,6 +1960,11 @@ function switchTouchMod(){
         touchdot.text.visible = true;
 		inputStandardValueBotton.Shape.visible = false;
 		inputStandardValueBotton.text.visible = false;
+
+		// --- 新增：隱藏更換泡泡圖按鈕 ---
+        touchUploadTxtBtn.Shape.visible = false;
+        touchUploadTxtBtn.text.visible = false;
+
 		console.log("已切換至【順序檢查模式】- 綠色背景");
 
     } else if (checkMode === "sequential") {
@@ -1977,6 +1989,10 @@ function switchTouchMod(){
         touchdot.text.visible = true;
 		inputStandardValueBotton.Shape.visible = false;
 		inputStandardValueBotton.text.visible = false;
+
+		// --- 新增：隱藏更換泡泡圖按鈕 ---
+        touchUploadTxtBtn.Shape.visible = false;
+        touchUploadTxtBtn.text.visible = false;
 
         // === 新增：切換到紅色模式時，自動跳到最前面尚未檢查的泡泡圖 ===
         var firstUnmeasured = findNextUnmeasuredBubble(1);
@@ -2016,6 +2032,10 @@ function switchTouchMod(){
         touchdot.text.visible = false;
         inputStandardValueBotton.Shape.visible = true;
         inputStandardValueBotton.text.visible = true;
+
+		// --- 新增：顯示更換泡泡圖按鈕 ---
+        touchUploadTxtBtn.Shape.visible = true;
+        touchUploadTxtBtn.text.visible = true;
     }
 
     touchMenuBackground.alpha = 0.85;
@@ -2027,6 +2047,13 @@ function switchTouchMod(){
 function inputStandardValueFun() {
     console.log("點擊「導入檢查資料」按鈕");
     document.getElementById("standardCSVInput").click();   // 觸發隱藏的 input
+}
+
+// === 新增：觸發更換泡泡圖 TXT 的函式 ===
+function triggerTxtUpload() {
+    console.log("點擊「更換泡泡圖」按鈕");
+    // ⚠️ 請確認你的 TXT input ID 是否為 "ppicTXT"，若不同請務必更改這裡！
+    document.getElementById("ppicTXT").click();   
 }
 
 // 上傳 CSV 並同時處理第一欄與第二欄資料
