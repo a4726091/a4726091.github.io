@@ -1740,9 +1740,17 @@ console.log("執行隱藏小鍵盤與資料匯出，當前模式: " + touchMode)
         var blob = new Blob([csvWithBOM], { type: 'text/csv;charset=utf-8;' });
         var link = document.createElement("a");
         
+       // 取得當前時間與格式化
+        var now = new Date();
+        var yyyy = now.getFullYear();
+        var mm = String(now.getMonth() + 1).padStart(2, '0');
+        var dd = String(now.getDate()).padStart(2, '0');
+        var hh = String(now.getHours()).padStart(2, '0');
+        var min = String(now.getMinutes()).padStart(2, '0');
+
         var url = URL.createObjectURL(blob);
         link.setAttribute("href", url);
-        link.setAttribute("download", "泡泡圖檢查資料_" + new Date().toISOString().slice(0,10) + ".csv");
+        link.setAttribute("download", "檢查資料_" + yyyy + mm + dd + "_" + hh + min + ".csv");
         
         document.body.appendChild(link);
         link.click();
