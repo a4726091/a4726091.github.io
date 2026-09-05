@@ -2267,7 +2267,15 @@ function refreshBubbleColors() {
 
 // 從 startNum 開始找下一個尚未量測的泡泡（支援循環）
 function findNextUnmeasuredBubble(startNum) {
-    var maxNum = Math.max(100, inputbubblenumber.length || 200);  // 防止無限迴圈
+    //var maxNum = Math.max(100, inputbubblenumber.length || 200);  // 防止無限迴圈
+	// 尋找陣列中實際存在的最大泡泡編號作為搜尋上限
+var maxNum = 100; // 預設最小搜尋上限
+for (var k = 0; k < inputbubblenumber.length; k++) {
+    var currentVal = Number(inputbubblenumber[k]);
+    if (!isNaN(currentVal) && currentVal > maxNum) {
+        maxNum = currentVal;
+    }
+}
 
     for (var i = startNum; i <= maxNum; i++) {
         if (inputCheckdata[i] === undefined || inputCheckdata[i] === "" || inputCheckdata[i] === null) {
