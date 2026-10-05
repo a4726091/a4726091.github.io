@@ -2684,11 +2684,21 @@
                                             備註
                                         </label>
                                         <textarea
-                                            name="remarks"
-                                            rows="4"
-                                            defaultValue={editPartTarget.remarks || ""}
-                                            className="w-full border rounded-lg px-3 py-2"
-                                        ></textarea>
+    name="remarks"
+    rows="4"
+    defaultValue={editPartTarget.remarks || ""}
+    ref={el => {
+        if (el) {
+            el.style.height = "auto";
+            el.style.height = `${el.scrollHeight}px`;
+        }
+    }}
+    onInput={e => {
+        e.currentTarget.style.height = "auto";
+        e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`;
+    }}
+    className="w-full border rounded-lg px-3 py-2 overflow-hidden resize-none"
+></textarea>
                                     </div>
 
                                     <div className="flex justify-end gap-3 pt-4 border-t">
@@ -3557,9 +3567,24 @@ const handleExportToExcel = () => {
                                         {sketchPreview && <img src={sketchPreview} alt="預覽" className="mt-2 w-20 h-20 object-contain"/>}
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium">備註</label>
-                                        <textarea name="remarks" defaultValue={editItem?.remarks} className="w-full border rounded p-2" rows="3"></textarea>
-                                    </div>
+    <label className="block text-sm font-medium">備註</label>
+    <textarea
+        name="remarks"
+        defaultValue={editItem?.remarks}
+        rows="3"
+        ref={el => {
+            if (el) {
+                el.style.height = "auto";
+                el.style.height = `${el.scrollHeight}px`;
+            }
+        }}
+        onInput={e => {
+            e.currentTarget.style.height = "auto";
+            e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`;
+        }}
+        className="w-full border rounded p-2 overflow-hidden resize-none"
+    ></textarea>
+</div>
                                     <div>
                                         <label className="block text-sm font-medium">上傳備註簡圖</label>
                                         <input type="file" name="remarksSketch" accept="image/*" className="w-full border rounded p-2"/>
