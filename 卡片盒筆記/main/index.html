@@ -361,7 +361,7 @@ const IMAGE_MAX_WIDTH = 1600;
     // --- Google Apps Script 雲端同步設定 ---
     
 // --- Google Apps Script 雲端同步設定 ---
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxNxmi751AJ3Bac734eaNeYnn-_7Lsh32gcL3p3-8WeVseCSxwzEtykKm_R3oCZgoXWDg/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwQ6SrtdmZuGp2ydvHJpslepLQbU-dkG6HjMYlDfu_XKANZ1dYlhe4zWXUzgh9UPd6p/exec";
 
     async function loadFromStorage() {
         try {
@@ -382,16 +382,32 @@ const IMAGE_MAX_WIDTH = 1600;
             const MAX_CELL_CHARS = 45000;
             let skippedCount = 0;
 
-            // 過濾掉超過大小限制的卡片，不進行上傳
-            const validNotes = notes.filter(note => {
-                const noteJsonStr = JSON.stringify(note);
-                if (noteJsonStr.length > MAX_CELL_CHARS) {
-                    console.warn(`卡片《${note.title || note.id}》體積過大 (${noteJsonStr.length} 字元)，已略過不上傳`);
+            // 確保每一張卡片內的所有獨立圖片都不超過單格上限
+            const validNotes = notes.map(note => {
+                const noteCopy = Object.assign({}, note);
+                let images = noteCopy.images || [];
+
+                // 檢查並篩選掉單張過大的圖片
+                images = images.filter(img => {
+                    if (img.length > MAX_CELL_CHARS) {
+                        console.warn(`卡片《${note.title || note.id}》中有單張圖片過大 (${img.length} 字元)，已自動略過該圖片`);
+                        skippedCount++;
+                        return false;
+                    }
+                    return true;
+                });
+
+                // 檢查扣除圖片後的筆記本體 JSON 是否超限
+                noteCopy.images = images;
+                const bodyJsonStr = JSON.stringify(noteCopy);
+                if (bodyJsonStr.length > MAX_CELL_CHARS) {
+                    console.warn(`卡片《${note.title || note.id}》文字主體過大，已略過不上傳`);
                     skippedCount++;
-                    return false;
+                    return null;
                 }
-                return true;
-            });
+
+                return noteCopy;
+            }).filter(note => note !== null);
 
             const response = await fetch(SCRIPT_URL, {
                 method: 'POST',
@@ -404,7 +420,7 @@ const IMAGE_MAX_WIDTH = 1600;
             }
 
             if (skippedCount > 0) {
-                showToast(`已同步，但有 ${skippedCount} 張卡片因內容/圖片過大未上傳`, 'info');
+                showToast(`已同步，但有 ${skippedCount} 個超大圖片/內容項目未上傳`, 'info');
             }
         } catch (err) {
             console.error('儲存至 Google 試算表失敗', err);
@@ -412,7 +428,6 @@ const IMAGE_MAX_WIDTH = 1600;
             throw err;
         }
     }
-
 
     // --- Gemini API Configuration ---
     const apiKey = ""; // API Key injected automatically by environment
@@ -802,7 +817,17 @@ const IMAGE_MAX_WIDTH = 1600;
     function loadNote(id) {
       const note = notes.find(n => n.id === id);
       if (!note) return;
-      currentNoteId = note.id; els.title.value = note.title; els.content.innerHTML = note.content;
+      currentNoteId = note.id; 
+      els.title.value = note.title; 
+      
+      // 將圖片佔位符還原為真實的 Base64 圖片以供顯示
+      let contentHtml = note.content || '';
+      const noteImages = note.images || [];
+      noteImages.forEach((imgBase64, idx) => {
+        contentHtml = contentHtml.replace(new RegExp(`__IMG_${idx}__`, 'g'), imgBase64);
+      });
+      els.content.innerHTML = contentHtml;
+
       els.btnDelete.classList.remove('hidden');
       els.btnSaveUpdate.innerHTML = '<i class="fa-regular fa-floppy-disk mr-1"></i> 儲存所有變更';
       els.status.textContent = `ID: ${note.id.substring(0,6)}...`;
@@ -814,23 +839,56 @@ const IMAGE_MAX_WIDTH = 1600;
       });
       document.querySelectorAll('#editor-content img').forEach(makeImageResizable);
       
-      if (window.innerWidth < 768) togglePanel('left'); // Mobile: Auto close list on select
+      if (window.innerWidth < 768) togglePanel('left');
     }
 
     async function updateCurrentNote() {
       const title = els.title.value.trim();
-      const content = els.content.innerHTML;
+      let contentHtml = els.content.innerHTML;
       if (!title) return showToast('錯誤：標題不能為空', 'error');
+
+      // 自動將內文中的圖片 Base64 抽離，改存入獨立的 images 陣列，避免儲存格過大
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(contentHtml, 'text/html');
+      const imgs = doc.querySelectorAll('img');
+      const extractedImages = [];
+      
+      imgs.forEach((img, index) => {
+        const src = img.getAttribute('src');
+        if (src && src.startsWith('data:image')) {
+          extractedImages.push(src);
+          img.setAttribute('src', `__IMG_${extractedImages.length - 1}__`);
+        }
+      });
+      
+      contentHtml = doc.body.innerHTML;
 
       const currentTags = Array.from(els.activeTags.querySelectorAll('.tag-chip span')).map(s => s.textContent);
       const currentLinks = Array.from(els.linkedList.querySelectorAll('.link-card')).map(d => d.dataset.id);
 
       if (currentNoteId) {
         const index = notes.findIndex(n => n.id === currentNoteId);
-        if (index !== -1) { notes[index] = { ...notes[index], title, content, tags: currentTags, linkedNotes: currentLinks }; showToast('資料已更新', 'success'); }
+        if (index !== -1) { 
+          notes[index] = { 
+            ...notes[index], 
+            title, 
+            content: contentHtml, 
+            tags: currentTags, 
+            linkedNotes: currentLinks,
+            images: extractedImages 
+          }; 
+          showToast('資料已更新', 'success'); 
+        }
       } else {
         const newId = genId();
-        notes.push({ id: newId, title, content, tags: currentTags, linkedNotes: currentLinks });
+        notes.push({ 
+          id: newId, 
+          title, 
+          content: contentHtml, 
+          tags: currentTags, 
+          linkedNotes: currentLinks,
+          images: extractedImages 
+        });
         currentNoteId = newId;
         currentLinks.forEach(targetId => { const target = notes.find(n => n.id === targetId); if (target && !target.linkedNotes.includes(newId)) target.linkedNotes.push(newId); });
         showToast('新資料卡已建立', 'success');
@@ -840,6 +898,7 @@ const IMAGE_MAX_WIDTH = 1600;
       await saveToStorage();
       renderNoteList(); updateTagHistory(); renderLinkSuggestions(); updateTagTree();
     }
+
 
     async function deleteCurrentNote() {
       if (!currentNoteId || !confirm('確認刪除此資料卡？')) return;
@@ -1001,8 +1060,8 @@ const IMAGE_MAX_WIDTH = 1600;
         img.src = e.target.result;
         img.onload = function() {
           const canvas = document.createElement('canvas');
-          let MAX_WIDTH = 400;  // 限制更小的最大寬度以符合儲存格限制
-          let MAX_HEIGHT = 400; // 限制更小的最大高度
+          let MAX_WIDTH = 300;  // 縮小預設最大寬度
+          let MAX_HEIGHT = 300; // 縮小預設最大高度
           let width = img.width;
           let height = img.height;
 
@@ -1024,17 +1083,38 @@ const IMAGE_MAX_WIDTH = 1600;
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
 
-          // 動態壓縮：確保 Base64 字串長度小於 45000 字元（低於 Google 試算表單格上限）
-          let quality = 0.7;
+          // 第一階段：動態降低畫質
+          let quality = 0.6;
           let compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
           
-          while (compressedDataUrl.length > 45000 && quality > 0.1) {
+          while (compressedDataUrl.length > 42000 && quality > 0.1) {
             quality -= 0.1;
             compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
           }
 
+          // 第二階段：如果降到最低畫質還是太大，直接縮小尺寸重新畫一次畫布
+          if (compressedDataUrl.length > 42000) {
+            MAX_WIDTH = 200;
+            MAX_HEIGHT = 200;
+            width = img.width;
+            height = img.height;
+            if (width > height) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            } else {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+            canvas.width = width;
+            canvas.height = height;
+            ctx.clearRect(0, 0, width, height);
+            ctx.drawImage(img, 0, 0, width, height);
+            compressedDataUrl = canvas.toDataURL('image/jpeg', 0.4);
+          }
+
+          // 最終安全防線
           if (compressedDataUrl.length > 45000) {
-            showToast('圖片檔案過大，壓縮後仍超過試算表限制', 'error');
+            showToast('圖片檔案過大，無法壓縮至 Google 試算表限制內', 'error');
             input.value = '';
             return;
           }
@@ -1042,7 +1122,7 @@ const IMAGE_MAX_WIDTH = 1600;
           els.content.focus(); 
           document.execCommand('insertImage', false, compressedDataUrl); 
           setTimeout(() => document.querySelectorAll('.editor-content img').forEach(makeImageResizable), 100);
-          showToast('圖片已自動壓縮並成功插入', 'success');
+          showToast('圖片已強力壓縮並成功插入', 'success');
         };
       };
       reader.readAsDataURL(file); 
