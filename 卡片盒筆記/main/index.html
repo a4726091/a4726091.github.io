@@ -378,13 +378,33 @@ const IMAGE_MAX_WIDTH = 1600;
 
     async function saveToStorage() {
         try {
+            // 設定單一儲存格安全字元上限（Google 試算表單格上限約 50,000 字元）
+            const MAX_CELL_CHARS = 45000;
+            let skippedCount = 0;
+
+            // 過濾掉超過大小限制的卡片，不進行上傳
+            const validNotes = notes.filter(note => {
+                const noteJsonStr = JSON.stringify(note);
+                if (noteJsonStr.length > MAX_CELL_CHARS) {
+                    console.warn(`卡片《${note.title || note.id}》體積過大 (${noteJsonStr.length} 字元)，已略過不上傳`);
+                    skippedCount++;
+                    return false;
+                }
+                return true;
+            });
+
             const response = await fetch(SCRIPT_URL, {
                 method: 'POST',
-                body: JSON.stringify(notes)
+                body: JSON.stringify(validNotes)
             });
             const result = await response.json();
+            
             if (result.status !== "success") {
                 throw new Error(result.message || "Unknown error");
+            }
+
+            if (skippedCount > 0) {
+                showToast(`已同步，但有 ${skippedCount} 張卡片因內容/圖片過大未上傳`, 'info');
             }
         } catch (err) {
             console.error('儲存至 Google 試算表失敗', err);
@@ -392,7 +412,6 @@ const IMAGE_MAX_WIDTH = 1600;
             throw err;
         }
     }
-
 
 
     // --- Gemini API Configuration ---
@@ -973,15 +992,63 @@ const IMAGE_MAX_WIDTH = 1600;
     function changeFontSize(val) { document.execCommand('fontSize', false, val); els.content.focus(); }
     
     function insertImage(input) {
-      const file = input.files[0]; if (!file) return;
+      const file = input.files[0]; 
+      if (!file) return;
+      
       const reader = new FileReader();
-      reader.onload = function(e) { 
-        els.content.focus(); 
-        document.execCommand('insertImage', false, e.target.result); 
-        setTimeout(() => document.querySelectorAll('.editor-content img').forEach(makeImageResizable), 100); 
+      reader.onload = function(e) {
+        const img = new Image();
+        img.src = e.target.result;
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          let MAX_WIDTH = 400;  // 限制更小的最大寬度以符合儲存格限制
+          let MAX_HEIGHT = 400; // 限制更小的最大高度
+          let width = img.width;
+          let height = img.height;
+
+          // 等比例計算縮放尺寸
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // 動態壓縮：確保 Base64 字串長度小於 45000 字元（低於 Google 試算表單格上限）
+          let quality = 0.7;
+          let compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+          
+          while (compressedDataUrl.length > 45000 && quality > 0.1) {
+            quality -= 0.1;
+            compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+          }
+
+          if (compressedDataUrl.length > 45000) {
+            showToast('圖片檔案過大，壓縮後仍超過試算表限制', 'error');
+            input.value = '';
+            return;
+          }
+
+          els.content.focus(); 
+          document.execCommand('insertImage', false, compressedDataUrl); 
+          setTimeout(() => document.querySelectorAll('.editor-content img').forEach(makeImageResizable), 100);
+          showToast('圖片已自動壓縮並成功插入', 'success');
+        };
       };
-      reader.readAsDataURL(file); input.value = '';
+      reader.readAsDataURL(file); 
+      input.value = '';
     }
+
 
 function getImageResizeHandle() {
     let handle = document.getElementById('image-resize-handle');
