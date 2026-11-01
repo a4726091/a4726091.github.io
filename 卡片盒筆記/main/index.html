@@ -183,6 +183,34 @@
           <button onclick="closeAllPanels()" class="text-slate-400 hover:text-white transition p-1"><i class="fa-solid fa-times"></i></button>
       </div>
       <div class="p-4 space-y-4 max-h-[80vh] overflow-y-auto custom-scrollbar">
+        <!-- ⚙️ 自訂 API 設定欄位 -->
+          <div class="p-3 bg-slate-900/80 rounded-lg border border-slate-700/50 space-y-2">
+            <div class="text-xs font-mono text-tech-accent uppercase flex items-center justify-between">
+              <span>⚙️ 自訂 AI API 設定</span>
+              <div class="flex gap-1.5">
+                <button onclick="testApiConnection()" id="btn-test-api" class="text-[10px] bg-slate-700 hover:bg-yellow-400 hover:text-slate-900 text-slate-200 px-2 py-0.5 rounded transition">
+                  <i class="fa-solid fa-plug-circle-bolt mr-1"></i>測試連線
+                </button>
+                <button onclick="saveApiSettings()" class="text-[10px] bg-tech-accent/20 hover:bg-tech-accent hover:text-slate-900 text-tech-accent px-2 py-0.5 rounded transition">
+                  儲存設定
+                </button>
+              </div>
+            </div>
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-0.5">模型名稱 (Model)</label>
+              <input type="text" id="ai-model" placeholder="gemini-2.5-flash-preview-09-2025" class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200 outline-none focus:border-tech-accent">
+            </div>
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-0.5">接口地址 (Base URL)</label>
+              <input type="text" id="ai-base-url" placeholder="https://generativelanguage.googleapis.com" class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200 outline-none focus:border-tech-accent">
+            </div>
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-0.5">模型 API Key</label>
+              <input type="password" id="ai-api-key" placeholder="貼上 API Key..." class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200 outline-none focus:border-tech-accent">
+            </div>
+            <!-- 測試結果顯示區域 -->
+            <div id="api-test-status" class="text-[11px] font-mono hidden py-1 px-2 rounded border"></div>
+          </div>
           <!-- 智慧網頁剪藏 -->
           <div class="p-3 bg-slate-900/80 rounded-lg border border-slate-700/50">
             <label class="block text-xs font-mono text-slate-400 mb-2 uppercase">🌐 智慧網頁剪藏</label>
@@ -431,6 +459,168 @@ const IMAGE_MAX_WIDTH = 1600;
 
     // --- Gemini API Configuration ---
     const apiKey = ""; // API Key injected automatically by environment
+
+
+    // --- AI API Configuration & Management ---
+    let aiConfig = {
+      model: localStorage.getItem('ai_model') || 'gemini-2.5-flash-preview-09-2025',
+      baseUrl: localStorage.getItem('ai_base_url') || 'https://generativelanguage.googleapis.com',
+      apiKey: localStorage.getItem('ai_api_key') || ''
+    };
+
+    function loadApiSettingsUI() {
+      const elModel = document.getElementById('ai-model');
+      const elBaseUrl = document.getElementById('ai-base-url');
+      const elApiKey = document.getElementById('ai-api-key');
+      if (elModel) elModel.value = aiConfig.model;
+      if (elBaseUrl) elBaseUrl.value = aiConfig.baseUrl;
+      if (elApiKey) elApiKey.value = aiConfig.apiKey;
+    }
+
+    function saveApiSettings() {
+      const model = document.getElementById('ai-model').value.trim();
+      let baseUrl = document.getElementById('ai-base-url').value.trim();
+      const apiKeyVal = document.getElementById('ai-api-key').value.trim();
+
+      if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
+
+      aiConfig.model = model || 'gemini-2.5-flash-preview-09-2025';
+      aiConfig.baseUrl = baseUrl || 'https://generativelanguage.googleapis.com';
+      aiConfig.apiKey = apiKeyVal;
+
+      localStorage.setItem('ai_model', aiConfig.model);
+      localStorage.setItem('ai_base_url', aiConfig.baseUrl);
+      localStorage.setItem('ai_api_key', aiConfig.apiKey);
+
+      showToast('AI API 設定已儲存', 'success');
+    }
+
+
+    // --- 統一的 AI 呼叫與測試核心（自動判斷 Gemini 或 OpenAI / xAI 相容格式） ---
+    function isGeminiEndpoint(baseUrl) {
+      return baseUrl.includes('generativelanguage.googleapis.com');
+    }
+
+    async function testApiConnection() {
+      const model = document.getElementById('ai-model').value.trim() || 'grok-4.5';
+      let baseUrl = document.getElementById('ai-base-url').value.trim() || 'https://api.x.ai/v1';
+      const apiKeyVal = document.getElementById('ai-api-key').value.trim();
+      const statusDiv = document.getElementById('api-test-status');
+      const btn = document.getElementById('btn-test-api');
+
+      if (!apiKeyVal) {
+        showToast('請先輸入 API Key！', 'error');
+        return;
+      }
+
+      if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
+
+      // UI 載入狀態
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i>測試中...';
+      statusDiv.classList.remove('hidden', 'bg-emerald-500/10', 'border-emerald-500/50', 'text-emerald-400', 'bg-red-500/10', 'border-red-500/50', 'text-red-400');
+      statusDiv.className = 'text-[11px] font-mono py-1 px-2 rounded border bg-slate-800 border-slate-700 text-slate-300';
+      statusDiv.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-1 text-yellow-400"></i> 正在發送 ping 測試請求...';
+
+      let url, headers, body;
+
+      if (isGeminiEndpoint(baseUrl)) {
+        url = `${baseUrl}/v1beta/models/${model}:generateContent?key=${apiKeyVal}`;
+        headers = { 'Content-Type': 'application/json' };
+        body = JSON.stringify({
+          contents: [{ parts: [{ text: "Hi" }] }],
+          generationConfig: { maxOutputTokens: 5 }
+        });
+      } else {
+        // OpenAI / xAI 相容格式
+        url = `${baseUrl}/chat/completions`;
+        headers = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKeyVal}`
+        };
+        body = JSON.stringify({
+          model: model,
+          messages: [{ role: "user", content: "Hi" }],
+          max_tokens: 5
+        });
+      }
+
+      try {
+        const response = await fetch(url, { method: 'POST', headers, body });
+
+        if (response.ok) {
+          statusDiv.className = 'text-[11px] font-mono py-1 px-2 rounded border bg-emerald-500/10 border-emerald-500/50 text-emerald-400';
+          statusDiv.innerHTML = '<i class="fa-solid fa-circle-check mr-1"></i> 連線成功！API Key 與模型設定有效。';
+          showToast('API 連線成功！', 'success');
+        } else {
+          const errData = await response.json().catch(() => ({}));
+          const errMsg = errData.error?.message || errData.message || `HTTP 錯誤代碼: ${response.status}`;
+          statusDiv.className = 'text-[11px] font-mono py-1 px-2 rounded border bg-red-500/10 border-red-500/50 text-red-400';
+          statusDiv.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> 連線失敗：${errMsg}`;
+          showToast('API 連線失敗，請檢查設定', 'error');
+        }
+      } catch (err) {
+        statusDiv.className = 'text-[11px] font-mono py-1 px-2 rounded border bg-red-500/10 border-red-500/50 text-red-400';
+        statusDiv.innerHTML = `<i class="fa-solid fa-wifi mr-1"></i> 網路或跨域錯誤：${err.message}`;
+        showToast('無法連線至 API 接口', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-plug-circle-bolt mr-1"></i>測試連線';
+      }
+    }
+
+    async function callGemini(prompt, systemInstruction = "", useSearch = false) {
+        if (!aiConfig.apiKey) {
+            showToast('請先填寫並儲存 AI API Key', 'error');
+            throw new Error('API Key 未設定');
+        }
+
+        const baseUrl = aiConfig.baseUrl.replace(/\/$/, '');
+        const model = aiConfig.model;
+        let url, headers, body;
+
+        if (isGeminiEndpoint(baseUrl)) {
+            url = `${baseUrl}/v1beta/models/${model}:generateContent?key=${aiConfig.apiKey}`;
+            headers = { 'Content-Type': 'application/json' };
+            const payload = { contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 2000, temperature: 0.4 } };
+            if (systemInstruction) payload.systemInstruction = { parts: [{ text: systemInstruction }] };
+            if (useSearch) payload.tools = [{ "google_search": {} }];
+            body = JSON.stringify(payload);
+        } else {
+            url = `${baseUrl}/chat/completions`;
+            headers = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${aiConfig.apiKey}`
+            };
+            const messages = [];
+            if (systemInstruction) messages.push({ role: "system", content: systemInstruction });
+            messages.push({ role: "user", content: prompt });
+            body = JSON.stringify({
+                model: model,
+                messages: messages,
+                max_tokens: 2000,
+                temperature: 0.4
+            });
+        }
+
+        for (let i = 0; i <= 5; i++) {
+            try {
+                const response = await fetch(url, { method: 'POST', headers, body });
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const data = await response.json();
+                
+                if (isGeminiEndpoint(baseUrl)) {
+                    return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                } else {
+                    return data.choices?.[0]?.message?.content || "";
+                }
+            } catch (e) {
+                 if (i === 5) throw e;
+                 await new Promise(r => setTimeout(r, [1000, 2000, 4000, 8000, 16000][i]));
+            }
+        }
+    }
+
     
     // --- DOM Elements ---
     const els = {
@@ -520,6 +710,8 @@ const IMAGE_MAX_WIDTH = 1600;
       document.addEventListener('keydown', (e) => {
           if (e.key === 'Escape' && activeFloatingPanel) closeAllPanels();
       });
+
+      loadApiSettingsUI(); // 自動填入保存的 API 設定
     };
 
     // ==========================================
@@ -625,23 +817,57 @@ const IMAGE_MAX_WIDTH = 1600;
 
     // --- Gemini AI Functions ---
     async function callGemini(prompt, systemInstruction = "", useSearch = false) {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-        const payload = { contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 2000, temperature: 0.4 } };
-        if (systemInstruction) payload.systemInstruction = { parts: [{ text: systemInstruction }] };
-        if (useSearch) payload.tools = [{ "google_search": {} }];
+        if (!aiConfig.apiKey) {
+            showToast('請先填寫並儲存 AI API Key', 'error');
+            throw new Error('API Key 未設定');
+        }
+
+        const baseUrl = aiConfig.baseUrl.replace(/\/$/, '');
+        const model = aiConfig.model;
+        let url, headers, body;
+
+        if (isGeminiEndpoint(baseUrl)) {
+            url = `${baseUrl}/v1beta/models/${model}:generateContent?key=${aiConfig.apiKey}`;
+            headers = { 'Content-Type': 'application/json' };
+            const payload = { contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 2000, temperature: 0.4 } };
+            if (systemInstruction) payload.systemInstruction = { parts: [{ text: systemInstruction }] };
+            if (useSearch) payload.tools = [{ "google_search": {} }];
+            body = JSON.stringify(payload);
+        } else {
+            url = `${baseUrl}/chat/completions`;
+            headers = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${aiConfig.apiKey}`
+            };
+            const messages = [];
+            if (systemInstruction) messages.push({ role: "system", content: systemInstruction });
+            messages.push({ role: "user", content: prompt });
+            body = JSON.stringify({
+                model: model,
+                messages: messages,
+                max_tokens: 2000,
+                temperature: 0.4
+            });
+        }
 
         for (let i = 0; i <= 5; i++) {
             try {
-                const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                const response = await fetch(url, { method: 'POST', headers, body });
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const data = await response.json();
-                return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                
+                let resText = isGeminiEndpoint(baseUrl)
+                    ? (data.candidates?.[0]?.content?.parts?.[0]?.text || "")
+                    : (data.choices?.[0]?.message?.content || "");
+                
+                return resText;
             } catch (e) {
                  if (i === 5) throw e;
                  await new Promise(r => setTimeout(r, [1000, 2000, 4000, 8000, 16000][i]));
             }
         }
     }
+
 
     async function aiClipper() {
         const urlInput = document.getElementById('clipper-url');
@@ -650,42 +876,26 @@ const IMAGE_MAX_WIDTH = 1600;
 
         const btn = document.getElementById('btn-ai-clipper');
         setLoading(btn, true);
-        showToast("AI 正在連線上網讀取並進行『分面打標』剪藏...", "info");
+        showToast("AI 正在分析網頁並進行剪藏...", "info");
 
         try {
-            const prompt = `請使用 Google Search 分析此網址：${url}。生成：\n1. 筆記標題 (title)\n2. 文章正文 (content)，轉成 HTML（<p>, <b>, <ul>, <li>）不含廣告\n3. 網頁正文原樣 (summary)\n4. 分類標籤 (tags)，必須符合「類型/值」格式\n5. 主題關鍵字清單 (relatedKeywords)\n用台灣繁體回答。`;
-            const systemInstruction = "專業 Zettelkasten 助手。精準分類並打上『類型/值』標籤，直接輸出符合 Schema 的 JSON。";
-            const payload = {
-                contents: [{ parts: [{ text: prompt }] }], systemInstruction: { parts: [{ text: systemInstruction }] }, tools: [{ "google_search": {} }],
-                generationConfig: {
-                    responseMimeType: "application/json",
-                    responseSchema: {
-                        type: "OBJECT",
-                        properties: { title: { type: "STRING" }, content: { type: "STRING" }, summary: { type: "STRING" }, tags: { type: "ARRAY", items: { type: "STRING" } }, relatedKeywords: { type: "ARRAY", items: { type: "STRING" } } },
-                        required: ["title", "content", "summary", "tags", "relatedKeywords"]
-                    }
-                }
-            };
-
-            let resultText = "";
-            for (let i = 0; i <= 5; i++) {
-                try {
-                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                    if (!res.ok) throw new Error("HTTP error");
-                    const data = await res.json();
-                    resultText = data.candidates?.[0]?.content?.parts?.[0]?.text || ""; break;
-                } catch (e) { if (i === 5) throw e; await new Promise(r => setTimeout(r, [1000, 2000, 4000, 8000, 16000][i])); }
-            }
+            const prompt = `請分析此網址內容：${url}。\n請回傳純 JSON 格式，必須包含以下 key：\n- title: 筆記標題\n- content: 網頁正文 HTML 格式 (<p>, <ul>, <li> 等)\n- summary: 80字重點摘要\n- tags: 標籤字串陣列（格式如 ["領域/AI", "用途/學習"]）\n- relatedKeywords: 關鍵字字串陣列\n用台灣繁體回答。`;
+            const sysInstruction = "你是一個網頁剪藏助理。請嚴格輸出合法 JSON 物件格式，不要包裹任何 Markdown ```json 語法，也不要有任何前言或後記。";
+            
+            let resultText = await callGemini(prompt, sysInstruction);
 
             if (!resultText) throw new Error("無內容");
-            const parsed = JSON.parse(resultText);
+
+            // 強力清洗 JSON 內容（防止模型自作主張加上 ```json ... ```）
+            const cleanJsonStr = resultText.replace(/```json/gi, '').replace(/```/g, '').trim();
+            const parsed = JSON.parse(cleanJsonStr);
             const newId = genId();
             
-            const summaryHTML = `<blockquote style="border-left: 3px solid #f59e0b; padding-left: 10px; color: #cbd5e1; margin: 10px 0; background: rgba(245, 158, 11, 0.1); padding: 8px; border-radius: 4px;"><strong>✨ AI 完整剪藏內容：</strong>${parsed.summary}</blockquote><p><br></p>`;
+            const summaryHTML = `<blockquote style="border-left: 3px solid #f59e0b; padding-left: 10px; color: #cbd5e1; margin: 10px 0; background: rgba(245, 158, 11, 0.1); padding: 8px; border-radius: 4px;"><strong>✨ AI 完整剪藏內容：</strong>${parsed.summary || ''}</blockquote><p><br></p>`;
             
             const suggestedLinks = [];
             notes.forEach(note => {
-                const matchKeyword = parsed.relatedKeywords.some(kw => note.title.toLowerCase().includes(kw.toLowerCase()) || kw.toLowerCase().includes(note.title.toLowerCase()));
+                const matchKeyword = (parsed.relatedKeywords || []).some(kw => note.title.toLowerCase().includes(kw.toLowerCase()) || kw.toLowerCase().includes(note.title.toLowerCase()));
                 if (matchKeyword && note.id !== newId) {
                     suggestedLinks.push(note.id);
                     if (!note.linkedNotes) note.linkedNotes = [];
@@ -693,14 +903,20 @@ const IMAGE_MAX_WIDTH = 1600;
                 }
             });
 
-            notes.push({ id: newId, title: parsed.title, content: summaryHTML + parsed.content, tags: parsed.tags || [], linkedNotes: suggestedLinks });
+            notes.push({ id: newId, title: parsed.title || '無標題剪藏', content: summaryHTML + (parsed.content || ''), tags: parsed.tags || [], linkedNotes: suggestedLinks });
             await saveToStorage();
             
             renderNoteList(); updateTagHistory(); renderLinkSuggestions(); updateTagTree(); loadNote(newId);
             urlInput.value = ''; showToast(`✨ 成功剪藏《${parsed.title}》！`, "success");
             closeAllPanels();
-        } catch (error) { showToast("智慧剪藏失敗", "error"); } finally { setLoading(btn, false); }
+        } catch (error) { 
+            console.error(error);
+            showToast("智慧剪藏失敗，請確認 API 模型是否支援 JSON 回傳格式", "error"); 
+        } finally { 
+            setLoading(btn, false); 
+        }
     }
+
 
     async function aiAutoTag() {
         const text = els.content.innerText.trim();
@@ -708,45 +924,19 @@ const IMAGE_MAX_WIDTH = 1600;
         setLoading(document.getElementById('btn-ai-tag'), true);
 
         try {
-            const prompt = `請分析以下內容，並生成 4 到 8 個分類標籤。
-
-【標籤規則】
-每個標籤必須嚴格符合「類型/值」格式（不可例外，例如：領域/AI）。
-允許的類型包含：
-1. 領域（必選，至少 1 個）
-2. 用途（必選，至少 1 個）
-3. 類型（選填）
-4. 狀態（預設：狀態/待整理）
-5. 來源（若可判斷）
-6. 面向（若有）
-
-【可用詞彙（優先使用）】
-- 領域：AI、前端、後端、資料庫、架構、演算法、工程實務
-- 領域細分：領域/AI/模型、領域/AI/工具、領域/AI/應用、領域/前端/UI、領域/前端/效能、領域/後端/API
-- 用途：工作、學習、研究、開發、除錯、整理、靈感、決策、專案A
-- 類型：筆記、問題、解法、教學、工具、文件、想法
-- 狀態：待整理、進行中、完成
-- 來源：網頁、AI生成、書籍、文件、課程
-- 面向：效能、安全、可維護、可讀性
-
-【輸出規則】
-1. 總數：4～8 個標籤
-2. 不要重複
-3. 不要輸出任何說明文字，只能輸出標籤本身，並用半形逗號分隔（例如：領域/前端/UI,用途/工作,狀態/待整理）
-4. 除非無法定義或現有無適合類型，否則不可使用未定義類型
-5. 除非無法定義或現有無適合標籤，否則不可輸出未分類標籤
-6. 優先選擇上述已有結構的詞彙
-
-內容：\n${text}`;
-            const result = await callGemini(prompt);
-            const tags = result.split(',').map(t => t.trim()).filter(t => t);
+            const prompt = `請分析以下內容，並生成 4 到 8 個分類標籤。\n內容：\n${text}`;
+            const sysInstruction = `你是一個自動打標助手。每個標籤必須嚴格符合「類型/值」格式（例如：領域/AI, 用途/工作, 狀態/待整理）。只回傳以半形逗號分隔的標籤字串，不要輸出任何 Markdown 標點符號或額外說明！`;
+            
+            const result = await callGemini(prompt, sysInstruction);
+            const cleanResult = result.replace(/```/g, '').replace(/\n/g, '').trim();
+            const tags = cleanResult.split(',').map(t => t.trim()).filter(t => t && t.includes('/'));
             
             let addedCount = 0;
             const currentTags = Array.from(els.activeTags.querySelectorAll('.tag-chip span')).map(s => s.textContent);
             tags.forEach(tag => { if (!currentTags.includes(tag)) { addTagToUI(tag); addedCount++; } });
             
             if (addedCount > 0) showToast(`已新增 ${addedCount} 個 AI 標籤`, "success");
-            else showToast("無新標籤建議", "info");
+            else showToast("無新標籤建議或解析失敗", "info");
         } catch (error) { showToast("AI 分析失敗", "error"); } finally { setLoading(document.getElementById('btn-ai-tag'), false); }
     }
 
@@ -771,22 +961,33 @@ const IMAGE_MAX_WIDTH = 1600;
         setLoading(document.getElementById('btn-ai-link'), true);
 
         try {
-            const listStr = availableNotes.map(n => `${n.id}::${n.title}`).join('\n');
-            const result = await callGemini(`閱讀[筆記]，從[清單]挑 1 到 5 個最相關筆記。只回傳ID用逗號分隔。\n\n[標題]\n${title}\n[內容]\n${text}\n[清單]\n${listStr}`);
-            const suggestedIds = result.replace(/```/g, '').replace(/`/g, '').replace(/\n/g, '').split(',').map(id => id.trim()).filter(id => id);
+            const listStr = availableNotes.map(n => `ID: ${n.id} | 標題: ${n.title}`).join('\n');
+            const prompt = `閱讀[當前筆記]，從[候選筆記清單]挑選 1 到 5 個最相關的筆記。\n\n[當前筆記標題]\n${title}\n[當前筆記內容]\n${text}\n\n[候選筆記清單]\n${listStr}`;
+            const sysInstruction = `只回傳符合相關筆記的 ID 列表，用半形逗號分隔（例如：id1, id2），絕對不要包含任何其他說明文字。`;
+
+            const result = await callGemini(prompt, sysInstruction);
+            // 清理 Markdown 標籤並擷取所有的 ID 項目
+            const rawIds = result.replace(/```[a-z]*/gi, '').replace(/```/g, '').trim();
+            const suggestedIds = rawIds.split(/[,，\n]/).map(id => id.trim()).filter(id => id);
             
             const existingLinks = Array.from(els.linkedList.querySelectorAll('.link-card')).map(d => d.dataset.id);
             let addedCount = 0;
             const newLinks = [...existingLinks];
             
             suggestedIds.forEach(id => {
-                if (availableNotes.some(n => n.id === id) && !newLinks.includes(id)) { newLinks.push(id); addedCount++; }
+                // 比對是否有此 ID
+                const matchedNote = availableNotes.find(n => n.id === id || id.includes(n.id));
+                if (matchedNote && !newLinks.includes(matchedNote.id)) { 
+                    newLinks.push(matchedNote.id); 
+                    addedCount++; 
+                }
             });
 
             if (addedCount > 0) { renderLinkedUI(newLinks); showToast(`已關聯 ${addedCount} 則筆記`, "success"); } 
             else showToast("未發現高度相關筆記", "info");
         } catch (error) { showToast("關聯分析失敗", "error"); } finally { setLoading(document.getElementById('btn-ai-link'), false); }
     }
+
 
     function setLoading(btn, isLoading) {
         if (isLoading) {
