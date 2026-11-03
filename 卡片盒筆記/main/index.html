@@ -1053,9 +1053,16 @@ const IMAGE_MAX_WIDTH = 1600;
       const doc = parser.parseFromString(contentHtml, 'text/html');
       const imgs = doc.querySelectorAll('img');
       const extractedImages = [];
-      
+
       imgs.forEach((img, index) => {
-        const src = img.getAttribute('src');
+          // 清除舊版可能保存的縮放綁定標記
+          img.removeAttribute('data-resizable');
+
+          // 不要把目前圖片的藍色選取框狀態存進筆記
+          img.classList.remove('resizable');
+
+          // 取得 Base64 圖片內容
+          const src = img.getAttribute('src');
         if (src && src.startsWith('data:image')) {
           extractedImages.push(src);
           img.setAttribute('src', `__IMG_${extractedImages.length - 1}__`);
@@ -1354,9 +1361,15 @@ function getImageResizeSizeLabel() {
 }
 
 function makeImageResizable(img) {
-    if (img.dataset.resizable) return;
+    // data-* 會被 innerHTML 保存，但事件監聽器不會。
+    // 改用不會被序列化的 DOM 暫存屬性。
+    // Base64 圖片重新載入後，就能再次綁定縮放事件。
+    if (img._resizeEventsBound) return;
 
-    img.dataset.resizable = "true";
+    img._resizeEventsBound = true;
+
+    // 清除舊版本可能留下的標記
+    img.removeAttribute('data-resizable');
 
     // 讓舊圖片與新圖片都維持等比例縮放
     img.style.height = 'auto';
