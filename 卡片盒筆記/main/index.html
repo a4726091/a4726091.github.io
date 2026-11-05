@@ -133,6 +133,82 @@
     .ai-loading { position: relative; overflow: hidden; }
     .ai-loading::after { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(6, 182, 212, 0.2), transparent); transform: translateX(-100%); animation: shimmer 1.5s infinite; }
     @keyframes shimmer { 100% { transform: translateX(100%); } }
+    /* ===== Markdown 貼上格式 ===== */
+
+.editor-content h1,
+.editor-content h2,
+.editor-content h3,
+.editor-content h4,
+.editor-content h5,
+.editor-content h6 {
+    margin: 12px 0 6px;
+    line-height: 1.4;
+}
+
+.editor-content h1 {
+    font-size: 28px;
+    border-bottom: 2px solid #d0d7de;
+    padding-bottom: 5px;
+}
+
+.editor-content h2 {
+    font-size: 24px;
+    border-bottom: 1px solid #d0d7de;
+    padding-bottom: 4px;
+}
+
+.editor-content h3 {
+    font-size: 20px;
+}
+
+.editor-content blockquote {
+    margin: 10px 0;
+    padding: 8px 12px;
+    border-left: 4px solid #9ca3af;
+    background-color: #f3f4f6;
+    color: #4b5563;
+}
+
+.editor-content pre {
+    margin: 10px 0;
+    padding: 12px;
+    overflow-x: auto;
+    border-radius: 6px;
+    background-color: #1f2937;
+    color: #f9fafb;
+    white-space: pre-wrap;
+}
+
+.editor-content code {
+    padding: 2px 5px;
+    border-radius: 4px;
+    background-color: #e5e7eb;
+    color: #be123c;
+    font-family: Consolas, "Courier New", monospace;
+}
+
+.editor-content pre code {
+    padding: 0;
+    background-color: transparent;
+    color: inherit;
+}
+
+.editor-content ul,
+.editor-content ol {
+    margin: 8px 0;
+    padding-left: 30px;
+}
+
+.editor-content a {
+    color: #2563eb;
+    text-decoration: underline;
+}
+
+.editor-content hr {
+    margin: 15px 0;
+    border: 0;
+    border-top: 1px solid #d1d5db;
+}
   </style>
 </head>
 <body class="bg-tech-bg text-slate-200 font-sans h-screen overflow-hidden flex flex-col md:flex-row landscape:flex-row relative">
@@ -319,11 +395,42 @@
         <option value="6">標題 L</option>
       </select>
       <div class="h-6 w-px bg-slate-700 mx-1"></div>
-      <label class="cursor-pointer bg-slate-900 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs rounded p-1.5 px-3 transition flex items-center gap-2">
-        <i class="fa-solid fa-image"></i> 插入圖片
-        <input type="file" id="imageUpload" accept="image/*" onchange="insertImage(this)" class="hidden">
-      </label>
-    </div>
+
+      <label
+    class="cursor-pointer bg-slate-900 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs rounded p-1.5 px-3 transition flex items-center gap-2 shrink-0"
+>
+    <i class="fa-solid fa-image"></i>
+    <span>插入圖片</span>
+
+    <input
+        type="file"
+        id="imageUpload"
+        accept="image/*"
+        onchange="insertImage(this)"
+        class="hidden"
+    >
+</label>
+
+<button
+    type="button"
+    id="markdown-mode-button"
+    onclick="toggleMarkdownMode()"
+    class="bg-tech-accent/20 hover:bg-tech-accent border border-tech-accent/50 text-tech-accent hover:text-slate-900 text-xs rounded p-1.5 px-3 transition flex items-center gap-2 shrink-0"
+    title="目前：Markdown 預覽模式。點擊切換為原始碼模式"
+>
+    <i
+        id="markdown-mode-icon"
+        class="fa-solid fa-eye"
+    ></i>
+
+    <span id="markdown-mode-text">
+        Markdown 預覽
+    </span>
+</button>
+
+</div>
+
+<!-- Content Area -->
 
     <!-- Content Area -->
     <div class="flex-1 flex flex-col md:flex-row landscape:flex-row overflow-hidden relative">
@@ -381,6 +488,13 @@
 let imageResizeState = null;
 const IMAGE_MIN_WIDTH = 80;
 const IMAGE_MAX_WIDTH = 1600;
+
+// Markdown 貼上模式
+// preview：將 Markdown 轉成排版
+// source：保留 Markdown 原始符號
+let markdownPasteMode =
+    localStorage.getItem('markdown_paste_mode') || 'preview';
+
 
     // --- IndexedDB Configuration ---
     const DB_NAME = 'ZettelAIDB';
@@ -712,6 +826,7 @@ const IMAGE_MAX_WIDTH = 1600;
       });
 
       loadApiSettingsUI(); // 自動填入保存的 API 設定
+      updateMarkdownModeButton(); // 還原 Markdown 貼上模式 
     };
 
     // ==========================================
@@ -767,19 +882,130 @@ const IMAGE_MAX_WIDTH = 1600;
     }
 
     // --- Elegant Smart Paste Handler ---
-    function handlePaste(e) {
-        e.preventDefault();
-        const text = e.clipboardData.getData('text/plain');
-        const html = e.clipboardData.getData('text/html');
-        if (html) {
-            const cleanedHtml = cleanPastedHTML(html);
-            document.execCommand('insertHTML', false, cleanedHtml);
-            setTimeout(() => document.querySelectorAll('#editor-content img').forEach(makeImageResizable), 100);
-            showToast('已智慧過濾網頁格式與廣告樣式', 'success');
-        } else if (text) {
-            document.execCommand('insertText', false, text);
-        }
+    // --- Elegant Smart Paste Handler ---
+function handlePaste(e) {
+    const clipboardData = e.clipboardData;
+
+    if (!clipboardData) {
+        return;
     }
+
+    const text = clipboardData.getData('text/plain');
+    const html = clipboardData.getData('text/html');
+
+    const clipboardItems = Array.from(
+        clipboardData.items || []
+    );
+
+    const containsImage = clipboardItems.some(function(item) {
+        return item.type.startsWith('image/');
+    });
+
+    /*
+     * 如果剪貼簿包含真正的圖片檔案，
+     * 不在此攔截，交給瀏覽器或既有圖片處理機制。
+     */
+    if (containsImage && !text && !html) {
+        return;
+    }
+
+    e.preventDefault();
+
+    /*
+     * 原始碼模式：
+     * 一律使用純文字貼上，因此會保留：
+     * #、##、**、```、- 等 Markdown 符號。
+     */
+    if (markdownPasteMode === 'source') {
+        if (text) {
+            document.execCommand(
+                'insertText',
+                false,
+                text
+            );
+
+            showToast(
+                '已以 Markdown 原始碼模式貼上',
+                'info'
+            );
+        }
+
+        return;
+    }
+
+    /*
+     * 預覽模式：
+     * 如果純文字內含 Markdown，就轉成 HTML 排版。
+     */
+    if (
+        text &&
+        containsMarkdownSyntax(text)
+    ) {
+        const markdownHtml =
+            convertMarkdownToHtml(text);
+
+        insertHtmlAtCursor(markdownHtml);
+
+        setTimeout(function() {
+            document
+                .querySelectorAll('#editor-content img')
+                .forEach(makeImageResizable);
+        }, 100);
+
+        els.content.dispatchEvent(
+            new Event('input', {
+                bubbles: true
+            })
+        );
+
+        showToast(
+            '已將 Markdown 轉換為預覽排版',
+            'success'
+        );
+
+        return;
+    }
+
+    /*
+     * 沒有 Markdown，但剪貼簿含網頁 HTML：
+     * 使用原本的智慧清理功能。
+     */
+    if (html) {
+        const cleanedHtml =
+            cleanPastedHTML(html);
+
+        document.execCommand(
+            'insertHTML',
+            false,
+            cleanedHtml
+        );
+
+        setTimeout(function() {
+            document
+                .querySelectorAll('#editor-content img')
+                .forEach(makeImageResizable);
+        }, 100);
+
+        showToast(
+            '已智慧過濾網頁格式與廣告樣式',
+            'success'
+        );
+
+        return;
+    }
+
+    /*
+     * 普通純文字：
+     * 不含 Markdown 時直接貼上。
+     */
+    if (text) {
+        document.execCommand(
+            'insertText',
+            false,
+            text
+        );
+    }
+}
 
     function cleanPastedHTML(htmlString) {
         const parser = new DOMParser();
@@ -1027,7 +1253,14 @@ const IMAGE_MAX_WIDTH = 1600;
       noteImages.forEach((imgBase64, idx) => {
         contentHtml = contentHtml.replace(new RegExp(`__IMG_${idx}__`, 'g'), imgBase64);
       });
-      els.content.innerHTML = contentHtml;
+      if (markdownPasteMode === 'source') {
+    const markdown = convertHtmlToMarkdown(contentHtml);
+    showMarkdownSource(markdown);
+} else {
+    els.content.innerHTML = contentHtml;
+    els.content.style.whiteSpace = '';
+    els.content.style.fontFamily = '';
+}
 
       els.btnDelete.classList.remove('hidden');
       els.btnSaveUpdate.innerHTML = '<i class="fa-regular fa-floppy-disk mr-1"></i> 儲存所有變更';
@@ -1045,7 +1278,16 @@ const IMAGE_MAX_WIDTH = 1600;
 
     async function updateCurrentNote() {
       const title = els.title.value.trim();
-      let contentHtml = els.content.innerHTML;
+      let contentHtml;
+
+if (markdownPasteMode === 'source') {
+    // 原始碼模式下，以 Markdown 純文字轉成 HTML 後再保存
+    const markdown = els.content.innerText;
+    contentHtml = convertMarkdownToHtml(markdown);
+} else {
+    // 預覽模式下直接保存目前 HTML
+    contentHtml = els.content.innerHTML;
+}
       if (!title) return showToast('錯誤：標題不能為空', 'error');
 
       // 自動將內文中的圖片 Base64 抽離，改存入獨立的 images 陣列，避免儲存格過大
@@ -1255,6 +1497,386 @@ const IMAGE_MAX_WIDTH = 1600;
     }
     function removeLink(btn) { btn.parentElement.remove(); }
 
+
+// ===== 將編輯器 HTML 轉回 Markdown =====
+function convertHtmlToMarkdown(html) {
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+
+    function nodeToMarkdown(node, listDepth = 0) {
+        // 純文字
+        if (node.nodeType === Node.TEXT_NODE) {
+            return node.textContent;
+        }
+
+        if (node.nodeType !== Node.ELEMENT_NODE) {
+            return '';
+        }
+
+        const tag = node.tagName.toLowerCase();
+
+        const children = Array.from(node.childNodes)
+            .map(child => nodeToMarkdown(child, listDepth))
+            .join('');
+
+        switch (tag) {
+            case 'h1':
+                return `# ${children.trim()}\n\n`;
+
+            case 'h2':
+                return `## ${children.trim()}\n\n`;
+
+            case 'h3':
+                return `### ${children.trim()}\n\n`;
+
+            case 'h4':
+                return `#### ${children.trim()}\n\n`;
+
+            case 'h5':
+                return `##### ${children.trim()}\n\n`;
+
+            case 'h6':
+                return `###### ${children.trim()}\n\n`;
+
+            case 'strong':
+            case 'b':
+                return `**${children}**`;
+
+            case 'em':
+            case 'i':
+                return `*${children}*`;
+
+            case 'u':
+                // Markdown 沒有標準底線語法，保留 HTML
+                return `<u>${children}</u>`;
+
+            case 'del':
+            case 's':
+            case 'strike':
+                return `~~${children}~~`;
+
+            case 'code':
+                // pre 裡面的 code 由 pre 處理
+                if (node.parentElement?.tagName.toLowerCase() === 'pre') {
+                    return node.textContent;
+                }
+
+                return `\`${node.textContent}\``;
+
+            case 'pre':
+                return `\`\`\`\n${node.textContent.trim()}\n\`\`\`\n\n`;
+
+            case 'blockquote':
+                return node.innerText
+                    .split('\n')
+                    .map(line => `> ${line}`)
+                    .join('\n') + '\n\n';
+
+            case 'a': {
+                const href = node.getAttribute('href') || '';
+                return `[${children}](${href})`;
+            }
+
+            case 'img': {
+                const src = node.getAttribute('src') || '';
+                const alt = node.getAttribute('alt') || '圖片';
+                return `![${alt}](${src})\n\n`;
+            }
+
+            case 'hr':
+                return '---\n\n';
+
+            case 'br':
+                return '\n';
+
+            case 'p':
+                return `${children.trim()}\n\n`;
+
+            case 'div':
+                return `${children.trim()}\n`;
+
+            case 'ul':
+                return (
+                    Array.from(node.children)
+                        .map(li => {
+                            const liText = Array.from(li.childNodes)
+                                .filter(child => {
+                                    return !(
+                                        child.nodeType === Node.ELEMENT_NODE &&
+                                        ['ul', 'ol'].includes(
+                                            child.tagName.toLowerCase()
+                                        )
+                                    );
+                                })
+                                .map(child => nodeToMarkdown(child, listDepth + 1))
+                                .join('')
+                                .trim();
+
+                            const nestedList = Array.from(li.children)
+                                .filter(child =>
+                                    ['ul', 'ol'].includes(
+                                        child.tagName.toLowerCase()
+                                    )
+                                )
+                                .map(child =>
+                                    nodeToMarkdown(child, listDepth + 1)
+                                )
+                                .join('');
+
+                            return (
+                                `${'  '.repeat(listDepth)}- ${liText}\n` +
+                                nestedList
+                            );
+                        })
+                        .join('') + '\n'
+                );
+
+            case 'ol':
+                return (
+                    Array.from(node.children)
+                        .map((li, index) => {
+                            const liText = Array.from(li.childNodes)
+                                .filter(child => {
+                                    return !(
+                                        child.nodeType === Node.ELEMENT_NODE &&
+                                        ['ul', 'ol'].includes(
+                                            child.tagName.toLowerCase()
+                                        )
+                                    );
+                                })
+                                .map(child => nodeToMarkdown(child, listDepth + 1))
+                                .join('')
+                                .trim();
+
+                            const nestedList = Array.from(li.children)
+                                .filter(child =>
+                                    ['ul', 'ol'].includes(
+                                        child.tagName.toLowerCase()
+                                    )
+                                )
+                                .map(child =>
+                                    nodeToMarkdown(child, listDepth + 1)
+                                )
+                                .join('');
+
+                            return (
+                                `${'  '.repeat(listDepth)}${index + 1}. ${liText}\n` +
+                                nestedList
+                            );
+                        })
+                        .join('') + '\n'
+                );
+
+            case 'li':
+                return children;
+
+            case 'input':
+    if (node.type === 'checkbox') {
+        return node.checked ? '- [x] ' : '- [ ] ';
+    }
+
+    return '';
+
+case 'table':
+    return convertTableToMarkdown(node) + '\n\n';
+
+default:
+    return children;
+        }
+    }
+
+    let markdown = Array.from(temp.childNodes)
+        .map(node => nodeToMarkdown(node))
+        .join('');
+
+    return markdown
+        .replace(/\u00a0/g, ' ')
+        .replace(/[ \t]+\n/g, '\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+}
+
+
+// ===== 將 HTML 表格轉換成 Markdown 表格 =====
+function convertTableToMarkdown(table) {
+    const rows = Array.from(table.querySelectorAll('tr'));
+
+    if (rows.length === 0) {
+        return '';
+    }
+
+    const markdownRows = rows.map(row => {
+        const cells = Array.from(
+            row.querySelectorAll(':scope > th, :scope > td')
+        );
+
+        return cells.map(cell => {
+            return cell.innerText
+                .trim()
+                .replace(/\|/g, '\\|')
+                .replace(/\n/g, '<br>');
+        });
+    });
+
+    if (markdownRows.length === 0) {
+        return '';
+    }
+
+    const columnCount = Math.max(
+        ...markdownRows.map(row => row.length)
+    );
+
+    markdownRows.forEach(row => {
+        while (row.length < columnCount) {
+            row.push('');
+        }
+    });
+
+    const output = [];
+
+    output.push(`| ${markdownRows[0].join(' | ')} |`);
+    output.push(`| ${Array(columnCount).fill('---').join(' | ')} |`);
+
+    for (let i = 1; i < markdownRows.length; i++) {
+        output.push(`| ${markdownRows[i].join(' | ')} |`);
+    }
+
+    return output.join('\n');
+}
+
+
+// ===== 以純文字安全顯示 Markdown 原始碼 =====
+function showMarkdownSource(markdown) {
+    /*
+     * 使用 textContent，不使用 innerHTML。
+     * 如此 #、**、<、> 等符號會以純文字顯示，
+     * 不會被瀏覽器當成 HTML。
+     */
+    els.content.textContent = markdown;
+
+    els.content.style.whiteSpace = 'pre-wrap';
+    els.content.style.fontFamily =
+        '"JetBrains Mono", Consolas, monospace';
+}
+
+
+// ===== 顯示 Markdown 預覽 =====
+function showMarkdownPreview(markdown) {
+    els.content.innerHTML = convertMarkdownToHtml(markdown);
+
+    els.content.style.whiteSpace = '';
+    els.content.style.fontFamily = '';
+
+    // 預覽內若包含圖片，重新綁定縮放事件
+    setTimeout(function() {
+        els.content
+            .querySelectorAll('img')
+            .forEach(makeImageResizable);
+    }, 50);
+}
+
+
+    // ===== Markdown 預覽／原始碼模式切換 =====
+
+function toggleMarkdownMode() {
+    /*
+     * 目前是預覽模式：
+     * 將編輯器裡的 HTML 轉成 Markdown 原始碼。
+     */
+    if (markdownPasteMode === 'preview') {
+        const currentHtml = els.content.innerHTML;
+        const markdown = convertHtmlToMarkdown(currentHtml);
+
+        showMarkdownSource(markdown);
+
+        markdownPasteMode = 'source';
+
+        showToast(
+            '已切換為 Markdown 原始碼模式',
+            'info'
+        );
+    } else {
+        /*
+         * 目前是原始碼模式：
+         * 取得純文字 Markdown，轉成 HTML 預覽。
+         */
+        const markdown = els.content.innerText;
+
+        showMarkdownPreview(markdown);
+
+        markdownPasteMode = 'preview';
+
+        showToast(
+            '已切換為 Markdown 預覽模式',
+            'success'
+        );
+    }
+
+    localStorage.setItem(
+        'markdown_paste_mode',
+        markdownPasteMode
+    );
+
+    updateMarkdownModeButton();
+
+    // 通知程式內文已經發生變更
+    els.content.dispatchEvent(
+        new Event('input', {
+            bubbles: true
+        })
+    );
+
+    els.content.focus();
+}
+
+
+function updateMarkdownModeButton() {
+    const button = document.getElementById(
+        'markdown-mode-button'
+    );
+
+    const icon = document.getElementById(
+        'markdown-mode-icon'
+    );
+
+    const text = document.getElementById(
+        'markdown-mode-text'
+    );
+
+    if (!button || !icon || !text) {
+        return;
+    }
+
+    if (markdownPasteMode === 'preview') {
+        text.textContent = 'Markdown 預覽';
+        icon.className = 'fa-solid fa-eye';
+
+        button.title =
+            '目前：Markdown 預覽模式。貼上的 Markdown 會轉成排版';
+
+        button.className =
+            'bg-tech-accent/20 hover:bg-tech-accent ' +
+            'border border-tech-accent/50 ' +
+            'text-tech-accent hover:text-slate-900 ' +
+            'text-xs rounded p-1.5 px-3 transition ' +
+            'flex items-center gap-2';
+    } else {
+        text.textContent = 'Markdown 原始碼';
+        icon.className = 'fa-solid fa-code';
+
+        button.title =
+            '目前：Markdown 原始碼模式。貼上時保留 Markdown 符號';
+
+        button.className =
+            'bg-tech-warning/20 hover:bg-tech-warning ' +
+            'border border-tech-warning/50 ' +
+            'text-tech-warning hover:text-slate-900 ' +
+            'text-xs rounded p-1.5 px-3 transition ' +
+            'flex items-center gap-2';
+    }
+}
+
+
     function formatText(cmd) { document.execCommand(cmd, false, null); els.content.focus(); }
     function changeFontSize(val) { document.execCommand('fontSize', false, val); els.content.focus(); }
     
@@ -1358,6 +1980,241 @@ function getImageResizeSizeLabel() {
         document.body.appendChild(label);
     }
     return label;
+}
+
+function escapeMarkdownHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function convertMarkdownToHtml(markdown) {
+    let text = escapeMarkdownHtml(markdown);
+
+    // 統一換行符號
+    text = text.replace(/\r\n?/g, '\n');
+
+    // 程式碼區塊 ```code```
+    const codeBlocks = [];
+
+    text = text.replace(/```([\s\S]*?)```/g, function(match, code) {
+        const index = codeBlocks.length;
+
+        codeBlocks.push(
+            '<pre><code>' +
+            code.replace(/^\n|\n$/g, '') +
+            '</code></pre>'
+        );
+
+        return `%%CODE_BLOCK_${index}%%`;
+    });
+
+    // 標題
+    text = text.replace(/^######\s+(.+)$/gm, '<h6>$1</h6>');
+    text = text.replace(/^#####\s+(.+)$/gm, '<h5>$1</h5>');
+    text = text.replace(/^####\s+(.+)$/gm, '<h4>$1</h4>');
+    text = text.replace(/^###\s+(.+)$/gm, '<h3>$1</h3>');
+    text = text.replace(/^##\s+(.+)$/gm, '<h2>$1</h2>');
+    text = text.replace(/^#\s+(.+)$/gm, '<h1>$1</h1>');
+
+    // 水平線
+    text = text.replace(
+        /^(?:---+|\*\*\*+|___+)$/gm,
+        '<hr>'
+    );
+
+    // 引用
+    text = text.replace(
+        /^&gt;\s?(.+)$/gm,
+        '<blockquote>$1</blockquote>'
+    );
+
+    // 核取方塊
+    text = text.replace(
+        /^[-*]\s+\[x\]\s+(.+)$/gim,
+        '<div class="markdown-task">' +
+        '<input type="checkbox" checked disabled> $1' +
+        '</div>'
+    );
+
+    text = text.replace(
+        /^[-*]\s+\[\s\]\s+(.+)$/gim,
+        '<div class="markdown-task">' +
+        '<input type="checkbox" disabled> $1' +
+        '</div>'
+    );
+
+    // 無序清單
+    text = convertMarkdownLists(text, false);
+
+    // 有序清單
+    text = convertMarkdownLists(text, true);
+
+    // 圖片，必須放在一般連結之前
+    text = text.replace(
+        /!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/g,
+        '<img src="$2" alt="$1" style="max-width:100%; height:auto;">'
+    );
+
+    // 一般連結
+    text = text.replace(
+        /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+        '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
+    );
+
+    // 粗斜體
+    text = text.replace(
+        /\*\*\*(.+?)\*\*\*/g,
+        '<strong><em>$1</em></strong>'
+    );
+
+    // 粗體
+    text = text.replace(
+        /\*\*(.+?)\*\*/g,
+        '<strong>$1</strong>'
+    );
+
+    text = text.replace(
+        /__(.+?)__/g,
+        '<strong>$1</strong>'
+    );
+
+    // 斜體
+    text = text.replace(
+        /(?<!\*)\*([^*\n]+)\*(?!\*)/g,
+        '<em>$1</em>'
+    );
+
+    // 刪除線
+    text = text.replace(
+        /~~(.+?)~~/g,
+        '<del>$1</del>'
+    );
+
+    // 行內程式碼
+    text = text.replace(
+        /`([^`\n]+)`/g,
+        '<code>$1</code>'
+    );
+
+    // 還原程式碼區塊
+    codeBlocks.forEach(function(codeBlock, index) {
+        text = text.replace(
+            `%%CODE_BLOCK_${index}%%`,
+            codeBlock
+        );
+    });
+
+    // 將剩餘純文字換行轉成 div
+    text = text
+        .split('\n')
+        .map(function(line) {
+            const trimmedLine = line.trim();
+
+            if (!trimmedLine) {
+                return '<div><br></div>';
+            }
+
+            // 已轉換成區塊元素的內容不再包 div
+            if (
+                /^<(h[1-6]|ul|ol|li|blockquote|pre|hr|div)/i.test(
+                    trimmedLine
+                )
+            ) {
+                return line;
+            }
+
+            return `<div>${line}</div>`;
+        })
+        .join('');
+
+    return text;
+}
+
+function convertMarkdownLists(text, ordered) {
+    const lines = text.split('\n');
+    const output = [];
+
+    let insideList = false;
+    const listTag = ordered ? 'ol' : 'ul';
+
+    const pattern = ordered
+        ? /^\s*\d+\.\s+(.+)$/
+        : /^\s*[-*+]\s+(.+)$/;
+
+    lines.forEach(function(line) {
+        const match = line.match(pattern);
+
+        if (match) {
+            if (!insideList) {
+                output.push(`<${listTag}>`);
+                insideList = true;
+            }
+
+            output.push(`<li>${match[1]}</li>`);
+        } else {
+            if (insideList) {
+                output.push(`</${listTag}>`);
+                insideList = false;
+            }
+
+            output.push(line);
+        }
+    });
+
+    if (insideList) {
+        output.push(`</${listTag}>`);
+    }
+
+    return output.join('\n');
+}
+
+function containsMarkdownSyntax(text) {
+    const patterns = [
+        /^#{1,6}\s+\S/m,              // 標題
+        /\*\*[^*\n]+\*\*/,            // 粗體
+        /__[^_\n]+__/,                 // 粗體
+        /~~[^~\n]+~~/,                 // 刪除線
+        /`[^`\n]+`/,                   // 行內程式碼
+        /```[\s\S]*?```/,              // 程式碼區塊
+        /^\s*[-*+]\s+\S/m,             // 無序清單
+        /^\s*\d+\.\s+\S/m,             // 有序清單
+        /^&gt;\s+\S/m,                 // 已轉義引用
+        /^>\s+\S/m,                    // 引用
+        /\[[^\]]+\]\(https?:\/\/.+?\)/,// 連結
+        /!\[[^\]]*\]\(https?:\/\/.+?\)/,// 圖片
+        /^[-*]\s+\[[ xX]\]\s+\S/m      // 核取方塊
+    ];
+
+    return patterns.some(function(pattern) {
+        return pattern.test(text);
+    });
+}
+
+function insertHtmlAtCursor(html) {
+    const selection = window.getSelection();
+
+    if (!selection || selection.rangeCount === 0) {
+        return;
+    }
+
+    const range = selection.getRangeAt(0);
+
+    range.deleteContents();
+
+    const fragment = range.createContextualFragment(html);
+    const lastNode = fragment.lastChild;
+
+    range.insertNode(fragment);
+
+    // 將游標移到插入內容的最後面
+    if (lastNode) {
+        range.setStartAfter(lastNode);
+        range.collapse(true);
+
+        selection.removeAllRanges();
+        selection.addRange(range);
+    }
 }
 
 function makeImageResizable(img) {
