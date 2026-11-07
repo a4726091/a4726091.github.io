@@ -209,12 +209,188 @@
     border: 0;
     border-top: 1px solid #d1d5db;
 }
+/* ===== [[ 卡片連結自動完成 ===== */
+
+#card-link-autocomplete {
+    min-width: 280px;
+    max-width: min(420px, calc(100vw - 24px));
+}
+
+.card-link-autocomplete-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    padding: 9px 12px;
+    color: #cbd5e1;
+    background: transparent;
+    border: 0;
+    text-align: left;
+    cursor: pointer;
+}
+
+.card-link-autocomplete-item:hover,
+.card-link-autocomplete-item.active {
+    color: #ffffff;
+    background: rgba(6, 182, 212, 0.18);
+}
+
+.card-link-autocomplete-number {
+    min-width: 20px;
+    color: #64748b;
+    font-size: 11px;
+    font-family: "JetBrains Mono", monospace;
+}
+
+.card-link-autocomplete-item.active
+.card-link-autocomplete-number {
+    color: #67e8f9;
+}
+
+.card-link-autocomplete-title {
+    flex: 1;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.card-link-autocomplete-id {
+    color: #64748b;
+    font-size: 10px;
+    font-family: "JetBrains Mono", monospace;
+}
+
+/* 插入內文後的卡片連結 */
+.editor-content .internal-card-link {
+    display: inline-block;
+    padding: 1px 6px;
+    border: 1px solid rgba(6, 182, 212, 0.45);
+    border-radius: 4px;
+    color: #67e8f9;
+    background: rgba(6, 182, 212, 0.12);
+    text-decoration: none;
+    cursor: pointer;
+    vertical-align: baseline;
+}
+
+.editor-content .internal-card-link:hover {
+    color: #ffffff;
+    background: rgba(6, 182, 212, 0.28);
+    border-color: #06b6d4;
+}
+
+.editor-content .internal-card-link-broken {
+    color: #fb7185;
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.55);
+    text-decoration: line-through;
+}
+/* ===== 卡片滑鼠懸停預覽 ===== */
+
+#card-hover-preview {
+    opacity: 0;
+    transform: translateY(4px);
+    transition:
+        opacity 0.15s ease,
+        transform 0.15s ease;
+}
+
+#card-hover-preview.card-hover-preview-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+#card-hover-preview-title {
+    overflow-wrap: anywhere;
+}
+
+#card-hover-preview-summary {
+    display: -webkit-box;
+    overflow: hidden;
+    /* 標準屬性，提供未來與其他瀏覽器相容性 */
+    line-clamp: 6;
+
+    /* Chromium、Edge、Safari 目前主要使用此前綴版本 */
+    -webkit-line-clamp: 6;
+    -webkit-box-orient: vertical;
+}
+
+.card-hover-preview-tag {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    padding: 2px 7px;
+    border: 1px solid rgba(6, 182, 212, 0.35);
+    border-radius: 9999px;
+    color: #67e8f9;
+    background: rgba(6, 182, 212, 0.1);
+    font-size: 10px;
+    line-height: 1.4;
+}
+
+.card-hover-preview-tag span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
   </style>
 </head>
 <body class="bg-tech-bg text-slate-200 font-sans h-screen overflow-hidden flex flex-col md:flex-row landscape:flex-row relative">
 
   <!-- 🔲 Notification Toast Area -->
   <div id="toast-container" class="fixed top-5 right-5 z-[100] flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- 卡片滑鼠懸停預覽 -->
+<div
+    id="card-hover-preview"
+    class="hidden fixed z-[300] w-[360px] max-w-[calc(100vw-24px)] bg-slate-900 border border-tech-accent/60 rounded-xl shadow-2xl overflow-hidden pointer-events-none"
+    role="tooltip"
+>
+    <div id="card-hover-preview-image-wrap" class="hidden">
+        <img
+            id="card-hover-preview-image"
+            alt=""
+            class="w-full h-36 object-cover border-b border-slate-700"
+        >
+    </div>
+
+    <div class="p-4">
+        <div
+            id="card-hover-preview-title"
+            class="text-base font-bold text-white font-mono leading-snug"
+        ></div>
+
+        <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-400">
+            <span>
+                <i class="fa-regular fa-clock mr-1 text-tech-accent"></i>
+                <span id="card-hover-preview-date"></span>
+            </span>
+
+            <span>
+                <i class="fa-solid fa-arrow-up-right-from-square mr-1 text-tech-secondary"></i>
+                連出
+                <span id="card-hover-preview-outgoing">0</span>
+            </span>
+
+            <span>
+                <i class="fa-solid fa-arrow-turn-down mr-1 text-tech-success"></i>
+                連入
+                <span id="card-hover-preview-incoming">0</span>
+            </span>
+        </div>
+
+        <div
+            id="card-hover-preview-tags"
+            class="mt-3 flex flex-wrap gap-1.5"
+        ></div>
+
+        <div
+            id="card-hover-preview-summary"
+            class="mt-3 text-sm text-slate-300 leading-relaxed"
+        ></div>
+    </div>
+</div>
 
   <!-- 🔲 Shared Overlay Backdrop for Floating Panels -->
   <div id="ui-overlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 hidden transition-opacity duration-300 opacity-0" onclick="closeAllPanels()"></div>
@@ -436,6 +612,11 @@
     <div class="flex-1 flex flex-col md:flex-row landscape:flex-row overflow-hidden relative">
       <div class="flex-1 overflow-y-auto p-6 relative custom-scrollbar">
         <div id="editor-content" class="editor-content w-full h-full min-h-[300px] outline-none text-slate-300 leading-relaxed text-lg" contenteditable="true" placeholder="在此輸入系統資料..."></div>
+        <!-- [[ 卡片連結自動完成選單 -->
+<div
+    id="card-link-autocomplete"
+    class="hidden fixed z-[200] w-80 max-h-72 overflow-y-auto bg-slate-900 border border-tech-accent/60 rounded-lg shadow-2xl py-1"
+></div>
       </div>
 
       <!-- 🟨 RIGHT SIDEBAR (Metadata) 精簡版 -->
@@ -494,7 +675,26 @@ const IMAGE_MAX_WIDTH = 1600;
 // source：保留 Markdown 原始符號
 let markdownPasteMode =
     localStorage.getItem('markdown_paste_mode') || 'preview';
+// ===== [[ 卡片連結自動完成狀態 =====
 
+let cardLinkAutocompleteState = {
+    open: false,
+    query: '',
+    results: [],
+    selectedIndex: 0,
+
+    // 記錄 [[ 開始到目前游標位置的 Range
+    replaceRange: null
+};
+
+// ===== 卡片懸停預覽狀態 =====
+
+const CARD_HOVER_PREVIEW_DELAY = 400;
+const CARD_HOVER_PREVIEW_TEXT_LENGTH = 180;
+
+let cardHoverPreviewTimer = null;
+let cardHoverPreviewTarget = null;
+let cardHoverPreviewCardId = '';
 
     // --- IndexedDB Configuration ---
     const DB_NAME = 'ZettelAIDB';
@@ -741,6 +941,34 @@ let markdownPasteMode =
       list: document.getElementById('note-list'),
       title: document.getElementById('note-title'),
       content: document.getElementById('editor-content'),
+      cardLinkAutocomplete:
+    document.getElementById('card-link-autocomplete'),
+    cardHoverPreview:
+    document.getElementById('card-hover-preview'),
+
+cardHoverPreviewImageWrap:
+    document.getElementById('card-hover-preview-image-wrap'),
+
+cardHoverPreviewImage:
+    document.getElementById('card-hover-preview-image'),
+
+cardHoverPreviewTitle:
+    document.getElementById('card-hover-preview-title'),
+
+cardHoverPreviewDate:
+    document.getElementById('card-hover-preview-date'),
+
+cardHoverPreviewOutgoing:
+    document.getElementById('card-hover-preview-outgoing'),
+
+cardHoverPreviewIncoming:
+    document.getElementById('card-hover-preview-incoming'),
+
+cardHoverPreviewTags:
+    document.getElementById('card-hover-preview-tags'),
+
+cardHoverPreviewSummary:
+    document.getElementById('card-hover-preview-summary'),
       tagInput: document.getElementById('tag-input'),
       tagHistory: document.getElementById('tag-history'),
       activeTags: document.getElementById('active-tags'),
@@ -818,6 +1046,61 @@ let markdownPasteMode =
       createNewNote(); 
       
       els.content.addEventListener('paste', handlePaste);
+      // [[ 卡片連結自動完成
+els.content.addEventListener(
+    'input',
+    handleCardLinkAutocompleteInput
+);
+
+els.content.addEventListener(
+    'keyup',
+    function(event) {
+        /*
+         * 中文輸入法組字尚未完成時不處理，
+         * 避免搜尋選單反覆跳動。
+         */
+        if (event.isComposing) {
+            return;
+        }
+
+        if (
+            [
+                'ArrowUp',
+                'ArrowDown',
+                'Enter',
+                'Escape'
+            ].includes(event.key)
+        ) {
+            return;
+        }
+
+        handleCardLinkAutocompleteInput();
+    }
+);
+
+els.content.addEventListener(
+    'keydown',
+    handleCardLinkAutocompleteKeydown
+);
+
+els.content.addEventListener(
+    'click',
+    handleInternalCardLinkClick
+);
+
+
+// 卡片懸停預覽：
+// 左側卡片、內文卡片連結、右側連結網絡
+document.addEventListener(
+    'mouseover',
+    handleCardHoverMouseOver
+);
+
+document.addEventListener(
+    'mouseout',
+    handleCardHoverMouseOut
+);
+
       els.tagTreeSearch.addEventListener('input', updateTagTree);
 
       // ESC 鍵關閉所有浮動面板
@@ -1022,9 +1305,56 @@ function handlePaste(e) {
                         const src = node.getAttribute('src');
                         if (src) { newNode.setAttribute('src', src); newNode.className = 'resizable'; newNode.style.width = '200px'; newNode.style.height = 'auto'; }
                     } else if (tagName === 'A') {
-                        const href = node.getAttribute('href');
-                        if (href && (href.startsWith('http') || href.startsWith('#'))) { newNode.setAttribute('href', href); newNode.setAttribute('target', '_blank'); newNode.className = 'text-tech-accent underline hover:text-white transition'; }
-                    }
+    const href =
+        node.getAttribute('href');
+
+    const cardId =
+        node.getAttribute('data-card-id');
+
+    if (cardId) {
+        newNode.setAttribute(
+            'href',
+            `#card/${encodeURIComponent(cardId)}`
+        );
+
+        newNode.setAttribute(
+            'data-card-id',
+            cardId
+        );
+
+        newNode.setAttribute(
+            'contenteditable',
+            'false'
+        );
+
+        newNode.className =
+            'internal-card-link';
+    } else if (
+        href &&
+        (
+            href.startsWith('http') ||
+            href.startsWith('#')
+        )
+    ) {
+        newNode.setAttribute(
+            'href',
+            href
+        );
+
+        newNode.setAttribute(
+            'target',
+            '_blank'
+        );
+
+        newNode.setAttribute(
+            'rel',
+            'noopener noreferrer'
+        );
+
+        newNode.className =
+            'text-tech-accent underline hover:text-white transition';
+    }
+}
                     node.childNodes.forEach(child => { const sanitizedChild = sanitizeNode(child); if (sanitizedChild) newNode.appendChild(sanitizedChild); });
                     return newNode;
                 } else {
@@ -1122,14 +1452,54 @@ function handlePaste(e) {
             const suggestedLinks = [];
             notes.forEach(note => {
                 const matchKeyword = (parsed.relatedKeywords || []).some(kw => note.title.toLowerCase().includes(kw.toLowerCase()) || kw.toLowerCase().includes(note.title.toLowerCase()));
-                if (matchKeyword && note.id !== newId) {
-                    suggestedLinks.push(note.id);
-                    if (!note.linkedNotes) note.linkedNotes = [];
-                    if (!note.linkedNotes.includes(newId)) note.linkedNotes.push(newId);
-                }
+                if (
+    matchKeyword &&
+    normalizeCardId(note.id) !==
+    normalizeCardId(newId)
+) {
+    suggestedLinks.push(
+        normalizeCardId(note.id)
+    );
+
+    if (!Array.isArray(note.linkedNotes)) {
+        note.linkedNotes = [];
+    }
+
+    const alreadyLinked = note.linkedNotes.some(
+        function(linkedCardId) {
+            return (
+                normalizeCardId(linkedCardId) ===
+                normalizeCardId(newId)
+            );
+        }
+    );
+
+    if (!alreadyLinked) {
+        note.linkedNotes.push(
+            normalizeCardId(newId)
+        );
+    }
+}
             });
 
-            notes.push({ id: newId, title: parsed.title || '無標題剪藏', content: summaryHTML + (parsed.content || ''), tags: parsed.tags || [], linkedNotes: suggestedLinks });
+            const now =
+    new Date().toISOString();
+
+notes.push({
+    id: newId,
+    title:
+        parsed.title ||
+        '無標題剪藏',
+    content:
+        summaryHTML +
+        (parsed.content || ''),
+    tags:
+        parsed.tags || [],
+    linkedNotes:
+        suggestedLinks,
+    createdAt: now,
+    updatedAt: now
+});
             await saveToStorage();
             
             renderNoteList(); updateTagHistory(); renderLinkSuggestions(); updateTagTree(); loadNote(newId);
@@ -1196,13 +1566,26 @@ function handlePaste(e) {
             const rawIds = result.replace(/```[a-z]*/gi, '').replace(/```/g, '').trim();
             const suggestedIds = rawIds.split(/[,，\n]/).map(id => id.trim()).filter(id => id);
             
-            const existingLinks = Array.from(els.linkedList.querySelectorAll('.link-card')).map(d => d.dataset.id);
+            const existingLinks = Array.from(
+    els.linkedList.querySelectorAll(
+        '.link-card[data-card-id]'
+    )
+).map(function(card) {
+    return normalizeCardId(
+        card.dataset.cardId
+    );
+});
             let addedCount = 0;
             const newLinks = [...existingLinks];
             
             suggestedIds.forEach(id => {
                 // 比對是否有此 ID
-                const matchedNote = availableNotes.find(n => n.id === id || id.includes(n.id));
+                const matchedNote = availableNotes.find(function(note) {
+    return (
+        normalizeCardId(note.id) ===
+        normalizeCardId(id)
+    );
+});
                 if (matchedNote && !newLinks.includes(matchedNote.id)) { 
                     newLinks.push(matchedNote.id); 
                     addedCount++; 
@@ -1230,7 +1613,1016 @@ function handlePaste(e) {
     // --- Core Operations ---
     function genId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
 
+    // ===== 統一卡片連結使用 cardId =====
+
+// 所有 cardId 一律轉成字串比較，避免數字 ID 與字串 ID 比對失敗
+function normalizeCardId(cardId) {
+    if (cardId === undefined || cardId === null) {
+        return '';
+    }
+
+    return String(cardId);
+}
+
+
+// 依 cardId 尋找卡片
+function findCardById(cardId) {
+    const normalizedId = normalizeCardId(cardId);
+
+    if (!normalizedId) {
+        return null;
+    }
+
+    return notes.find(function(note) {
+        return normalizeCardId(note.id) === normalizedId;
+    }) || null;
+}
+
+
+// 統一使用 cardId 開啟卡片
+function openCardById(cardId) {
+    const note = findCardById(cardId);
+
+    if (!note) {
+        showToast(
+            `找不到卡片，CardId：${cardId}`,
+            'error'
+        );
+
+        return;
+    }
+
+    loadNote(note.id);
+}
+
+
+// ==========================================
+// ===== 卡片滑鼠懸停預覽 ===================
+// ==========================================
+
+
+// 將 HTML 內容轉成預覽純文字
+function getCardPreviewText(note) {
+    const temp = document.createElement('div');
+
+    let contentHtml =
+        String(note?.content || '');
+
+    /*
+     * 內容中的圖片可能已抽離成 __IMG_0__。
+     * 文字預覽不需要還原圖片，只需要取得純文字。
+     */
+    temp.innerHTML = contentHtml;
+
+    let text =
+        temp.textContent ||
+        temp.innerText ||
+        '';
+
+    text = text
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    if (!text) {
+        return '無內容摘要';
+    }
+
+    if (
+        text.length >
+        CARD_HOVER_PREVIEW_TEXT_LENGTH
+    ) {
+        return (
+            text.substring(
+                0,
+                CARD_HOVER_PREVIEW_TEXT_LENGTH
+            ).trim() +
+            '……'
+        );
+    }
+
+    return text;
+}
+
+
+// 取得第一張圖片
+function getCardPreviewFirstImage(note) {
+    if (!note) {
+        return '';
+    }
+
+    const temp =
+        document.createElement('div');
+
+    temp.innerHTML =
+        String(note.content || '');
+
+    const firstImage =
+        temp.querySelector('img');
+
+    if (firstImage) {
+        const imageSrc =
+            firstImage.getAttribute('src') || '';
+
+        /*
+         * 圖片已抽離成 __IMG_0__ 時，
+         * 從 note.images 陣列還原。
+         */
+        const placeholderMatch =
+            imageSrc.match(
+                /^__IMG_(\d+)__$/
+            );
+
+        if (placeholderMatch) {
+            const imageIndex =
+                Number(placeholderMatch[1]);
+
+            return (
+                Array.isArray(note.images)
+                    ? note.images[imageIndex]
+                    : ''
+            ) || '';
+        }
+
+        if (
+            imageSrc.startsWith('data:image') ||
+            imageSrc.startsWith('http://') ||
+            imageSrc.startsWith('https://') ||
+            imageSrc.startsWith('blob:')
+        ) {
+            return imageSrc;
+        }
+    }
+
+    /*
+     * 部分舊卡片可能沒有在 content 中保留 img，
+     * 但 images 陣列仍有圖片。
+     */
+    if (
+        Array.isArray(note.images) &&
+        note.images.length > 0
+    ) {
+        return note.images[0] || '';
+    }
+
+    return '';
+}
+
+
+// 統一格式化更新日期
+function formatCardPreviewDate(note) {
+    /*
+     * 優先依序支援常見欄位名稱。
+     * 目前資料若尚未保存 updatedAt，
+     * 則顯示「尚未記錄」。
+     */
+    const rawDate =
+        note?.updatedAt ||
+        note?.updatedDate ||
+        note?.modifiedAt ||
+        note?.lastModified ||
+        note?.createdAt ||
+        '';
+
+    if (!rawDate) {
+        return '尚未記錄';
+    }
+
+    const date =
+        new Date(rawDate);
+
+    if (
+        Number.isNaN(
+            date.getTime()
+        )
+    ) {
+        return String(rawDate);
+    }
+
+    return new Intl.DateTimeFormat(
+        'zh-TW',
+        {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        }
+    ).format(date);
+}
+
+
+// 計算卡片連出數量
+function getCardOutgoingLinkCount(note) {
+    if (
+        !note ||
+        !Array.isArray(note.linkedNotes)
+    ) {
+        return 0;
+    }
+
+    return new Set(
+        note.linkedNotes
+            .map(normalizeCardId)
+            .filter(function(cardId) {
+                return (
+                    cardId &&
+                    cardId !==
+                        normalizeCardId(
+                            note.id
+                        ) &&
+                    findCardById(cardId)
+                );
+            })
+    ).size;
+}
+
+
+// 計算有多少卡片連入目前卡片
+function getCardIncomingLinkCount(cardId) {
+    const normalizedTargetId =
+        normalizeCardId(cardId);
+
+    if (!normalizedTargetId) {
+        return 0;
+    }
+
+    return notes.filter(function(note) {
+        if (
+            !Array.isArray(
+                note.linkedNotes
+            )
+        ) {
+            return false;
+        }
+
+        return note.linkedNotes.some(
+            function(linkedCardId) {
+                return (
+                    normalizeCardId(
+                        linkedCardId
+                    ) ===
+                    normalizedTargetId
+                );
+            }
+        );
+    }).length;
+}
+
+
+// 將預覽內容填入浮窗
+function renderCardHoverPreview(note) {
+    els.cardHoverPreviewTitle.textContent =
+        note.title || '未命名卡片';
+
+    els.cardHoverPreviewDate.textContent =
+        `更新：${formatCardPreviewDate(note)}`;
+
+    els.cardHoverPreviewOutgoing.textContent =
+        String(
+            getCardOutgoingLinkCount(note)
+        );
+
+    els.cardHoverPreviewIncoming.textContent =
+        String(
+            getCardIncomingLinkCount(
+                note.id
+            )
+        );
+
+    els.cardHoverPreviewSummary.textContent =
+        getCardPreviewText(note);
+
+    // 標籤
+    els.cardHoverPreviewTags.innerHTML = '';
+
+    const tags =
+        Array.isArray(note.tags)
+            ? note.tags
+            : [];
+
+    if (tags.length === 0) {
+        const emptyTag =
+            document.createElement('span');
+
+        emptyTag.className =
+            'text-[11px] text-slate-500';
+
+        emptyTag.textContent =
+            '標籤：無';
+
+        els.cardHoverPreviewTags.appendChild(
+            emptyTag
+        );
+    } else {
+        tags
+            .slice(0, 6)
+            .forEach(function(tag) {
+                const chip =
+                    document.createElement(
+                        'span'
+                    );
+
+                chip.className =
+                    'card-hover-preview-tag';
+
+                const chipText =
+                    document.createElement(
+                        'span'
+                    );
+
+                chipText.textContent =
+                    String(tag);
+
+                chip.appendChild(chipText);
+
+                els.cardHoverPreviewTags
+                    .appendChild(chip);
+            });
+
+        if (tags.length > 6) {
+            const more =
+                document.createElement(
+                    'span'
+                );
+
+            more.className =
+                'text-[10px] text-slate-500 px-1';
+
+            more.textContent =
+                `+${tags.length - 6}`;
+
+            els.cardHoverPreviewTags
+                .appendChild(more);
+        }
+    }
+
+    // 第一張圖片
+    const imageSrc =
+        getCardPreviewFirstImage(note);
+
+    if (imageSrc) {
+        els.cardHoverPreviewImage.src =
+            imageSrc;
+
+        els.cardHoverPreviewImage.alt =
+            note.title || '卡片圖片';
+
+        els.cardHoverPreviewImageWrap
+            .classList.remove('hidden');
+    } else {
+        els.cardHoverPreviewImage
+            .removeAttribute('src');
+
+        els.cardHoverPreviewImage.alt = '';
+
+        els.cardHoverPreviewImageWrap
+            .classList.add('hidden');
+    }
+}
+
+
+// 將浮窗放在觸發元素附近
+function positionCardHoverPreview(target) {
+    if (!target) {
+        return;
+    }
+
+    const preview =
+        els.cardHoverPreview;
+
+    const targetRect =
+        target.getBoundingClientRect();
+
+    const viewportPadding = 12;
+    const gap = 10;
+    const previewWidth =
+        Math.min(
+            360,
+            window.innerWidth -
+                viewportPadding * 2
+        );
+
+    preview.style.width =
+        `${previewWidth}px`;
+
+    /*
+     * 先顯示但保持透明，
+     * 才能取得實際高度。
+     */
+    preview.classList.remove('hidden');
+
+    const previewRect =
+        preview.getBoundingClientRect();
+
+    let left =
+        targetRect.right + gap;
+
+    let top =
+        targetRect.top;
+
+    /*
+     * 右側空間不足時，改放到觸發元素左邊。
+     */
+    if (
+        left + previewWidth >
+        window.innerWidth -
+            viewportPadding
+    ) {
+        left =
+            targetRect.left -
+            previewWidth -
+            gap;
+    }
+
+    /*
+     * 左右都放不下時，
+     * 對齊畫面右側安全距離。
+     */
+    if (left < viewportPadding) {
+        left =
+            Math.max(
+                viewportPadding,
+                window.innerWidth -
+                    previewWidth -
+                    viewportPadding
+            );
+    }
+
+    /*
+     * 避免浮窗超出畫面底部。
+     */
+    if (
+        top + previewRect.height >
+        window.innerHeight -
+            viewportPadding
+    ) {
+        top =
+            window.innerHeight -
+            previewRect.height -
+            viewportPadding;
+    }
+
+    if (top < viewportPadding) {
+        top = viewportPadding;
+    }
+
+    preview.style.left =
+        `${Math.round(left)}px`;
+
+    preview.style.top =
+        `${Math.round(top)}px`;
+}
+
+
+// 顯示指定 cardId 的預覽
+function showCardHoverPreview(
+    cardId,
+    target
+) {
+    const note =
+        findCardById(cardId);
+
+    if (!note || !target) {
+        hideCardHoverPreview();
+        return;
+    }
+
+    cardHoverPreviewCardId =
+        normalizeCardId(note.id);
+
+    cardHoverPreviewTarget =
+        target;
+
+    renderCardHoverPreview(note);
+    positionCardHoverPreview(target);
+
+    requestAnimationFrame(
+        function() {
+            els.cardHoverPreview
+                .classList.add(
+                    'card-hover-preview-visible'
+                );
+        }
+    );
+}
+
+
+// 排程顯示，預設延遲 400 毫秒
+function scheduleCardHoverPreview(
+    cardId,
+    target
+) {
+    clearTimeout(
+        cardHoverPreviewTimer
+    );
+
+    /*
+     * 同一張卡片已經顯示時，
+     * 只更新位置，不重新等待。
+     */
+    if (
+        !els.cardHoverPreview
+            .classList.contains('hidden') &&
+        normalizeCardId(cardId) ===
+            cardHoverPreviewCardId
+    ) {
+        cardHoverPreviewTarget =
+            target;
+
+        positionCardHoverPreview(target);
+        return;
+    }
+
+    cardHoverPreviewTimer =
+        setTimeout(function() {
+            showCardHoverPreview(
+                cardId,
+                target
+            );
+        }, CARD_HOVER_PREVIEW_DELAY);
+}
+
+
+// 關閉預覽
+function hideCardHoverPreview() {
+    clearTimeout(
+        cardHoverPreviewTimer
+    );
+
+    cardHoverPreviewTimer = null;
+    cardHoverPreviewTarget = null;
+    cardHoverPreviewCardId = '';
+
+    els.cardHoverPreview
+        .classList.remove(
+            'card-hover-preview-visible'
+        );
+
+    setTimeout(function() {
+        if (
+            !els.cardHoverPreview
+                .classList.contains(
+                    'card-hover-preview-visible'
+                )
+        ) {
+            els.cardHoverPreview
+                .classList.add('hidden');
+        }
+    }, 150);
+}
+
+
+// 辨識三種可預覽的卡片元素
+function getCardHoverTarget(element) {
+    if (!(element instanceof Element)) {
+        return null;
+    }
+
+    return element.closest(
+        [
+            '.note-item[data-card-id]',
+            '.internal-card-link[data-card-id]',
+            '.link-card[data-card-id]'
+        ].join(',')
+    );
+}
+
+
+// 使用事件代理處理滑鼠移入
+function handleCardHoverMouseOver(event) {
+    const target =
+        getCardHoverTarget(
+            event.target
+        );
+
+    if (!target) {
+        return;
+    }
+
+    /*
+     * mouseover 會在子元素之間重複觸發。
+     * relatedTarget 仍位於同一張卡片內時不處理。
+     */
+    if (
+        event.relatedTarget &&
+        target.contains(
+            event.relatedTarget
+        )
+    ) {
+        return;
+    }
+
+    const cardId =
+        target.dataset.cardId;
+
+    if (!cardId) {
+        return;
+    }
+
+    scheduleCardHoverPreview(
+        cardId,
+        target
+    );
+}
+
+
+// 使用事件代理處理滑鼠移出
+function handleCardHoverMouseOut(event) {
+    const target =
+        getCardHoverTarget(
+            event.target
+        );
+
+    if (!target) {
+        return;
+    }
+
+    if (
+        event.relatedTarget &&
+        target.contains(
+            event.relatedTarget
+        )
+    ) {
+        return;
+    }
+
+    hideCardHoverPreview();
+}
+
+
+// 畫面捲動或縮放時重新定位
+function repositionCardHoverPreview() {
+    if (
+        cardHoverPreviewTarget &&
+        !els.cardHoverPreview
+            .classList.contains('hidden')
+    ) {
+        positionCardHoverPreview(
+            cardHoverPreviewTarget
+        );
+    }
+}
+
+
+// ==========================================
+// ===== 卡片雙向連結共用功能 ===============
+// ==========================================
+
+
+// 取得目前右側「連結網絡」中的全部 cardId
+function getLinkedNetworkCardIds() {
+    return Array.from(
+        els.linkedList.querySelectorAll(
+            '.link-card[data-card-id]'
+        )
+    )
+        .map(function(card) {
+            return normalizeCardId(
+                card.dataset.cardId
+            );
+        })
+        .filter(Boolean);
+}
+
+
+// 取得目前內文中的全部 CardId 卡片連結
+function getContentCardLinkIds() {
+    /*
+     * Markdown 原始碼模式中，內文不是 HTML 連結，
+     * 格式為：
+     * [[卡片標題|cardId]]
+     */
+    if (markdownPasteMode === 'source') {
+        const sourceText =
+            els.content.innerText || '';
+
+        const cardIds = [];
+        const pattern =
+            /\[\[[^\]|]+\|([^\]]+)\]\]/g;
+
+        let match;
+
+        while (
+            (
+                match =
+                    pattern.exec(sourceText)
+            ) !== null
+        ) {
+            const cardId =
+                normalizeCardId(
+                    match[1].trim()
+                );
+
+            if (cardId) {
+                cardIds.push(cardId);
+            }
+        }
+
+        return [...new Set(cardIds)];
+    }
+
+    /*
+     * Markdown 預覽模式直接讀取
+     * data-card-id。
+     */
+    return [
+        ...new Set(
+            Array.from(
+                els.content.querySelectorAll(
+                    '.internal-card-link[data-card-id]'
+                )
+            )
+                .map(function(link) {
+                    return normalizeCardId(
+                        link.dataset.cardId
+                    );
+                })
+                .filter(Boolean)
+        )
+    ];
+}
+
+
+// 將指定卡片加入目前右側的連結網絡
+function addCardToCurrentLinkNetwork(cardId) {
+    const normalizedTargetId =
+        normalizeCardId(cardId);
+
+    if (!normalizedTargetId) {
+        return false;
+    }
+
+    // 不允許卡片連結自己
+    if (
+        currentNoteId &&
+        normalizedTargetId ===
+            normalizeCardId(currentNoteId)
+    ) {
+        return false;
+    }
+
+    const targetNote =
+        findCardById(normalizedTargetId);
+
+    if (!targetNote) {
+        return false;
+    }
+
+    const currentLinkedIds =
+        getLinkedNetworkCardIds();
+
+    if (
+        currentLinkedIds.includes(
+            normalizedTargetId
+        )
+    ) {
+        return false;
+    }
+
+    renderLinkedUI([
+        ...currentLinkedIds,
+        normalizedTargetId
+    ]);
+
+    return true;
+}
+
+
+// 立即建立目前卡片與目標卡片的雙向連結
+async function addBidirectionalCardLink(
+    targetCardId,
+    options = {}
+) {
+    const normalizedTargetId =
+        normalizeCardId(targetCardId);
+
+    if (!normalizedTargetId) {
+        return false;
+    }
+
+    const targetNote =
+        findCardById(normalizedTargetId);
+
+    if (!targetNote) {
+        showToast(
+            `找不到卡片，CardId：${targetCardId}`,
+            'error'
+        );
+
+        return false;
+    }
+
+    /*
+     * 先把目標卡片加入目前畫面的連結網絡。
+     * 新卡片尚未取得 currentNoteId 時也能先加入，
+     * 等建立卡片時再正式建立反向連結。
+     */
+    const addedToCurrentNetwork =
+        addCardToCurrentLinkNetwork(
+            normalizedTargetId
+        );
+
+    /*
+     * 目前卡片尚未儲存，沒有 cardId，
+     * 暫時無法寫入目標卡片的 linkedNotes。
+     */
+    if (!currentNoteId) {
+        return addedToCurrentNetwork;
+    }
+
+    const normalizedCurrentId =
+        normalizeCardId(currentNoteId);
+
+    if (
+        normalizedCurrentId ===
+        normalizedTargetId
+    ) {
+        return false;
+    }
+
+    if (!Array.isArray(targetNote.linkedNotes)) {
+        targetNote.linkedNotes = [];
+    }
+
+    const targetAlreadyLinksCurrent =
+        targetNote.linkedNotes.some(
+            function(linkedCardId) {
+                return (
+                    normalizeCardId(
+                        linkedCardId
+                    ) === normalizedCurrentId
+                );
+            }
+        );
+
+    if (!targetAlreadyLinksCurrent) {
+        targetNote.linkedNotes.push(
+            normalizedCurrentId
+        );
+    }
+
+    /*
+     * 同步目前卡片的記憶體資料。
+     * 畫面仍以 renderLinkedUI 的內容為準。
+     */
+    const currentNote =
+        findCardById(normalizedCurrentId);
+
+    if (currentNote) {
+        if (
+            !Array.isArray(
+                currentNote.linkedNotes
+            )
+        ) {
+            currentNote.linkedNotes = [];
+        }
+
+        const currentAlreadyLinksTarget =
+            currentNote.linkedNotes.some(
+                function(linkedCardId) {
+                    return (
+                        normalizeCardId(
+                            linkedCardId
+                        ) ===
+                        normalizedTargetId
+                    );
+                }
+            );
+
+        if (!currentAlreadyLinksTarget) {
+            currentNote.linkedNotes.push(
+                normalizedTargetId
+            );
+        }
+    }
+
+    /*
+     * [[ 插入時直接儲存反向連結。
+     * 傳入 saveImmediately:false 時，
+     * 交由「儲存所有變更」統一儲存。
+     */
+    if (
+        options.saveImmediately !== false
+    ) {
+        try {
+            await saveToStorage();
+        } catch (error) {
+            console.error(
+                '雙向連結儲存失敗',
+                error
+            );
+        }
+    }
+
+    return (
+        addedToCurrentNetwork ||
+        !targetAlreadyLinksCurrent
+    );
+}
+
+
+// 儲存時同步所有雙向連結
+function synchronizeBidirectionalLinks(
+    sourceCardId,
+    oldLinkedIds,
+    newLinkedIds
+) {
+    const normalizedSourceId =
+        normalizeCardId(sourceCardId);
+
+    if (!normalizedSourceId) {
+        return;
+    }
+
+    const oldSet = new Set(
+        (oldLinkedIds || [])
+            .map(normalizeCardId)
+            .filter(Boolean)
+    );
+
+    const newSet = new Set(
+        (newLinkedIds || [])
+            .map(normalizeCardId)
+            .filter(Boolean)
+    );
+
+    // 避免自己連結自己
+    newSet.delete(normalizedSourceId);
+
+    /*
+     * 1. 移除已取消連結卡片中的反向連結。
+     */
+    oldSet.forEach(function(targetCardId) {
+        if (newSet.has(targetCardId)) {
+            return;
+        }
+
+        const targetNote =
+            findCardById(targetCardId);
+
+        if (
+            !targetNote ||
+            !Array.isArray(
+                targetNote.linkedNotes
+            )
+        ) {
+            return;
+        }
+
+        targetNote.linkedNotes =
+            targetNote.linkedNotes.filter(
+                function(linkedCardId) {
+                    return (
+                        normalizeCardId(
+                            linkedCardId
+                        ) !==
+                        normalizedSourceId
+                    );
+                }
+            );
+    });
+
+    /*
+     * 2. 為新增或保留的連結建立反向連結。
+     */
+    newSet.forEach(function(targetCardId) {
+        const targetNote =
+            findCardById(targetCardId);
+
+        if (!targetNote) {
+            return;
+        }
+
+        if (
+            !Array.isArray(
+                targetNote.linkedNotes
+            )
+        ) {
+            targetNote.linkedNotes = [];
+        }
+
+        const alreadyLinked =
+            targetNote.linkedNotes.some(
+                function(linkedCardId) {
+                    return (
+                        normalizeCardId(
+                            linkedCardId
+                        ) ===
+                        normalizedSourceId
+                    );
+                }
+            );
+
+        if (!alreadyLinked) {
+            targetNote.linkedNotes.push(
+                normalizedSourceId
+            );
+        }
+    });
+}
+
     function createNewNote() {
+
+        hideCardHoverPreview();
+
       currentNoteId = null;
       els.title.value = ''; els.content.innerHTML = '';
       els.btnDelete.classList.add('hidden');
@@ -1241,8 +2633,12 @@ function handlePaste(e) {
       els.title.focus();
     }
 
-    function loadNote(id) {
-      const note = notes.find(n => n.id === id);
+    function loadNote(cardId) {
+
+        hideCardHoverPreview();
+        
+    const note = findCardById(cardId);
+
       if (!note) return;
       currentNoteId = note.id; 
       els.title.value = note.title; 
@@ -1269,8 +2665,19 @@ function handlePaste(e) {
       
       document.querySelectorAll('.note-item').forEach(el => {
         el.classList.remove('border-tech-accent', 'bg-slate-800');
-        if(el.dataset.id === id) el.className += ' border-tech-accent bg-slate-800';
+        if (
+    normalizeCardId(el.dataset.cardId) ===
+    normalizeCardId(note.id)
+) {
+    el.className +=
+        ' border-tech-accent bg-slate-800';
+}
       });
+
+      // 檢查內文中的 CardId 連結
+if (markdownPasteMode === 'preview') {
+    refreshInternalCardLinks();
+}
       document.querySelectorAll('#editor-content img').forEach(makeImageResizable);
       
       if (window.innerWidth < 768) togglePanel('left');
@@ -1314,37 +2721,141 @@ if (markdownPasteMode === 'source') {
       contentHtml = doc.body.innerHTML;
 
       const currentTags = Array.from(els.activeTags.querySelectorAll('.tag-chip span')).map(s => s.textContent);
-      const currentLinks = Array.from(els.linkedList.querySelectorAll('.link-card')).map(d => d.dataset.id);
+      /*
+ * 合併兩種連結來源：
+ * 1. 右側「連結網絡」
+ * 2. 內文中的 [[ CardId 卡片連結
+ */
+const networkLinkIds =
+    getLinkedNetworkCardIds();
+
+const contentLinkIds =
+    getContentCardLinkIds();
+
+const currentLinks = [
+    ...new Set([
+        ...networkLinkIds,
+        ...contentLinkIds
+    ])
+].filter(function(cardId) {
+    /*
+     * 排除空值、自己，以及不存在的卡片。
+     */
+    return (
+        cardId &&
+        normalizeCardId(cardId) !==
+            normalizeCardId(currentNoteId) &&
+        findCardById(cardId)
+    );
+});
+
+/*
+ * 如果內文有引用，但右側原本沒有，
+ * 儲存前同步顯示到右側連結網絡。
+ */
+renderLinkedUI(currentLinks);
 
       if (currentNoteId) {
-        const index = notes.findIndex(n => n.id === currentNoteId);
-        if (index !== -1) { 
-          notes[index] = { 
-            ...notes[index], 
-            title, 
-            content: contentHtml, 
-            tags: currentTags, 
-            linkedNotes: currentLinks,
-            images: extractedImages 
-          }; 
-          showToast('資料已更新', 'success'); 
+    const index = notes.findIndex(
+        function(note) {
+            return (
+                normalizeCardId(note.id) ===
+                normalizeCardId(
+                    currentNoteId
+                )
+            );
         }
-      } else {
-        const newId = genId();
-        notes.push({ 
-          id: newId, 
-          title, 
-          content: contentHtml, 
-          tags: currentTags, 
-          linkedNotes: currentLinks,
-          images: extractedImages 
-        });
-        currentNoteId = newId;
-        currentLinks.forEach(targetId => { const target = notes.find(n => n.id === targetId); if (target && !target.linkedNotes.includes(newId)) target.linkedNotes.push(newId); });
-        showToast('新資料卡已建立', 'success');
-        els.btnDelete.classList.remove('hidden');
-        els.btnSaveUpdate.innerHTML = '<i class="fa-regular fa-floppy-disk mr-1"></i> 儲存所有變更';
-      }
+    );
+
+    if (index !== -1) {
+        /*
+         * 更新前先保存舊連結，
+         * 用來判斷哪些反向連結需要移除。
+         */
+        const oldLinkedIds =
+            Array.isArray(
+                notes[index].linkedNotes
+            )
+                ? [
+                    ...notes[index]
+                        .linkedNotes
+                ]
+                : [];
+
+        notes[index] = {
+    ...notes[index],
+    title,
+    content: contentHtml,
+    tags: currentTags,
+    linkedNotes: currentLinks,
+    images: extractedImages,
+
+    // 卡片最後更新時間
+    updatedAt:
+        new Date().toISOString()
+};
+
+        /*
+         * 同步新增、保留及移除的雙向連結。
+         */
+        synchronizeBidirectionalLinks(
+            currentNoteId,
+            oldLinkedIds,
+            currentLinks
+        );
+
+        showToast(
+            '資料與雙向連結已更新',
+            'success'
+        );
+    }
+} else {
+    const newId = genId();
+
+    const now =
+    new Date().toISOString();
+
+notes.push({
+    id: newId,
+    title,
+    content: contentHtml,
+    tags: currentTags,
+    linkedNotes: currentLinks,
+    images: extractedImages,
+
+    // 卡片建立及更新時間
+    createdAt: now,
+    updatedAt: now
+});
+
+    currentNoteId = newId;
+
+    /*
+     * 新卡片現在已取得 cardId，
+     * 可以正式在所有目標卡片中建立反向連結。
+     */
+    synchronizeBidirectionalLinks(
+        newId,
+        [],
+        currentLinks
+    );
+
+    showToast(
+        '新資料卡與雙向連結已建立',
+        'success'
+    );
+
+    els.btnDelete.classList.remove(
+        'hidden'
+    );
+
+    els.btnSaveUpdate.innerHTML =
+        '<i class="fa-regular fa-floppy-disk mr-1"></i> 儲存所有變更';
+}
+
+
+
+
       await saveToStorage();
       renderNoteList(); updateTagHistory(); renderLinkSuggestions(); updateTagTree();
     }
@@ -1352,8 +2863,26 @@ if (markdownPasteMode === 'source') {
 
     async function deleteCurrentNote() {
       if (!currentNoteId || !confirm('確認刪除此資料卡？')) return;
-      notes.forEach(n => { if (n.linkedNotes) n.linkedNotes = n.linkedNotes.filter(id => id !== currentNoteId); });
-      notes = notes.filter(n => n.id !== currentNoteId);
+      notes.forEach(function(note) {
+    if (!Array.isArray(note.linkedNotes)) {
+        return;
+    }
+
+    note.linkedNotes = note.linkedNotes.filter(
+        function(linkedCardId) {
+            return (
+                normalizeCardId(linkedCardId) !==
+                normalizeCardId(currentNoteId)
+            );
+        }
+    );
+});
+      notes = notes.filter(function(note) {
+    return (
+        normalizeCardId(note.id) !==
+        normalizeCardId(currentNoteId)
+    );
+});
       await saveToStorage();
       renderNoteList(); renderLinkSuggestions(); updateTagTree(); createNewNote();
       showToast('資料已刪除', 'info');
@@ -1399,7 +2928,7 @@ if (markdownPasteMode === 'source') {
       listData.forEach(note => {
         const div = document.createElement('div');
         div.className = 'note-item p-3 border-l-2 border-transparent hover:bg-slate-800 cursor-pointer transition-colors duration-200 group rounded';
-        div.dataset.id = note.id;
+        div.dataset.cardId = normalizeCardId(note.id);
         if (note.id === currentNoteId) div.className += ' border-tech-accent bg-slate-800';
 
         const tempDiv = document.createElement('div'); tempDiv.innerHTML = note.content;
@@ -1412,7 +2941,9 @@ if (markdownPasteMode === 'source') {
             ${(note.tags || []).slice(0, 3).map(t => `<span class="text-[9px] bg-slate-700 text-slate-300 px-1.5 rounded-sm">${t}</span>`).join('')}
           </div>
         `;
-        div.onclick = () => loadNote(note.id);
+        div.onclick = function() {
+    openCardById(this.dataset.cardId);
+};
         els.list.appendChild(div);
       });
     }
@@ -1436,30 +2967,155 @@ if (markdownPasteMode === 'source') {
         els.activeTags.appendChild(chip);
     }
 
-    function renderLinkedUI(linkedIds) {
-      els.linkedList.innerHTML = '';
-      linkedIds.forEach(id => {
-        const note = notes.find(n => n.id === id);
-        if (note) {
-          const card = document.createElement('div');
-          card.className = 'link-card bg-slate-800 border border-slate-700 p-2 rounded flex justify-between items-center group hover:border-tech-secondary transition cursor-pointer';
-          card.dataset.id = id;
-          card.innerHTML = `
-            <div onclick="loadNote('${id}')" class="flex-1 overflow-hidden"><div class="text-sm font-bold text-slate-300 group-hover:text-tech-secondary truncate"><i class="fa-solid fa-link text-[10px] mr-1"></i> ${note.title}</div></div>
-            <button onclick="removeLink(this)" class="text-slate-500 hover:text-red-400 ml-2 px-1"><i class="fa-solid fa-times"></i></button>
-          `;
-          els.linkedList.appendChild(card);
+    function renderLinkedUI(linkedCardIds) {
+    els.linkedList.innerHTML = '';
+
+    linkedCardIds.forEach(function(cardId) {
+        const note = findCardById(cardId);
+
+        if (!note) {
+            // 仍顯示失效連結，避免使用者不知道資料中存在舊 ID
+            const brokenCard = document.createElement('div');
+
+            brokenCard.className =
+                'link-card bg-red-500/10 border border-red-500/50 ' +
+                'p-2 rounded flex justify-between items-center';
+
+            brokenCard.dataset.cardId =
+                normalizeCardId(cardId);
+
+            const brokenText =
+                document.createElement('div');
+
+            brokenText.className =
+                'flex-1 overflow-hidden text-sm text-red-400';
+
+            brokenText.textContent =
+                `找不到卡片：${cardId}`;
+
+            const removeButton =
+                document.createElement('button');
+
+            removeButton.type = 'button';
+
+            removeButton.className =
+                'text-slate-500 hover:text-red-400 ml-2 px-1';
+
+            removeButton.innerHTML =
+                '<i class="fa-solid fa-times"></i>';
+
+            removeButton.addEventListener(
+                'click',
+                function(event) {
+                    event.stopPropagation();
+                    removeLink(this);
+                }
+            );
+
+            brokenCard.appendChild(brokenText);
+            brokenCard.appendChild(removeButton);
+            els.linkedList.appendChild(brokenCard);
+
+            return;
         }
-      });
-    }
+
+        const card = document.createElement('div');
+
+        card.className =
+            'link-card bg-slate-800 border border-slate-700 ' +
+            'p-2 rounded flex justify-between items-center group ' +
+            'hover:border-tech-secondary transition cursor-pointer';
+
+        // 統一使用 data-card-id
+        card.dataset.cardId =
+            normalizeCardId(note.id);
+
+        const openArea =
+            document.createElement('div');
+
+        openArea.className =
+            'flex-1 overflow-hidden';
+
+        const titleArea =
+            document.createElement('div');
+
+        titleArea.className =
+            'text-sm font-bold text-slate-300 ' +
+            'group-hover:text-tech-secondary truncate';
+
+        const linkIcon =
+            document.createElement('i');
+
+        linkIcon.className =
+            'fa-solid fa-link text-[10px] mr-1';
+
+        const titleText =
+            document.createTextNode(
+                ` ${note.title || '未命名卡片'}`
+            );
+
+        titleArea.appendChild(linkIcon);
+        titleArea.appendChild(titleText);
+        openArea.appendChild(titleArea);
+
+        openArea.addEventListener(
+            'click',
+            function() {
+                openCardById(card.dataset.cardId);
+            }
+        );
+
+        const removeButton =
+            document.createElement('button');
+
+        removeButton.type = 'button';
+
+        removeButton.className =
+            'text-slate-500 hover:text-red-400 ml-2 px-1';
+
+        removeButton.innerHTML =
+            '<i class="fa-solid fa-times"></i>';
+
+        removeButton.addEventListener(
+            'click',
+            function(event) {
+                event.stopPropagation();
+                removeLink(this);
+            }
+        );
+
+        card.appendChild(openArea);
+        card.appendChild(removeButton);
+        els.linkedList.appendChild(card);
+    });
+}
 
     function renderLinkSuggestions() {
-      els.linkSuggestions.innerHTML = '';
-      notes.forEach(note => {
-        const opt = document.createElement('option'); opt.value = note.title; opt.dataset.id = note.id;
-        els.linkSuggestions.appendChild(opt);
-      });
-    }
+    els.linkSuggestions.innerHTML = '';
+
+    notes.forEach(function(note) {
+        const option = document.createElement('option');
+
+        const cardId = normalizeCardId(note.id);
+        const title = note.title || '未命名卡片';
+
+        /*
+         * value 寫入輸入框，格式：
+         * 卡片標題 [CardId:abc123]
+         *
+         * 就算兩張卡片同名，也能依 CardId 找到正確卡片。
+         */
+        option.value =
+            `${title} [CardId:${cardId}]`;
+
+        option.label =
+            `${title}｜ID：${cardId}`;
+
+        option.dataset.cardId = cardId;
+
+        els.linkSuggestions.appendChild(option);
+    });
+}
 
     function updateTagHistory() {
       const allTags = new Set();
@@ -1487,15 +3143,921 @@ if (markdownPasteMode === 'source') {
     function removeTag(btn) { btn.parentElement.remove(); }
 
     function addLinkedNote() {
-      const title = els.linkInput.value; if (!title) return;
-      const targetNote = notes.find(n => n.title === title);
-      if (!targetNote) return showToast('找不到該標題的筆記', 'error');
-      if (targetNote.id === currentNoteId) return showToast('無法連結自己', 'error');
-      const existing = Array.from(els.linkedList.querySelectorAll('.link-card')).map(d => d.dataset.id);
-      if (existing.includes(targetNote.id)) return showToast('已連結', 'info');
-      renderLinkedUI([...existing, targetNote.id]); els.linkInput.value = '';
+    const inputValue =
+        els.linkInput.value.trim();
+
+    if (!inputValue) {
+        return;
     }
-    function removeLink(btn) { btn.parentElement.remove(); }
+
+    /*
+     * 從輸入內容取得：
+     * [CardId:真正的ID]
+     */
+    const idMatch =
+        inputValue.match(/\[CardId:([^\]]+)\]$/);
+
+    if (!idMatch) {
+        showToast(
+            '請從卡片建議清單中選擇一張卡片',
+            'error'
+        );
+
+        return;
+    }
+
+    const targetCardId =
+        normalizeCardId(idMatch[1]);
+
+    const targetNote =
+        findCardById(targetCardId);
+
+    if (!targetNote) {
+        showToast(
+            `找不到卡片，CardId：${targetCardId}`,
+            'error'
+        );
+
+        return;
+    }
+
+    if (
+        normalizeCardId(targetNote.id) ===
+        normalizeCardId(currentNoteId)
+    ) {
+        showToast(
+            '無法連結目前卡片自己',
+            'error'
+        );
+
+        return;
+    }
+
+    const existingCardIds = Array.from(
+        els.linkedList.querySelectorAll(
+            '.link-card[data-card-id]'
+        )
+    ).map(function(card) {
+        return normalizeCardId(
+            card.dataset.cardId
+        );
+    });
+
+    if (
+        existingCardIds.includes(
+            normalizeCardId(targetNote.id)
+        )
+    ) {
+        showToast(
+            '這張卡片已經連結',
+            'info'
+        );
+
+        return;
+    }
+
+    /*
+ * 加入目前卡片右側連結網絡，
+ * 並在目標卡片建立反向連結。
+ */
+addBidirectionalCardLink(
+    targetNote.id
+);
+
+els.linkInput.value = '';
+
+showToast(
+    `已建立雙向連結：${targetNote.title}`,
+    'success'
+);
+}
+
+
+    function removeLink(btn) {
+    const linkCard =
+        btn.closest(
+            '.link-card[data-card-id]'
+        );
+
+    if (!linkCard) {
+        btn.parentElement.remove();
+        return;
+    }
+
+    const removedCardId =
+        normalizeCardId(
+            linkCard.dataset.cardId
+        );
+
+    linkCard.remove();
+
+    /*
+     * 預覽模式：
+     * 刪除內文中相同 data-card-id 的連結，
+     * 但保留連結顯示文字。
+     */
+    if (markdownPasteMode === 'preview') {
+        els.content
+            .querySelectorAll(
+                '.internal-card-link[data-card-id]'
+            )
+            .forEach(function(link) {
+                if (
+                    normalizeCardId(
+                        link.dataset.cardId
+                    ) !== removedCardId
+                ) {
+                    return;
+                }
+
+                link.replaceWith(
+                    document.createTextNode(
+                        link.textContent
+                    )
+                );
+            });
+    } else {
+        /*
+         * 原始碼模式：
+         * 將 [[標題|cardId]] 改成一般標題文字。
+         */
+        const sourceText =
+            els.content.innerText || '';
+
+        const pattern =
+            /\[\[([^\]|]+)\|([^\]]+)\]\]/g;
+
+        const cleanedSource =
+            sourceText.replace(
+                pattern,
+                function(
+                    fullMatch,
+                    title,
+                    cardId
+                ) {
+                    return (
+                        normalizeCardId(
+                            cardId.trim()
+                        ) === removedCardId
+                            ? title.trim()
+                            : fullMatch
+                    );
+                }
+            );
+
+        els.content.textContent =
+            cleanedSource;
+    }
+
+    els.content.dispatchEvent(
+        new Event('input', {
+            bubbles: true
+        })
+    );
+
+    showToast(
+        '已移除連結網絡及內文引用',
+        'info'
+    );
+}
+    // ==========================================
+// ===== [[ 卡片連結自動完成 ================
+// ==========================================
+
+
+// 將字串轉成可安全放入 HTML 的文字
+function escapeCardLinkText(value) {
+    const div = document.createElement('div');
+    div.textContent = String(value ?? '');
+    return div.innerHTML;
+}
+
+
+// 取得游標前方目前正在輸入的 [[關鍵字
+function getCardLinkTriggerAtCursor() {
+    const selection = window.getSelection();
+
+    if (
+        !selection ||
+        selection.rangeCount === 0 ||
+        !selection.isCollapsed
+    ) {
+        return null;
+    }
+
+    const range = selection.getRangeAt(0);
+
+    if (!els.content.contains(range.startContainer)) {
+        return null;
+    }
+
+    /*
+     * 建立一個從內文開頭到目前游標的 Range，
+     * 再從文字尾端尋找尚未關閉的 [[。
+     */
+    const beforeCursorRange = document.createRange();
+
+    beforeCursorRange.selectNodeContents(els.content);
+    beforeCursorRange.setEnd(
+        range.startContainer,
+        range.startOffset
+    );
+
+    const beforeCursorText =
+        beforeCursorRange.toString();
+
+    /*
+     * 符合：
+     * [[
+     * [[Excel
+     *
+     * 不符合已完整關閉的：
+     * [[Excel]]
+     */
+    const match =
+        beforeCursorText.match(/\[\[([^\[\]\n]*)$/);
+
+    if (!match) {
+        return null;
+    }
+
+    const triggerText = match[0];
+    const query = match[1].trim();
+
+    /*
+     * 從目前游標往前移動 triggerText.length 個字元，
+     * 找到 [[ 的實際起點。
+     */
+    const triggerRange = createRangeBeforeCursor(
+        range,
+        triggerText.length
+    );
+
+    if (!triggerRange) {
+        return null;
+    }
+
+    return {
+        query: query,
+        range: triggerRange
+    };
+}
+
+
+// 建立「游標前指定字數」的 Range
+function createRangeBeforeCursor(cursorRange, characterCount) {
+    const textNodes = [];
+
+    const walker = document.createTreeWalker(
+        els.content,
+        NodeFilter.SHOW_TEXT
+    );
+
+    let node;
+
+    while ((node = walker.nextNode())) {
+        textNodes.push(node);
+    }
+
+    let cursorAbsoluteOffset = 0;
+    let foundCursor = false;
+
+    for (const textNode of textNodes) {
+        if (textNode === cursorRange.startContainer) {
+            cursorAbsoluteOffset +=
+                cursorRange.startOffset;
+
+            foundCursor = true;
+            break;
+        }
+
+        cursorAbsoluteOffset +=
+            textNode.textContent.length;
+    }
+
+    /*
+     * 游標可能位於 div、p 等元素節點，而不是文字節點。
+     * 這時使用前方 Range 的純文字長度計算。
+     */
+    if (!foundCursor) {
+        const beforeCursorRange =
+            document.createRange();
+
+        beforeCursorRange.selectNodeContents(
+            els.content
+        );
+
+        beforeCursorRange.setEnd(
+            cursorRange.startContainer,
+            cursorRange.startOffset
+        );
+
+        cursorAbsoluteOffset =
+            beforeCursorRange.toString().length;
+    }
+
+    const startAbsoluteOffset =
+        cursorAbsoluteOffset - characterCount;
+
+    if (startAbsoluteOffset < 0) {
+        return null;
+    }
+
+    let runningOffset = 0;
+    let startNode = null;
+    let startOffset = 0;
+    let endNode = null;
+    let endOffset = 0;
+
+    for (const textNode of textNodes) {
+        const nodeLength =
+            textNode.textContent.length;
+
+        if (
+            !startNode &&
+            startAbsoluteOffset >= runningOffset &&
+            startAbsoluteOffset <=
+                runningOffset + nodeLength
+        ) {
+            startNode = textNode;
+            startOffset =
+                startAbsoluteOffset -
+                runningOffset;
+        }
+
+        if (
+            cursorAbsoluteOffset >= runningOffset &&
+            cursorAbsoluteOffset <=
+                runningOffset + nodeLength
+        ) {
+            endNode = textNode;
+            endOffset =
+                cursorAbsoluteOffset -
+                runningOffset;
+
+            break;
+        }
+
+        runningOffset += nodeLength;
+    }
+
+    if (!startNode) {
+        return null;
+    }
+
+    /*
+     * 如果游標位於元素節點，找不到精確的 endNode，
+     * 使用原本的游標位置作為 Range 終點。
+     */
+    const replaceRange = document.createRange();
+
+    replaceRange.setStart(
+        startNode,
+        startOffset
+    );
+
+    if (endNode) {
+        replaceRange.setEnd(
+            endNode,
+            endOffset
+        );
+    } else {
+        replaceRange.setEnd(
+            cursorRange.startContainer,
+            cursorRange.startOffset
+        );
+    }
+
+    return replaceRange;
+}
+
+
+// 搜尋符合標題的卡片
+function searchCardsForAutocomplete(query) {
+    const normalizedQuery =
+        query.trim().toLowerCase();
+
+    return notes
+        .filter(function(note) {
+            // 不顯示目前正在編輯的卡片
+            if (
+                normalizeCardId(note.id) ===
+                normalizeCardId(currentNoteId)
+            ) {
+                return false;
+            }
+
+            if (!normalizedQuery) {
+                return true;
+            }
+
+            return String(note.title || '')
+                .toLowerCase()
+                .includes(normalizedQuery);
+        })
+        .sort(function(a, b) {
+            const titleA =
+                String(a.title || '').toLowerCase();
+
+            const titleB =
+                String(b.title || '').toLowerCase();
+
+            /*
+             * 標題開頭符合的卡片優先顯示。
+             * 例如搜尋 Excel：
+             * Excel 批次列印排在「我的 Excel」之前。
+             */
+            const aStarts =
+                titleA.startsWith(normalizedQuery);
+
+            const bStarts =
+                titleB.startsWith(normalizedQuery);
+
+            if (aStarts !== bStarts) {
+                return aStarts ? -1 : 1;
+            }
+
+            return titleA.localeCompare(
+                titleB,
+                'zh-Hant'
+            );
+        })
+        .slice(0, 8);
+}
+
+
+// 顯示自動完成選單
+function showCardLinkAutocomplete(triggerInfo) {
+    const results =
+        searchCardsForAutocomplete(
+            triggerInfo.query
+        );
+
+    cardLinkAutocompleteState.open = true;
+    cardLinkAutocompleteState.query =
+        triggerInfo.query;
+    cardLinkAutocompleteState.results =
+        results;
+    cardLinkAutocompleteState.selectedIndex = 0;
+    cardLinkAutocompleteState.replaceRange =
+        triggerInfo.range.cloneRange();
+
+    renderCardLinkAutocomplete();
+    positionCardLinkAutocomplete();
+}
+
+
+// 更新自動完成選單內容
+function renderCardLinkAutocomplete() {
+    const menu =
+        els.cardLinkAutocomplete;
+
+    menu.innerHTML = '';
+
+    const results =
+        cardLinkAutocompleteState.results;
+
+    if (results.length === 0) {
+        const emptyItem =
+            document.createElement('div');
+
+        emptyItem.className =
+            'px-3 py-3 text-sm text-slate-500';
+
+        emptyItem.textContent =
+            '找不到符合的卡片';
+
+        menu.appendChild(emptyItem);
+        menu.classList.remove('hidden');
+
+        return;
+    }
+
+    results.forEach(function(note, index) {
+        const item =
+            document.createElement('button');
+
+        item.type = 'button';
+
+        item.className =
+            'card-link-autocomplete-item' +
+            (
+                index ===
+                cardLinkAutocompleteState.selectedIndex
+                    ? ' active'
+                    : ''
+            );
+
+        item.dataset.index = String(index);
+        item.dataset.cardId =
+            normalizeCardId(note.id);
+
+        const number =
+            document.createElement('span');
+
+        number.className =
+            'card-link-autocomplete-number';
+
+        number.textContent =
+            String(index + 1);
+
+        const title =
+            document.createElement('span');
+
+        title.className =
+            'card-link-autocomplete-title';
+
+        title.textContent =
+            note.title || '未命名卡片';
+
+        const idText =
+            document.createElement('span');
+
+        idText.className =
+            'card-link-autocomplete-id';
+
+        idText.textContent =
+            normalizeCardId(note.id).substring(0, 8);
+
+        item.appendChild(number);
+        item.appendChild(title);
+        item.appendChild(idText);
+
+        /*
+         * 使用 mousedown 而不是 click，
+         * 避免按下選項時編輯器先失去游標位置。
+         */
+        item.addEventListener(
+            'mousedown',
+            function(event) {
+                event.preventDefault();
+
+                insertCardLinkFromAutocomplete(
+                    Number(this.dataset.index)
+                );
+            }
+        );
+
+        menu.appendChild(item);
+    });
+
+    menu.classList.remove('hidden');
+}
+
+
+// 將選單放在目前游標下方
+function positionCardLinkAutocomplete() {
+    const range =
+        cardLinkAutocompleteState.replaceRange;
+
+    if (!range) {
+        return;
+    }
+
+    let rect = range.getBoundingClientRect();
+
+    /*
+     * 空 Range 有時不會回傳尺寸，
+     * 加入暫時文字節點取得游標位置。
+     */
+    if (
+        rect.width === 0 &&
+        rect.height === 0
+    ) {
+        const marker =
+            document.createElement('span');
+
+        marker.textContent = '\u200b';
+
+        const markerRange =
+            range.cloneRange();
+
+        markerRange.collapse(false);
+        markerRange.insertNode(marker);
+
+        rect = marker.getBoundingClientRect();
+        marker.remove();
+    }
+
+    const menu =
+        els.cardLinkAutocomplete;
+
+    const menuWidth = 320;
+    const viewportPadding = 12;
+
+    let left = rect.left;
+    let top = rect.bottom + 6;
+
+    if (
+        left + menuWidth >
+        window.innerWidth - viewportPadding
+    ) {
+        left =
+            window.innerWidth -
+            menuWidth -
+            viewportPadding;
+    }
+
+    if (left < viewportPadding) {
+        left = viewportPadding;
+    }
+
+    /*
+     * 游標靠近畫面底部時，改顯示在游標上方。
+     */
+    const estimatedMenuHeight =
+        Math.min(
+            288,
+            Math.max(
+                48,
+                cardLinkAutocompleteState
+                    .results.length * 42
+            )
+        );
+
+    if (
+        top + estimatedMenuHeight >
+        window.innerHeight - viewportPadding
+    ) {
+        top =
+            Math.max(
+                viewportPadding,
+                rect.top -
+                estimatedMenuHeight -
+                6
+            );
+    }
+
+    menu.style.left = `${Math.round(left)}px`;
+    menu.style.top = `${Math.round(top)}px`;
+}
+
+
+// 關閉自動完成選單
+function closeCardLinkAutocomplete() {
+    cardLinkAutocompleteState.open = false;
+    cardLinkAutocompleteState.query = '';
+    cardLinkAutocompleteState.results = [];
+    cardLinkAutocompleteState.selectedIndex = 0;
+    cardLinkAutocompleteState.replaceRange = null;
+
+    els.cardLinkAutocomplete.classList.add(
+        'hidden'
+    );
+
+    els.cardLinkAutocomplete.innerHTML = '';
+}
+
+
+// 移動選單中的目前項目
+function moveCardLinkAutocomplete(direction) {
+    const results =
+        cardLinkAutocompleteState.results;
+
+    if (results.length === 0) {
+        return;
+    }
+
+    let newIndex =
+        cardLinkAutocompleteState.selectedIndex +
+        direction;
+
+    if (newIndex < 0) {
+        newIndex = results.length - 1;
+    }
+
+    if (newIndex >= results.length) {
+        newIndex = 0;
+    }
+
+    cardLinkAutocompleteState.selectedIndex =
+        newIndex;
+
+    renderCardLinkAutocomplete();
+
+    const activeItem =
+        els.cardLinkAutocomplete.querySelector(
+            '.card-link-autocomplete-item.active'
+        );
+
+    activeItem?.scrollIntoView({
+        block: 'nearest'
+    });
+}
+
+
+// 插入選到的卡片連結
+function insertCardLinkFromAutocomplete(index) {
+    const note =
+        cardLinkAutocompleteState.results[index];
+
+    const replaceRange =
+        cardLinkAutocompleteState.replaceRange;
+
+    if (!note || !replaceRange) {
+        closeCardLinkAutocomplete();
+        return;
+    }
+
+    const cardId =
+        normalizeCardId(note.id);
+
+    const title =
+        note.title || '未命名卡片';
+
+    replaceRange.deleteContents();
+
+    /*
+     * 原始碼模式使用自訂 Markdown 語法：
+     * [[顯示標題|cardId]]
+     */
+    if (markdownPasteMode === 'source') {
+        const sourceText =
+            `[[${title}|${cardId}]]`;
+
+        const textNode =
+            document.createTextNode(sourceText);
+
+        replaceRange.insertNode(textNode);
+
+        replaceRange.setStartAfter(textNode);
+        replaceRange.collapse(true);
+    } else {
+        /*
+         * 預覽模式插入真正的 HTML 連結。
+         * 真正識別依據是 data-card-id，
+         * 標題只負責顯示。
+         */
+        const link =
+            document.createElement('a');
+
+        link.href =
+            `#card/${encodeURIComponent(cardId)}`;
+
+        link.className =
+            'internal-card-link';
+
+        link.dataset.cardId = cardId;
+        link.contentEditable = 'false';
+        link.textContent = title;
+        link.title = `開啟卡片：${title}`;
+
+        replaceRange.insertNode(link);
+
+        /*
+         * 在連結後加空白，讓使用者可以繼續輸入。
+         */
+        const space =
+            document.createTextNode('\u00a0');
+
+        link.after(space);
+
+        replaceRange.setStartAfter(space);
+        replaceRange.collapse(true);
+    }
+
+    const selection =
+        window.getSelection();
+
+    selection.removeAllRanges();
+    selection.addRange(replaceRange);
+
+    /*
+ * [[ 插入內文卡片連結後：
+ * 1. 加入目前卡片右側「連結網絡」
+ * 2. 在目標卡片加入目前卡片的 cardId
+ */
+addBidirectionalCardLink(cardId);
+
+    closeCardLinkAutocomplete();
+
+    els.content.dispatchEvent(
+        new Event('input', {
+            bubbles: true
+        })
+    );
+
+    els.content.focus();
+}
+
+
+// 監聽內文輸入，檢查是否出現 [[
+function handleCardLinkAutocompleteInput() {
+    const triggerInfo =
+        getCardLinkTriggerAtCursor();
+
+    if (!triggerInfo) {
+        closeCardLinkAutocomplete();
+        return;
+    }
+
+    showCardLinkAutocomplete(triggerInfo);
+}
+
+
+// 處理上下鍵、Enter、Esc
+function handleCardLinkAutocompleteKeydown(event) {
+    if (!cardLinkAutocompleteState.open) {
+        return;
+    }
+
+    if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        event.stopPropagation();
+
+        moveCardLinkAutocomplete(1);
+        return;
+    }
+
+    if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        event.stopPropagation();
+
+        moveCardLinkAutocomplete(-1);
+        return;
+    }
+
+    if (event.key === 'Enter') {
+        if (
+            cardLinkAutocompleteState
+                .results.length === 0
+        ) {
+            return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        insertCardLinkFromAutocomplete(
+            cardLinkAutocompleteState
+                .selectedIndex
+        );
+
+        return;
+    }
+
+    if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+
+        closeCardLinkAutocomplete();
+    }
+}
+
+
+// 點擊已插入的卡片連結
+function handleInternalCardLinkClick(event) {
+    const link = event.target.closest(
+        '.internal-card-link[data-card-id]'
+    );
+
+    if (!link) {
+        return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    openCardById(
+        link.dataset.cardId
+    );
+}
+
+
+// 檢查目前內文中的卡片連結是否有效
+function refreshInternalCardLinks() {
+    els.content
+        .querySelectorAll(
+            '.internal-card-link[data-card-id]'
+        )
+        .forEach(function(link) {
+            const card =
+                findCardById(
+                    link.dataset.cardId
+                );
+
+            if (!card) {
+                link.classList.add(
+                    'internal-card-link-broken'
+                );
+
+                link.title =
+                    `找不到卡片，CardId：${link.dataset.cardId}`;
+
+                return;
+            }
+
+            link.classList.remove(
+                'internal-card-link-broken'
+            );
+
+            link.href =
+                `#card/${encodeURIComponent(card.id)}`;
+
+            link.title =
+                `開啟卡片：${card.title}`;
+        });
+}
 
 
 // ===== 將編輯器 HTML 轉回 Markdown =====
@@ -1573,9 +4135,31 @@ function convertHtmlToMarkdown(html) {
                     .join('\n') + '\n\n';
 
             case 'a': {
-                const href = node.getAttribute('href') || '';
-                return `[${children}](${href})`;
-            }
+    /*
+     * 內部卡片連結保留成：
+     * [[顯示標題|cardId]]
+     */
+    const cardId =
+        node.dataset.cardId;
+
+    if (
+        node.classList.contains(
+            'internal-card-link'
+        ) &&
+        cardId
+    ) {
+        return (
+            `[[${children}|` +
+            `${normalizeCardId(cardId)}]]`
+        );
+    }
+
+    // 一般網址連結維持 Markdown 格式
+    const href =
+        node.getAttribute('href') || '';
+
+    return `[${children}](${href})`;
+}
 
             case 'img': {
                 const src = node.getAttribute('src') || '';
@@ -1763,6 +4347,7 @@ function showMarkdownSource(markdown) {
 // ===== 顯示 Markdown 預覽 =====
 function showMarkdownPreview(markdown) {
     els.content.innerHTML = convertMarkdownToHtml(markdown);
+    refreshInternalCardLinks();
 
     els.content.style.whiteSpace = '';
     els.content.style.fontFamily = '';
@@ -2050,6 +4635,27 @@ function convertMarkdownToHtml(markdown) {
     // 有序清單
     text = convertMarkdownLists(text, true);
 
+    // 卡片連結：[[顯示標題|cardId]]
+text = text.replace(
+    /\[\[([^\]|]+)\|([^\]]+)\]\]/g,
+    function(match, title, cardId) {
+        const safeTitle =
+            escapeCardLinkText(title.trim());
+
+        const safeCardId =
+            escapeCardLinkText(cardId.trim());
+
+        return (
+            '<a ' +
+            `href="#card/${encodeURIComponent(cardId.trim())}" ` +
+            'class="internal-card-link" ' +
+            `data-card-id="${safeCardId}" ` +
+            'contenteditable="false">' +
+            safeTitle +
+            '</a>'
+        );
+    }
+);
     // 圖片，必須放在一般連結之前
     text = text.replace(
         /!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/g,
@@ -2341,17 +4947,61 @@ function stopImageResize() {
     positionImageResizeHandle();
 }
 
-document.addEventListener('click', function(e) {
-    const clickedImage = e.target.closest('.editor-content img');
-    const clickedHandle = e.target.closest('#image-resize-handle');
+document.addEventListener('click', function(event) {
+    const clickedImage =
+        event.target.closest(
+            '.editor-content img'
+        );
+
+    const clickedHandle =
+        event.target.closest(
+            '#image-resize-handle'
+        );
 
     if (!clickedImage && !clickedHandle) {
         clearResizableImageSelection();
     }
+
+    // 點擊編輯器與自動完成選單以外區域時關閉選單
+    const clickedEditor =
+        event.target.closest(
+            '#editor-content'
+        );
+
+    const clickedAutocomplete =
+        event.target.closest(
+            '#card-link-autocomplete'
+        );
+
+    if (
+        !clickedEditor &&
+        !clickedAutocomplete
+    ) {
+        closeCardLinkAutocomplete();
+    }
 });
 
-window.addEventListener('resize', positionImageResizeHandle);
-document.addEventListener('scroll', positionImageResizeHandle, true);
+window.addEventListener(
+    'resize',
+    function() {
+        positionImageResizeHandle();
+        repositionCardHoverPreview();
+    }
+);
+
+document.addEventListener(
+    'scroll',
+    function() {
+        positionImageResizeHandle();
+
+        /*
+         * 捲動時直接關閉較穩定，
+         * 避免預覽遮住其他卡片。
+         */
+        hideCardHoverPreview();
+    },
+    true
+);
 
     function saveNotes() {
       if (notes.length === 0) return showToast('目前沒有任何筆記', 'error');
