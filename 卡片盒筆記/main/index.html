@@ -392,6 +392,107 @@
     </div>
 </div>
 
+<!-- ===== 回收桶視窗 ===== -->
+<div
+    id="trash-modal"
+    class="hidden fixed inset-0 z-[500] items-center justify-center p-4"
+>
+    <div
+        class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
+        onclick="closeTrashPanel()"
+    ></div>
+
+    <div
+        class="relative w-full max-w-3xl max-h-[85vh] bg-tech-panel border border-amber-500/50 rounded-xl shadow-2xl flex flex-col overflow-hidden"
+    >
+        <div class="px-5 py-4 border-b border-slate-700 bg-slate-900/70 flex items-center justify-between">
+            <div>
+                <h2 class="font-mono font-bold text-amber-400">
+                    <i class="fa-solid fa-trash-arrow-up mr-2"></i>
+                    卡片回收桶
+                </h2>
+
+                <div
+                    id="trash-modal-summary"
+                    class="mt-1 text-xs text-slate-500"
+                ></div>
+            </div>
+
+            <button
+                type="button"
+                onclick="closeTrashPanel()"
+                class="text-slate-400 hover:text-white p-2"
+                title="關閉"
+            >
+                <i class="fa-solid fa-times"></i>
+            </button>
+        </div>
+
+        <div
+            id="trash-card-list"
+            class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3"
+        ></div>
+    </div>
+</div>
+
+<!-- ===== 軟刪除確認視窗 ===== -->
+<div
+    id="soft-delete-modal"
+    class="hidden fixed inset-0 z-[510] items-center justify-center p-4"
+>
+    <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"></div>
+
+    <div class="relative w-full max-w-md bg-tech-panel border border-red-500/50 rounded-xl shadow-2xl overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-700 bg-slate-900/70">
+            <h2 class="font-mono font-bold text-red-400">
+                <i class="fa-solid fa-triangle-exclamation mr-2"></i>
+                移至回收桶
+            </h2>
+        </div>
+
+        <div class="p-5">
+            <div
+                id="soft-delete-message"
+                class="text-sm text-slate-200 leading-relaxed"
+            ></div>
+
+            <div
+                id="soft-delete-reference-list"
+                class="hidden mt-4 max-h-52 overflow-y-auto custom-scrollbar space-y-2"
+            ></div>
+        </div>
+
+        <div class="px-5 py-4 border-t border-slate-700 flex flex-wrap justify-end gap-2">
+            <button
+                type="button"
+                id="btn-view-delete-references"
+                onclick="toggleDeleteReferenceList()"
+                class="hidden mr-auto px-3 py-2 rounded border border-tech-secondary/60 text-tech-secondary hover:bg-tech-secondary hover:text-white text-sm transition"
+            >
+                <i class="fa-solid fa-link mr-1"></i>
+                查看引用卡片
+            </button>
+
+            <button
+                type="button"
+                onclick="closeSoftDeleteModal()"
+                class="px-4 py-2 rounded bg-slate-700 hover:bg-slate-600 text-sm transition"
+            >
+                取消
+            </button>
+
+            <button
+                type="button"
+                onclick="confirmMoveCurrentNoteToTrash()"
+                class="px-4 py-2 rounded bg-red-500 hover:bg-red-400 text-white text-sm transition"
+            >
+                <i class="fa-solid fa-trash-can mr-1"></i>
+                移至回收桶
+            </button>
+        </div>
+    </div>
+</div>
+
   <!-- 🔲 Shared Overlay Backdrop for Floating Panels -->
   <div id="ui-overlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 hidden transition-opacity duration-300 opacity-0" onclick="closeAllPanels()"></div>
 
@@ -501,6 +602,19 @@
         <h1 class="font-mono text-lg font-bold tracking-wider">ZETTEL_AI</h1>
       </div>
       <div class="flex items-center gap-3">
+        <button
+    type="button"
+    onclick="openTrashPanel()"
+    title="開啟回收桶"
+    class="relative text-slate-400 hover:text-amber-400 transition"
+>
+    <i class="fa-solid fa-trash-arrow-up"></i>
+
+    <span
+        id="trash-count-badge"
+        class="hidden absolute -top-2 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-bold leading-4 text-center"
+    >0</span>
+</button>
         <button onclick="createNewNote()" title="新增資料卡" class="text-tech-accent hover:text-white transition"><i class="fa-solid fa-square-plus text-lg"></i></button>
         <button onclick="saveNotes()" title="匯出/保存 (JSON)" class="text-slate-400 hover:text-tech-accent transition"><i class="fa-solid fa-floppy-disk"></i></button>
         <label for="import-notes" title="導入 (JSON)" class="text-slate-400 hover:text-tech-accent transition cursor-pointer mb-0 flex items-center"><i class="fa-solid fa-file-import"></i></label>
@@ -725,7 +839,24 @@ let cardHoverPreviewCardId = '';
             let skippedCount = 0;
 
             // 確保每一張卡片內的所有獨立圖片都不超過單格上限
-            const validNotes = notes.map(note => {
+            /*
+ * Google 試算表儲存順序：
+ * 1. 一般卡片
+ * 2. 回收桶卡片
+ *
+ * sort 只操作副本，不改變目前畫面的 notes 順序。
+ */
+const notesForStorage = [
+    ...notes
+].sort(function(a, b) {
+    return (
+        Number(isNoteDeleted(a)) -
+        Number(isNoteDeleted(b))
+    );
+});
+
+const validNotes =
+    notesForStorage.map(note => {
                 const noteCopy = Object.assign({}, note);
                 let images = noteCopy.images || [];
 
@@ -980,6 +1111,29 @@ cardHoverPreviewSummary:
       btnSaveUpdate: document.getElementById('btn-save-update'),
       status: document.getElementById('save-status'),
       toastContainer: document.getElementById('toast-container'),
+      trashModal:
+    document.getElementById('trash-modal'),
+
+trashCardList:
+    document.getElementById('trash-card-list'),
+
+trashModalSummary:
+    document.getElementById('trash-modal-summary'),
+
+trashCountBadge:
+    document.getElementById('trash-count-badge'),
+
+softDeleteModal:
+    document.getElementById('soft-delete-modal'),
+
+softDeleteMessage:
+    document.getElementById('soft-delete-message'),
+
+softDeleteReferenceList:
+    document.getElementById('soft-delete-reference-list'),
+
+btnViewDeleteReferences:
+    document.getElementById('btn-view-delete-references'),
       sidebarLeft: document.getElementById('sidebar-left'),
       sidebarRight: document.getElementById('sidebar-right'),
       
@@ -1039,6 +1193,26 @@ cardHoverPreviewSummary:
             }];
         }
       }
+
+      // 舊資料補齊軟刪除欄位
+notes.forEach(function(note) {
+    if (
+        typeof note.isDeleted !==
+        'boolean'
+    ) {
+        note.isDeleted = false;
+    }
+
+    if (
+        note.isDeleted &&
+        !note.deletedAt
+    ) {
+        note.deletedAt =
+            new Date().toISOString();
+    }
+});
+
+updateTrashCountBadge();
       renderNoteList();
       updateTagHistory();
       renderLinkSuggestions();
@@ -1487,6 +1661,8 @@ function handlePaste(e) {
 
 notes.push({
     id: newId,
+    isDeleted: false,
+deletedAt: null,
     title:
         parsed.title ||
         '無標題剪藏',
@@ -1551,7 +1727,17 @@ notes.push({
     async function aiAutoLink() {
         const text = els.content.innerText.trim(); const title = els.title.value.trim();
         if (text.length < 10 && title.length < 2) return showToast("內容太少", "error");
-        const availableNotes = notes.filter(n => n.id !== currentNoteId);
+        const availableNotes =
+    getActiveNotes().filter(
+        function(note) {
+            return (
+                normalizeCardId(note.id) !==
+                normalizeCardId(
+                    currentNoteId
+                )
+            );
+        }
+    );
         if (availableNotes.length === 0) return showToast("無其他卡片可供關聯", "info");
 
         setLoading(document.getElementById('btn-ai-link'), true);
@@ -1624,20 +1810,60 @@ function normalizeCardId(cardId) {
     return String(cardId);
 }
 
+// ===== 軟刪除共用判斷 =====
 
+function isNoteDeleted(note) {
+    return Boolean(
+        note &&
+        note.isDeleted === true
+    );
+}
+
+function getActiveNotes() {
+    return notes.filter(function(note) {
+        return !isNoteDeleted(note);
+    });
+}
+
+function getDeletedNotes() {
+    return notes.filter(function(note) {
+        return isNoteDeleted(note);
+    });
+}
 // 依 cardId 尋找卡片
-function findCardById(cardId) {
-    const normalizedId = normalizeCardId(cardId);
+function findCardById(
+    cardId,
+    options = {}
+) {
+    const normalizedId =
+        normalizeCardId(cardId);
 
     if (!normalizedId) {
         return null;
     }
 
+    const includeDeleted =
+        options.includeDeleted === true;
+
     return notes.find(function(note) {
-        return normalizeCardId(note.id) === normalizedId;
+        const sameId =
+            normalizeCardId(note.id) ===
+            normalizedId;
+
+        if (!sameId) {
+            return false;
+        }
+
+        if (
+            !includeDeleted &&
+            isNoteDeleted(note)
+        ) {
+            return false;
+        }
+
+        return true;
     }) || null;
 }
-
 
 // 統一使用 cardId 開啟卡片
 function openCardById(cardId) {
@@ -1655,6 +1881,521 @@ function openCardById(cardId) {
     loadNote(note.id);
 }
 
+// ==========================================
+// ===== 卡片回收桶與軟刪除 =================
+// ==========================================
+
+let pendingSoftDeleteCardId = '';
+
+
+// 找出所有引用指定卡片的「未刪除卡片」
+function getIncomingReferenceNotes(cardId) {
+    const targetId =
+        normalizeCardId(cardId);
+
+    if (!targetId) {
+        return [];
+    }
+
+    return getActiveNotes().filter(
+        function(note) {
+            if (
+                normalizeCardId(note.id) ===
+                targetId
+            ) {
+                return false;
+            }
+
+            const linkedFromNetwork =
+                Array.isArray(note.linkedNotes) &&
+                note.linkedNotes.some(
+                    function(linkedCardId) {
+                        return (
+                            normalizeCardId(
+                                linkedCardId
+                            ) === targetId
+                        );
+                    }
+                );
+
+            if (linkedFromNetwork) {
+                return true;
+            }
+
+            /*
+             * 額外檢查內文 data-card-id，
+             * 避免 linkedNotes 尚未同步時漏算。
+             */
+            const temp =
+                document.createElement('div');
+
+            temp.innerHTML =
+                String(note.content || '');
+
+            return Array.from(
+                temp.querySelectorAll(
+                    '.internal-card-link[data-card-id]'
+                )
+            ).some(function(link) {
+                return (
+                    normalizeCardId(
+                        link.dataset.cardId
+                    ) === targetId
+                );
+            });
+        }
+    );
+}
+
+
+// 讀取回收桶數量並更新徽章
+function updateTrashCountBadge() {
+    const count =
+        getDeletedNotes().length;
+
+    els.trashCountBadge.textContent =
+        String(count);
+
+    els.trashCountBadge.classList.toggle(
+        'hidden',
+        count === 0
+    );
+}
+
+
+// 顯示軟刪除確認視窗
+function openSoftDeleteModal(note) {
+    const references =
+        getIncomingReferenceNotes(note.id);
+
+    pendingSoftDeleteCardId =
+        normalizeCardId(note.id);
+
+    if (references.length > 0) {
+        els.softDeleteMessage.innerHTML =
+            `這張卡片目前被 ` +
+            `<strong class="text-red-400">${references.length}</strong>` +
+            ` 張卡片引用。<br>` +
+            `移至回收桶後保留原本 CardId，引用關係不會被刪除；還原後可自動恢復。`;
+
+        els.btnViewDeleteReferences
+            .classList.remove('hidden');
+    } else {
+        els.softDeleteMessage.innerHTML =
+            `這張卡片目前沒有被其他卡片引用。<br>` +
+            `確定要將「${escapeCardLinkText(note.title || '未命名卡片')}」移至回收桶嗎？`;
+
+        els.btnViewDeleteReferences
+            .classList.add('hidden');
+    }
+
+    els.softDeleteReferenceList
+        .classList.add('hidden');
+
+    els.softDeleteReferenceList.innerHTML =
+        '';
+
+    references.forEach(function(referenceNote) {
+        const item =
+            document.createElement('button');
+
+        item.type = 'button';
+
+        item.className =
+            'w-full text-left px-3 py-2 rounded ' +
+            'bg-slate-900 border border-slate-700 ' +
+            'hover:border-tech-secondary text-sm transition';
+
+        item.dataset.cardId =
+            normalizeCardId(referenceNote.id);
+
+        item.innerHTML =
+            '<i class="fa-solid fa-link text-tech-secondary mr-2"></i>' +
+            escapeCardLinkText(
+                referenceNote.title ||
+                '未命名卡片'
+            );
+
+        item.addEventListener(
+            'click',
+            function() {
+                closeSoftDeleteModal();
+
+                openCardById(
+                    this.dataset.cardId
+                );
+            }
+        );
+
+        els.softDeleteReferenceList
+            .appendChild(item);
+    });
+
+    els.softDeleteModal.classList.remove(
+        'hidden'
+    );
+
+    els.softDeleteModal.classList.add(
+        'flex'
+    );
+}
+
+
+// 顯示或隱藏引用卡片
+function toggleDeleteReferenceList() {
+    els.softDeleteReferenceList
+        .classList.toggle('hidden');
+}
+
+
+// 關閉軟刪除確認視窗
+function closeSoftDeleteModal() {
+    pendingSoftDeleteCardId = '';
+
+    els.softDeleteModal.classList.add(
+        'hidden'
+    );
+
+    els.softDeleteModal.classList.remove(
+        'flex'
+    );
+
+    els.softDeleteReferenceList
+        .classList.add('hidden');
+}
+
+
+// 執行移至回收桶
+async function confirmMoveCurrentNoteToTrash() {
+    const note =
+        findCardById(
+            pendingSoftDeleteCardId,
+            {
+                includeDeleted: true
+            }
+        );
+
+    if (!note) {
+        closeSoftDeleteModal();
+
+        showToast(
+            '找不到準備刪除的卡片',
+            'error'
+        );
+
+        return;
+    }
+
+    /*
+     * 保留 id、linkedNotes、content、images，
+     * 只標記為軟刪除。
+     */
+    note.isDeleted = true;
+    note.deletedAt =
+        new Date().toISOString();
+
+    closeSoftDeleteModal();
+
+    await saveToStorage();
+
+    renderNoteList();
+    renderLinkSuggestions();
+    updateTagHistory();
+    updateTagTree();
+    updateTrashCountBadge();
+
+    createNewNote();
+
+    showToast(
+        `「${note.title || '未命名卡片'}」已移至回收桶`,
+        'info'
+    );
+}
+
+
+// 開啟回收桶
+function openTrashPanel() {
+    renderTrashList();
+
+    els.trashModal.classList.remove(
+        'hidden'
+    );
+
+    els.trashModal.classList.add(
+        'flex'
+    );
+}
+
+
+// 關閉回收桶
+function closeTrashPanel() {
+    els.trashModal.classList.add(
+        'hidden'
+    );
+
+    els.trashModal.classList.remove(
+        'flex'
+    );
+}
+
+
+// 建立回收桶清單
+function renderTrashList() {
+    const deletedNotes =
+        getDeletedNotes()
+            .slice()
+            .sort(function(a, b) {
+                return (
+                    new Date(
+                        b.deletedAt || 0
+                    ) -
+                    new Date(
+                        a.deletedAt || 0
+                    )
+                );
+            });
+
+    els.trashCardList.innerHTML = '';
+
+    els.trashModalSummary.textContent =
+        `共 ${deletedNotes.length} 張已刪除卡片`;
+
+    if (deletedNotes.length === 0) {
+        els.trashCardList.innerHTML =
+            '<div class="py-12 text-center text-slate-500">' +
+            '<i class="fa-regular fa-trash-can text-3xl mb-3"></i>' +
+            '<div>回收桶目前是空的</div>' +
+            '</div>';
+
+        return;
+    }
+
+    deletedNotes.forEach(function(note) {
+        const row =
+            document.createElement('div');
+
+        row.className =
+            'p-4 bg-slate-900/70 border border-slate-700 ' +
+            'rounded-lg flex flex-col sm:flex-row sm:items-center gap-3';
+
+        row.dataset.cardId =
+            normalizeCardId(note.id);
+
+        const info =
+            document.createElement('div');
+
+        info.className =
+            'flex-1 min-w-0';
+
+        const title =
+            document.createElement('div');
+
+        title.className =
+            'font-bold text-slate-200 truncate';
+
+        title.textContent =
+            note.title || '未命名卡片';
+
+        const meta =
+            document.createElement('div');
+
+        meta.className =
+            'mt-1 text-[11px] text-slate-500 font-mono';
+
+        meta.textContent =
+            `CardId：${note.id}｜刪除：${formatCardPreviewDate({
+                updatedAt: note.deletedAt
+            })}`;
+
+        info.appendChild(title);
+        info.appendChild(meta);
+
+        const actions =
+            document.createElement('div');
+
+        actions.className =
+            'flex gap-2 shrink-0';
+
+        const restoreButton =
+            document.createElement('button');
+
+        restoreButton.type = 'button';
+
+        restoreButton.className =
+            'px-3 py-2 rounded border border-emerald-500/60 ' +
+            'text-emerald-400 hover:bg-emerald-500 hover:text-slate-900 ' +
+            'text-xs transition';
+
+        restoreButton.innerHTML =
+            '<i class="fa-solid fa-rotate-left mr-1"></i>還原';
+
+        restoreButton.addEventListener(
+            'click',
+            function() {
+                restoreTrashNote(
+                    note.id
+                );
+            }
+        );
+
+        const deleteButton =
+            document.createElement('button');
+
+        deleteButton.type = 'button';
+
+        deleteButton.className =
+            'px-3 py-2 rounded border border-red-500/60 ' +
+            'text-red-400 hover:bg-red-500 hover:text-white ' +
+            'text-xs transition';
+
+        deleteButton.innerHTML =
+            '<i class="fa-solid fa-trash-can mr-1"></i>永久刪除';
+
+        deleteButton.addEventListener(
+            'click',
+            function() {
+                permanentlyDeleteTrashNote(
+                    note.id
+                );
+            }
+        );
+
+        actions.appendChild(restoreButton);
+        actions.appendChild(deleteButton);
+
+        row.appendChild(info);
+        row.appendChild(actions);
+
+        els.trashCardList.appendChild(row);
+    });
+}
+
+
+// 還原卡片，保留原本 CardId 與全部連結
+async function restoreTrashNote(cardId) {
+    const note =
+        findCardById(
+            cardId,
+            {
+                includeDeleted: true
+            }
+        );
+
+    if (!note || !isNoteDeleted(note)) {
+        return;
+    }
+
+    note.isDeleted = false;
+    note.deletedAt = null;
+    note.updatedAt =
+        new Date().toISOString();
+
+    await saveToStorage();
+
+    renderTrashList();
+    renderNoteList();
+    renderLinkSuggestions();
+    updateTagHistory();
+    updateTagTree();
+    updateTrashCountBadge();
+
+    showToast(
+        `「${note.title || '未命名卡片'}」已還原，CardId 與連結保持不變`,
+        'success'
+    );
+}
+
+
+// 只有回收桶內才能永久刪除
+async function permanentlyDeleteTrashNote(
+    cardId
+) {
+    const note =
+        findCardById(
+            cardId,
+            {
+                includeDeleted: true
+            }
+        );
+
+    if (!note || !isNoteDeleted(note)) {
+        showToast(
+            '只能永久刪除回收桶內的卡片',
+            'error'
+        );
+
+        return;
+    }
+
+    const references =
+        getIncomingReferenceNotes(note.id);
+
+    const warning =
+        references.length > 0
+            ? `此卡片仍被 ${references.length} 張卡片引用。\n` +
+              `永久刪除後，這些引用會成為失效連結。\n\n`
+            : '';
+
+    if (
+        !confirm(
+            warning +
+            `確定永久刪除「${note.title || '未命名卡片'}」？\n` +
+            `此操作無法復原。`
+        )
+    ) {
+        return;
+    }
+
+    /*
+     * 不從其他卡片內文中移除連結，
+     * 讓原連結顯示為失效連結。
+     * 但 linkedNotes 中的雙向網絡 ID 要清除。
+     */
+    notes.forEach(function(otherNote) {
+        if (
+            !Array.isArray(
+                otherNote.linkedNotes
+            )
+        ) {
+            return;
+        }
+
+        otherNote.linkedNotes =
+            otherNote.linkedNotes.filter(
+                function(linkedCardId) {
+                    return (
+                        normalizeCardId(
+                            linkedCardId
+                        ) !==
+                        normalizeCardId(
+                            note.id
+                        )
+                    );
+                }
+            );
+    });
+
+    notes = notes.filter(function(item) {
+        return (
+            normalizeCardId(item.id) !==
+            normalizeCardId(note.id)
+        );
+    });
+
+    await saveToStorage();
+
+    renderTrashList();
+    renderNoteList();
+    renderLinkSuggestions();
+    updateTagHistory();
+    updateTagTree();
+    updateTrashCountBadge();
+
+    showToast(
+        '卡片已永久刪除',
+        'info'
+    );
+}
 
 // ==========================================
 // ===== 卡片滑鼠懸停預覽 ===================
@@ -2817,6 +3558,8 @@ renderLinkedUI(currentLinks);
 
 notes.push({
     id: newId,
+    isDeleted: false,
+deletedAt: null,
     title,
     content: contentHtml,
     tags: currentTags,
@@ -2861,32 +3604,33 @@ notes.push({
     }
 
 
-    async function deleteCurrentNote() {
-      if (!currentNoteId || !confirm('確認刪除此資料卡？')) return;
-      notes.forEach(function(note) {
-    if (!Array.isArray(note.linkedNotes)) {
+   async function deleteCurrentNote() {
+    if (!currentNoteId) {
         return;
     }
 
-    note.linkedNotes = note.linkedNotes.filter(
-        function(linkedCardId) {
-            return (
-                normalizeCardId(linkedCardId) !==
-                normalizeCardId(currentNoteId)
-            );
-        }
-    );
-});
-      notes = notes.filter(function(note) {
-    return (
-        normalizeCardId(note.id) !==
-        normalizeCardId(currentNoteId)
-    );
-});
-      await saveToStorage();
-      renderNoteList(); renderLinkSuggestions(); updateTagTree(); createNewNote();
-      showToast('資料已刪除', 'info');
+    const note =
+        findCardById(currentNoteId);
+
+    if (!note) {
+        showToast(
+            '找不到目前卡片',
+            'error'
+        );
+
+        return;
     }
+
+    /*
+     * 不立即刪除，也不清除 linkedNotes。
+     * 先顯示引用數與三個操作：
+     * 1. 移至回收桶
+     * 2. 取消
+     * 3. 查看引用卡片
+     */
+    openSoftDeleteModal(note);
+}
+
 
     // --- Layout Management ---
     function togglePanel(side) {
@@ -2919,7 +3663,18 @@ notes.push({
 
     function renderNoteList() {
       const filterText = els.searchInput.value.toLowerCase();
-      let listData = notes.filter(n => (n.title.toLowerCase().includes(filterText) || n.content.toLowerCase().includes(filterText)));
+      let listData = getActiveNotes().filter(
+    function(note) {
+        return (
+            String(note.title || '')
+                .toLowerCase()
+                .includes(filterText) ||
+            String(note.content || '')
+                .toLowerCase()
+                .includes(filterText)
+        );
+    }
+);
       listData = applyFacetedFilters(listData, activeFilters);
       
       updateFilterBadge();
@@ -3119,7 +3874,15 @@ notes.push({
 
     function updateTagHistory() {
       const allTags = new Set();
-      notes.forEach(n => (n.tags || []).forEach(t => allTags.add(t)));
+      getActiveNotes().forEach(
+    function(note) {
+        (note.tags || []).forEach(
+            function(tag) {
+                allTags.add(tag);
+            }
+        );
+    }
+);
       els.tagHistory.innerHTML = '<option value="">+ 從歷史標籤選擇</option>';
       allTags.forEach(tag => {
         const opt = document.createElement('option'); opt.value = tag; opt.textContent = tag;
@@ -3537,8 +4300,8 @@ function searchCardsForAutocomplete(query) {
     const normalizedQuery =
         query.trim().toLowerCase();
 
-    return notes
-        .filter(function(note) {
+    return getActiveNotes()
+    .filter(function(note) {
             // 不顯示目前正在編輯的卡片
             if (
                 normalizeCardId(note.id) ===
@@ -4031,12 +4794,36 @@ function refreshInternalCardLinks() {
             '.internal-card-link[data-card-id]'
         )
         .forEach(function(link) {
-            const card =
-                findCardById(
-                    link.dataset.cardId
-                );
+            const activeCard =
+    findCardById(
+        link.dataset.cardId
+    );
 
-            if (!card) {
+const anyCard =
+    findCardById(
+        link.dataset.cardId,
+        {
+            includeDeleted: true
+        }
+    );
+
+if (
+    anyCard &&
+    isNoteDeleted(anyCard)
+) {
+    link.classList.add(
+        'internal-card-link-broken'
+    );
+
+    link.title =
+        `卡片位於回收桶：${anyCard.title || anyCard.id}`;
+
+    return;
+}
+
+const card = activeCard;
+
+if (!card) {
                 link.classList.add(
                     'internal-card-link-broken'
                 );
@@ -5065,7 +5852,10 @@ document.addEventListener(
 
     function updateTagTree() {
         const searchText = els.tagTreeSearch.value.trim().toLowerCase();
-        const tree = buildTagTree(notes);
+        const tree =
+    buildTagTree(
+        getActiveNotes()
+    );
         els.tagExplorer.innerHTML = '';
         const hasMatch = renderTagExplorer(tree, els.tagExplorer, [], searchText);
         if (!hasMatch && searchText) els.tagExplorer.innerHTML = '<div class="text-xs text-slate-500 text-center py-2">無符合標籤</div>';
