@@ -333,10 +333,198 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+/* ==================================================
+   手機版：左右抽屜，中間編輯器全畫面
+   ================================================== */
+
+/* 使用動態視窗高度，避免手機網址列造成底部被遮住 */
+html,
+body {
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
+    overflow: hidden;
+}
+
+body {
+    min-height: 100dvh;
+}
+
+/* Flex 捲動區必須允許縮小 */
+#main-editor,
+#editor-layout,
+#editor-scroll-container {
+    min-width: 0;
+    min-height: 0;
+}
+
+/* 格式工具列不要換行 */
+#editor-toolbar {
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+}
+
+#editor-toolbar > * {
+    flex-shrink: 0;
+}
+
+/* 編輯器底部保留手機安全區 */
+#editor-scroll-container {
+    padding-bottom:
+        calc(
+            7rem +
+            env(safe-area-inset-bottom, 0px)
+        );
+    -webkit-overflow-scrolling: touch;
+}
+
+/* 避免圖片或表格撐破手機寬度 */
+.editor-content {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+.editor-content table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
+/* 桌面預設三欄 */
+#sidebar-left {
+    width: 20rem;
+    height: 100%;
+}
+
+#sidebar-right {
+    width: 18rem;
+    height: 100%;
+}
+
+/* 手機和平板直向 */
+@media (max-width: 767px) {
+    /*
+     * 左右欄改為 fixed 抽屜，
+     * 不再占用中間編輯器空間。
+     */
+    .mobile-side-drawer {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        z-index: 60;
+        width: min(86vw, 340px) !important;
+        height: 100dvh !important;
+        opacity: 1 !important;
+        visibility: visible;
+        transition:
+            transform 0.25s ease,
+            box-shadow 0.25s ease !important;
+    }
+
+    .mobile-left-drawer {
+        left: 0;
+        transform: translateX(-105%);
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        border-right: 1px solid #334155 !important;
+        box-shadow: none;
+    }
+
+    .mobile-right-drawer {
+        right: 0;
+        transform: translateX(105%);
+        border-left: 1px solid #334155 !important;
+        box-shadow: none;
+    }
+
+    .mobile-left-drawer.mobile-panel-open,
+    .mobile-right-drawer.mobile-panel-open {
+        transform: translateX(0);
+        box-shadow: 0 0 30px rgba(0, 0, 0, 0.65);
+    }
+
+    /*
+     * 不讓原本的 width/height 關閉 class
+     * 干擾手機抽屜。
+     */
+    .mobile-side-drawer.panel-closed-width,
+    .mobile-side-drawer.panel-closed-height {
+        width: min(86vw, 340px) !important;
+        height: 100dvh !important;
+        padding-top: initial !important;
+        padding-bottom: initial !important;
+        border-top: initial !important;
+        opacity: 1 !important;
+    }
+
+    .mobile-left-drawer.panel-closed-width,
+    .mobile-left-drawer.panel-closed-height {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    .mobile-right-drawer.panel-closed-width,
+    .mobile-right-drawer.panel-closed-height {
+        padding: 1rem !important;
+    }
+
+    /* 中間欄占滿整個手機畫面 */
+    #main-editor {
+        width: 100%;
+        height: 100dvh;
+        max-height: 100dvh;
+    }
+
+    #editor-layout {
+        width: 100%;
+        min-height: 0;
+    }
+
+    #editor-scroll-container {
+        width: 100%;
+        min-height: 0;
+    }
+
+    /*
+     * 手機觸控沒有穩定 hover，
+     * 不顯示滑鼠懸停預覽。
+     */
+    #card-hover-preview {
+        display: none !important;
+    }
+
+    /* Toast 避免超出手機畫面 */
+    #toast-container {
+        left: 12px;
+        right: 12px;
+        top: 12px;
+    }
+
+    #toast-container > div {
+        min-width: 0 !important;
+        width: 100%;
+    }
+}
+
+/* 桌面 */
+@media (min-width: 768px) {
+    #sidebar-left,
+    #sidebar-right {
+        position: relative;
+        transform: none;
+        z-index: auto;
+    }
+
+    #mobile-drawer-overlay {
+        display: none !important;
+    }
+}
+
 
   </style>
 </head>
-<body class="bg-tech-bg text-slate-200 font-sans h-screen overflow-hidden flex flex-col md:flex-row landscape:flex-row relative">
+<body class="bg-tech-bg text-slate-200 font-sans h-screen overflow-hidden flex relative">
 
   <!-- 🔲 Notification Toast Area -->
   <div id="toast-container" class="fixed top-5 right-5 z-[100] flex flex-col gap-2 pointer-events-none"></div>
@@ -593,15 +781,25 @@
       </div>
   </div>
 
+<!-- 手機左右抽屜共用遮罩 -->
+<div
+    id="mobile-drawer-overlay"
+    class="hidden fixed inset-0 z-[55] bg-slate-950/70 backdrop-blur-sm md:hidden"
+    onclick="closeMobileDrawers()"
+></div>
 
   <!-- 🟦 SIDEBAR (Navigation & List) 精簡版 -->
-  <aside id="sidebar-left" class="panel-transition w-full md:w-80 landscape:w-80 flex flex-col border-r border-tech-border bg-tech-panel h-[40vh] md:h-full landscape:h-full shrink-0">
-    <div class="p-4 border-b border-tech-border flex items-center justify-between shrink-0">
+  <aside
+    id="sidebar-left"
+    class="mobile-side-drawer mobile-left-drawer panel-transition flex flex-col border-r border-tech-border bg-tech-panel shrink-0"
+>
+
+    <div class="p-4 border-b border-tech-border flex items-center justify-between gap-2 shrink-0">
       <div class="flex items-center gap-2 text-tech-accent animate-pulse">
         <i class="fa-solid fa-microchip text-xl"></i>
         <h1 class="font-mono text-lg font-bold tracking-wider">ZETTEL_AI</h1>
       </div>
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2 shrink-0">
         <button
     type="button"
     onclick="openTrashPanel()"
@@ -619,6 +817,14 @@
         <button onclick="saveNotes()" title="匯出/保存 (JSON)" class="text-slate-400 hover:text-tech-accent transition"><i class="fa-solid fa-floppy-disk"></i></button>
         <label for="import-notes" title="導入 (JSON)" class="text-slate-400 hover:text-tech-accent transition cursor-pointer mb-0 flex items-center"><i class="fa-solid fa-file-import"></i></label>
         <input type="file" id="import-notes" accept=".json" class="hidden" onchange="importNotes()" />
+        <button
+    type="button"
+    onclick="closeMobileDrawers()"
+    title="關閉卡片列表"
+    class="md:hidden text-slate-400 hover:text-white transition p-1"
+>
+    <i class="fa-solid fa-xmark"></i>
+</button>
       </div>
     </div>
 
@@ -635,19 +841,26 @@
   </aside>
 
   <!-- 🟩 MAIN AREA (Editor) -->
-  <main class="flex-1 flex flex-col h-[60vh] md:h-full landscape:h-full relative bg-tech-bg bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiLz48L3N2Zz4=')]">
+  <main
+    id="main-editor"
+    class="flex-1 min-w-0 min-h-0 flex flex-col h-full relative bg-tech-bg bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiLz48L3N2Zz4=')]">
     
     <!-- Editor Header / Toolbar (加入浮動面板觸發器) -->
-    <header class="h-16 border-b border-tech-border glass-panel flex items-center justify-between px-4 md:px-6 shrink-0 z-10">
-      <div class="flex items-center gap-4 w-full overflow-hidden">
+    <header class="min-h-16 border-b border-tech-border glass-panel flex items-center justify-between px-2 sm:px-4 md:px-6 shrink-0 z-10">
+      <div class="flex items-center gap-1 sm:gap-3 w-full min-w-0 overflow-hidden">
         <button onclick="togglePanel('left')" class="text-slate-400 hover:text-white transition p-2 rounded hover:bg-slate-700/50 shrink-0" title="切換導航欄">
             <i class="fa-solid fa-bars"></i>
         </button>
 
-        <input type="text" id="note-title" placeholder="輸入資料卡標題..." class="bg-transparent border-none text-lg md:text-2xl font-bold text-white placeholder-slate-600 focus:outline-none w-full font-mono tracking-wide min-w-0" />
+        <input
+    type="text"
+    id="note-title"
+    placeholder="輸入資料卡標題..."
+    class="bg-transparent border-none text-base sm:text-lg md:text-2xl font-bold text-white placeholder-slate-600 focus:outline-none w-full font-mono tracking-wide min-w-0"
+/>
       </div>
       
-      <div class="flex items-center gap-1 md:gap-2 shrink-0 ml-2">
+      <div class="flex items-center gap-0.5 sm:gap-1 md:gap-2 shrink-0 ml-1">
         <!-- Floating Panels Triggers -->
         <button onclick="toggleFloatingPanel('tag')" class="text-slate-400 hover:text-tech-accent hover:bg-slate-800 transition p-2 rounded relative" title="標籤樹狀瀏覽">
             <i class="fa-solid fa-tags"></i>
@@ -666,13 +879,23 @@
         <button onclick="deleteCurrentNote()" id="btn-delete" class="hidden text-red-500 hover:bg-red-500/10 p-2 rounded transition border border-transparent hover:border-red-500/50" title="刪除此卡片">
           <i class="fa-solid fa-trash-can"></i>
         </button>
-        <button onclick="togglePanel('right')" class="text-slate-400 hover:text-tech-secondary transition p-2 rounded hover:bg-slate-700/50 hidden md:block" title="切換右側資訊欄">
+        <button
+    type="button"
+    onclick="togglePanel('right')"
+    class="text-slate-400 hover:text-tech-secondary transition p-2 rounded hover:bg-slate-700/50"
+    title="開啟標籤與連結網絡"
+>
+    <i class="fa-solid fa-columns"></i>
+</button>
             <i class="fa-solid fa-columns"></i>
         </button>
       </div>
     </header>
 
-    <div class="px-6 py-2 border-b border-tech-border bg-slate-800/30 flex flex-wrap items-center gap-2 overflow-x-auto shrink-0">
+    <div
+    id="editor-toolbar"
+    class="px-2 sm:px-4 md:px-6 py-2 border-b border-tech-border bg-slate-800/30 flex flex-nowrap items-center gap-2 overflow-x-auto overflow-y-hidden shrink-0 custom-scrollbar"
+>
       <div class="flex bg-slate-900 rounded border border-slate-700 p-0.5">
         <button onclick="formatText('bold')" class="p-1.5 px-3 hover:bg-slate-700 rounded text-slate-300 transition" title="粗體"><i class="fa-solid fa-bold"></i></button>
         <button onclick="formatText('italic')" class="p-1.5 px-3 hover:bg-slate-700 rounded text-slate-300 transition" title="斜體"><i class="fa-solid fa-italic"></i></button>
@@ -690,7 +913,7 @@
     class="cursor-pointer bg-slate-900 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs rounded p-1.5 px-3 transition flex items-center gap-2 shrink-0"
 >
     <i class="fa-solid fa-image"></i>
-    <span>插入圖片</span>
+    <span class="hidden sm:inline">插入圖片</span>
 
     <input
         type="file"
@@ -713,9 +936,12 @@
         class="fa-solid fa-eye"
     ></i>
 
-    <span id="markdown-mode-text">
-        Markdown 預覽
-    </span>
+    <span
+    id="markdown-mode-text"
+    class="hidden sm:inline"
+>
+    Markdown 預覽
+</span>
 </button>
 
 </div>
@@ -723,9 +949,21 @@
 <!-- Content Area -->
 
     <!-- Content Area -->
-    <div class="flex-1 flex flex-col md:flex-row landscape:flex-row overflow-hidden relative">
-      <div class="flex-1 overflow-y-auto p-6 relative custom-scrollbar">
-        <div id="editor-content" class="editor-content w-full h-full min-h-[300px] outline-none text-slate-300 leading-relaxed text-lg" contenteditable="true" placeholder="在此輸入系統資料..."></div>
+    <div
+    id="editor-layout"
+    class="flex-1 min-h-0 min-w-0 flex overflow-hidden relative"
+>
+      <div
+    id="editor-scroll-container"
+    class="flex-1 min-h-0 min-w-0 overflow-y-auto overscroll-contain px-4 sm:px-6 pt-4 sm:pt-6 pb-28 relative custom-scrollbar"
+>
+        <div
+    id="editor-content"
+    class="editor-content w-full min-h-full outline-none text-slate-300 leading-relaxed text-base sm:text-lg"
+    contenteditable="true"
+    placeholder="在此輸入系統資料..."
+></div>
+
         <!-- [[ 卡片連結自動完成選單 -->
 <div
     id="card-link-autocomplete"
@@ -734,7 +972,27 @@
       </div>
 
       <!-- 🟨 RIGHT SIDEBAR (Metadata) 精簡版 -->
-      <aside id="sidebar-right" class="panel-transition w-full md:w-72 landscape:w-72 border-t border-l-0 md:border-t-0 landscape:border-t-0 md:border-l landscape:border-l border-tech-border bg-slate-900/50 p-4 overflow-y-auto shrink-0 h-[40vh] md:h-full landscape:h-full custom-scrollbar">
+      <aside
+    id="sidebar-right"
+    class="mobile-side-drawer mobile-right-drawer panel-transition border-l border-tech-border bg-slate-900 p-4 overflow-y-auto shrink-0 custom-scrollbar"
+>
+
+<div class="md:hidden flex items-center justify-between mb-4 pb-3 border-b border-slate-700">
+    <div class="font-mono text-sm font-bold text-tech-secondary">
+        <i class="fa-solid fa-sliders mr-2"></i>
+        卡片屬性
+    </div>
+
+    <button
+        type="button"
+        onclick="closeMobileDrawers()"
+        class="text-slate-400 hover:text-white p-2"
+        title="關閉屬性欄"
+    >
+        <i class="fa-solid fa-xmark"></i>
+    </button>
+</div>
+        
         <!-- Tags Input Section -->
         <div class="mb-6">
           <h3 class="text-xs font-mono text-tech-accent mb-2 uppercase tracking-wider border-b border-slate-700 pb-1"><i class="fa-solid fa-tags mr-1"></i> 資料標籤</h3>
@@ -1136,6 +1394,8 @@ btnViewDeleteReferences:
     document.getElementById('btn-view-delete-references'),
       sidebarLeft: document.getElementById('sidebar-left'),
       sidebarRight: document.getElementById('sidebar-right'),
+      mobileDrawerOverlay:
+    document.getElementById('mobile-drawer-overlay'),
       
       // Floating Panel Elements
       tagExplorer: document.getElementById('tag-explorer'), 
@@ -1278,9 +1538,31 @@ document.addEventListener(
       els.tagTreeSearch.addEventListener('input', updateTagTree);
 
       // ESC 鍵關閉所有浮動面板
-      document.addEventListener('keydown', (e) => {
-          if (e.key === 'Escape' && activeFloatingPanel) closeAllPanels();
-      });
+      document.addEventListener(
+    'keydown',
+    function(event) {
+        if (event.key !== 'Escape') {
+            return;
+        }
+
+        const mobileDrawerOpen =
+            els.sidebarLeft.classList.contains(
+                'mobile-panel-open'
+            ) ||
+            els.sidebarRight.classList.contains(
+                'mobile-panel-open'
+            );
+
+        if (mobileDrawerOpen) {
+            closeMobileDrawers();
+            return;
+        }
+
+        if (activeFloatingPanel) {
+            closeAllPanels();
+        }
+    }
+);
 
       loadApiSettingsUI(); // 自動填入保存的 API 設定
       updateMarkdownModeButton(); // 還原 Markdown 貼上模式 
@@ -3363,6 +3645,9 @@ function synchronizeBidirectionalLinks(
     function createNewNote() {
 
         hideCardHoverPreview();
+        if (window.innerWidth < 768) {
+    closeMobileDrawers();
+}
 
       currentNoteId = null;
       els.title.value = ''; els.content.innerHTML = '';
@@ -3421,7 +3706,9 @@ if (markdownPasteMode === 'preview') {
 }
       document.querySelectorAll('#editor-content img').forEach(makeImageResizable);
       
-      if (window.innerWidth < 768) togglePanel('left');
+      if (window.innerWidth < 768) {
+    closeMobileDrawers();
+}
     }
 
     async function updateCurrentNote() {
@@ -3634,15 +3921,91 @@ deletedAt: null,
 
     // --- Layout Management ---
     function togglePanel(side) {
-        const isRowLayout = window.innerWidth >= 768 || window.matchMedia("(orientation: landscape)").matches;
+    const isMobile =
+        window.innerWidth < 768;
+
+    /*
+     * 桌面：
+     * 維持原本左右欄寬度收合功能。
+     */
+    if (!isMobile) {
         if (side === 'left') {
-            if (isRowLayout) els.sidebarLeft.classList.toggle('panel-closed-width');
-            else els.sidebarLeft.classList.toggle('panel-closed-height');
+            els.sidebarLeft.classList.toggle(
+                'panel-closed-width'
+            );
         } else if (side === 'right') {
-            if (isRowLayout) els.sidebarRight.classList.toggle('panel-closed-width');
-            else els.sidebarRight.classList.toggle('panel-closed-height');
+            els.sidebarRight.classList.toggle(
+                'panel-closed-width'
+            );
         }
+
+        return;
     }
+
+    /*
+     * 手機：
+     * 左右欄改用覆蓋式抽屜。
+     */
+    const targetPanel =
+        side === 'left'
+            ? els.sidebarLeft
+            : els.sidebarRight;
+
+    const otherPanel =
+        side === 'left'
+            ? els.sidebarRight
+            : els.sidebarLeft;
+
+    const willOpen =
+        !targetPanel.classList.contains(
+            'mobile-panel-open'
+        );
+
+    // 一次只允許開啟一側
+    otherPanel.classList.remove(
+        'mobile-panel-open'
+    );
+
+    if (willOpen) {
+        targetPanel.classList.add(
+            'mobile-panel-open'
+        );
+
+        els.mobileDrawerOverlay.classList.remove(
+            'hidden'
+        );
+
+        /*
+         * 抽屜開啟時避免背景編輯器滑動。
+         */
+        document.body.classList.add(
+            'mobile-drawer-active'
+        );
+    } else {
+        closeMobileDrawers();
+    }
+
+    hideCardHoverPreview();
+    closeCardLinkAutocomplete();
+}
+
+function closeMobileDrawers() {
+    els.sidebarLeft.classList.remove(
+        'mobile-panel-open'
+    );
+
+    els.sidebarRight.classList.remove(
+        'mobile-panel-open'
+    );
+
+    els.mobileDrawerOverlay.classList.add(
+        'hidden'
+    );
+
+    document.body.classList.remove(
+        'mobile-drawer-active'
+    );
+}
 
     // --- Filters & Tree Core ---
     function applyFacetedFilters(notesList, filters) {
@@ -5231,7 +5594,7 @@ function updateMarkdownModeButton() {
             'border border-tech-accent/50 ' +
             'text-tech-accent hover:text-slate-900 ' +
             'text-xs rounded p-1.5 px-3 transition ' +
-            'flex items-center gap-2';
+            'flex items-center gap-2 shrink-0';
     } else {
         text.textContent = 'Markdown 原始碼';
         icon.className = 'fa-solid fa-code';
@@ -5244,7 +5607,7 @@ function updateMarkdownModeButton() {
             'border border-tech-warning/50 ' +
             'text-tech-warning hover:text-slate-900 ' +
             'text-xs rounded p-1.5 px-3 transition ' +
-            'flex items-center gap-2';
+            'flex items-center gap-2 shrink-0';
     }
 }
 
@@ -5773,6 +6136,14 @@ window.addEventListener(
     function() {
         positionImageResizeHandle();
         repositionCardHoverPreview();
+
+        /*
+         * 從手機轉成桌面時，
+         * 清除手機抽屜和遮罩狀態。
+         */
+        if (window.innerWidth >= 768) {
+            closeMobileDrawers();
+        }
     }
 );
 
