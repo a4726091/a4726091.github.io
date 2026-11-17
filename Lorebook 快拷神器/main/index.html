@@ -196,7 +196,17 @@
 
     <!-- 文字輸入區 -->
     <div class="textarea-container" id="inputSection">
-        <textarea id="rawText" placeholder="在此貼上完整的設定資料...&#10;&#10;【分層規則說明】&#10;系統會自動根據以下兩種格式切分節點：&#10;1. 包含「條目 X：」的段落&#10;2. 以中括號開頭的標籤，例如「[Form 1: 雌犬李懿宸]」或「[Faction: 李府]」"></textarea>
+        <input
+    type="file"
+    id="txtFileInput"
+    accept=".txt,text/plain"
+    onchange="loadTxtFile(event)"
+    style="margin-bottom:10px;width:100%;"
+/>
+        <textarea
+    id="rawText"
+    ondragover="event.preventDefault()"
+    ondrop="handleTxtDrop(event)" placeholder="在此貼上完整的設定資料...&#10;&#10;【分層規則說明】&#10;系統會自動根據以下兩種格式切分節點：&#10;1. 包含「條目 X：」的段落&#10;2. 以中括號開頭的標籤，例如「[Form 1: 雌犬李懿宸]」或「[Faction: 李府]」"></textarea>
         <button onclick="parseData()" style="margin-top: 10px;">✂️ 解析並分割節點</button>
     </div>
 
@@ -236,6 +246,56 @@
                 card.classList.remove('selected');
             }
         }
+
+        function loadTxtFile(event) {
+    const file = event.target.files[0];
+
+    if (!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+        const content = e.target.result;
+
+        document.getElementById('rawText').value = content;
+
+        showToast(`✅ 已載入：${file.name}`);
+
+setTimeout(() => {
+    parseData();
+}, 100);
+    };
+
+    reader.onerror = function() {
+        showToast('❌ TXT讀取失敗');
+    };
+
+    reader.readAsText(file, 'UTF-8');
+}
+
+        function handleTxtDrop(event) {
+    event.preventDefault();
+
+    const file = event.dataTransfer.files[0];
+
+    if (!file) return;
+
+    if (!file.name.toLowerCase().endsWith('.txt')) {
+        showToast('⚠️ 只支援 TXT');
+        return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+        document.getElementById('rawText').value = e.target.result;
+
+        showToast(`✅ 已匯入：${file.name}`);
+    };
+
+    reader.readAsText(file, 'UTF-8');
+}
+
         function parseData() {
             const rawText = document.getElementById('rawText').value;
             if (!rawText.trim()) {
